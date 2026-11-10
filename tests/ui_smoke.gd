@@ -212,6 +212,20 @@ func _run_tests() -> void:
 	quit(0 if failures.is_empty() else 1)
 
 
+## Every piece of text in a subtree, joined.
+##
+## The gallery tab nests the event banner inside a card, so the text is
+## several levels down. Scanning only the direct children would find an
+## empty string and pass a test that proves nothing.
+func _collect_text(node: Node) -> String:
+	var out := ""
+	if node is Label:
+		out += str((node as Label).text) + "\n"
+	for child in node.get_children():
+		out += _collect_text(child)
+	return out
+
+
 ## The systems added after the first vertical slice: saving, the tutorial,
 ## the ledger and the demand split. These are the parts a player actually
 ## touches, so they get the same scrutiny as the economy.
@@ -252,6 +266,111 @@ func _test_new_systems(state: GameState, ui: GameUI) -> void:
 	var summary: Dictionary = state.end_day()
 	for key in ["curated", "digs_done", "stolen_grades", "raw_after", "payout", "capex"]:
 		check(summary.has(key), "the day summary reports %s" % key)
+	check(summary.has("day_event"), "the day summary carries the day's event")
+
+	# --- the daily event deck
+	#
+	# The deck has to be worth having, and "worth having" is two separate
+	# claims that are easy to conflate:
+	#   1. it fires, and it fires DIFFERENTLY from day to day
+	#   2. it does something - a change in the day the player can see
+	#
+	# A deck where every day is the same event is decoration. A deck that
+	# changes nothing is a title screen. Both are checked here.
+	var deck := EventDeck.new()
+	check(EventDeck.total_weight() > 0, "the event deck has weight")
+
+	# Determinism: the same seed must give the same sequence, or the
+	# balance harness would be measuring a different game on every run.
+	var rng_a := RandomNumberGenerator.new()
+	rng_a.seed = 4242
+	var rng_b := RandomNumberGenerator.new()
+	rng_b.seed = 4242
+	var same := true
+	for i in 20:
+		if deck.roll(rng_a)["id"] != deck.roll(rng_b)["id"]:
+			same = false
+	check(same, "the event deck is deterministic under a fixed seed")
+
+	# The deck must actually produce variety.
+	var rng_c := RandomNumberGenerator.new()
+	rng_c.seed = 99
+	var seen := {}
+	for i in 200:
+		seen[str(deck.roll(rng_c)["id"])] = true
+	check(seen.size() >= 5, "the deck produces a variety of events")
+	check(seen.has("fair_day"), "the deck can produce a Fair Day")
+	check(seen.has("rain"), "the deck can produce a rainy day")
+
+	# The deck's multipliers must average out, or it is a hidden rebalance.
+	var ev := EventDeck.expected_multipliers()
+	check(absf(float(ev["demand"]) - 1.0) < 0.0001, "the deck's demand is neutral")
+	check(absf(float(ev["theft"]) - 1.0) < 0.0001, "the deck's theft is neutral")
+	check(absf(float(ev["curation"])) < 0.0001, "the deck's curation is neutral")
+
+	# The event must be announced BEFORE the day is played, so it can
+	# inform a decision rather than explain one afterwards.
+	var ev_state := GameState.new()
+	var first_event := ev_state.today_event()
+	check(not first_event.is_empty(), "a new game starts with an event")
+	check(str(first_event.get("title", "")) != "", "the event has a title")
+	check(str(first_event.get("text", "")) != "", "the event has flavour text")
+	var ev_before := str(ev_state.today_event().get("id", ""))
+	ev_state.end_day()
+	check(str(ev_state.today_event().get("id", "")) != ev_before
+		or ev_state.event_log().size() >= 2,
+		"a new event is rolled for the next day")
+	check(ev_state.event_log().size() >= 2, "the event history grows")
+
+	# The event must actually reach the player. If the deck changes the
+	# simulation but the interface never mentions it, the player is being
+	# handed unexplained swings in their income.
+	var ev_ui: GameUI = MAIN.new()
+	root.add_child(ev_ui)
+	ev_ui._select_tab(0)
+	check(_collect_text(ev_ui._content).contains("TODAY:"),
+		"the gallery tab announces the day's event")
+	ev_ui.queue_free()
+
+	# An event that changes the day must be visible in the numbers.
+	#
+	# The baseline is PINNED to a neutral event first. A new game deals a
+	# random event at construction, so measuring the "neutral" demand
+	# without pinning it means the baseline is sometimes already a Fair Day
+	# - and the comparison below then fails on a coin flip.
+	var demand_state := GameState.new()
+	demand_state.set_today_event({"id": "test", "title": "Baseline",
+		"text": "", "demand": 1.0, "theft": 1.0, "curation": 0, "charm": 0})
+	var neutral := demand_state.demand()
+	demand_state.set_today_event({"id": "test", "title": "Fair Day",
+		"text": "", "demand": 1.4, "theft": 1.0, "curation": 0, "charm": 0})
+	var boosted := demand_state.demand()
+	check(boosted > neutral, "a busy day raises the demand cap")
+	demand_state.set_today_event({"id": "test", "title": "Rain",
+		"text": "", "demand": 0.6, "theft": 1.0, "curation": 0, "charm": 0})
+	check(demand_state.demand() < neutral, "a wet day lowers the demand cap")
+
+	# Curation changes must reach the player-facing number.
+	var cur_state := GameState.new()
+	var base_cap := cur_state.daily_curation()
+	cur_state.set_today_event({"id": "test", "title": "Extra Hands",
+		"text": "", "demand": 1.0, "theft": 1.0, "curation": 1, "charm": 0})
+	check(cur_state.daily_curation() == base_cap + 1,
+		"extra hands raise the day's cataloguing capacity")
+	cur_state.set_today_event({"id": "test", "title": "Holiday",
+		"text": "", "demand": 1.0, "theft": 1.0, "curation": -1, "charm": 0})
+	check(cur_state.daily_curation() == base_cap - 1,
+		"a curator's holiday lowers the day's cataloguing capacity")
+
+	# The deck must survive a save: a reloaded game must not lose the
+	# weather, or the player reloads into a different day than they left.
+	var saved := GameState.new()
+	saved.end_day()
+	check(saved.save_to_disk(), "the game saves with an event")
+	var event_reload := GameState.new()
+	check(event_reload.load_from_disk(), "the game loads with an event")
+	check(str(event_reload.today_event().get("id", "")) == str(saved.today_event().get("id", "")),
+		"the day's event survives the round trip")
 
 	# --- save and load round trip. A save that loses the RNG state would
 	# quietly reroll every future theft and dig, so that is checked too.

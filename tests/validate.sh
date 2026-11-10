@@ -57,6 +57,16 @@ else
 	fail "milestone ladder scaling"
 fi
 
+step "Event deck (is the daily event system economy-neutral?)"
+EVENT_OUT=$("$GODOT" --headless --path . --script res://sim/run_events.gd -- --days=365 2>&1)
+echo "$EVENT_OUT" | grep -E "demand EV|median daily operating income|EVENT VERDICT|CV=" || true
+if echo "$EVENT_OUT" | grep -q "EVENT VERDICT: neutral"; then
+	echo "  ok"
+else
+	fail "event deck neutrality"
+	echo "$EVENT_OUT" | tail -20
+fi
+
 # ------------------------------------------------------------- visual checks
 
 if [ "$VISUAL" = "1" ]; then

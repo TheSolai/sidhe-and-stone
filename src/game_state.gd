@@ -132,13 +132,53 @@ func paying_split() -> Dictionary:
 func theft_chance(grade: String) -> float:
 	return sim.theft_chance(grade)
 
+## The event governing the day being played.
+##
+## Rolled ahead of the day on purpose: the player sees the weather BEFORE
+## they commit the gallery floor, so it can change what they do.
+func today_event() -> Dictionary:
+	return sim.current_event
+
+## The event that governed the most recently resolved day.
+func last_day_event() -> Dictionary:
+	return sim.last_day_event
+
+## Every event rolled so far, for the harness.
+func event_log() -> Array:
+	return sim.event_log
+
+## Force the event that governs the next day.
+##
+## A test seam, and an honest one: the deck is rolled ahead of the day, so
+## "the event for the coming day" is a real, meaningful thing to set. It
+## lets the harness ask what a Fair Day does to the economy without having
+## to wait for the deck to deal one. The UI never calls this.
+func set_today_event(ev: Dictionary) -> void:
+	sim.current_event = ev.duplicate()
+
+## Switch the daily event deck on or off.
+##
+## The balance harness uses this to measure what the deck is worth to the
+## economy. It is exposed here rather than reached for through `sim` so
+## that the harness drives the same seam the UI drives.
+func set_events_enabled(on: bool) -> void:
+	sim.events_enabled = on
+
+## The deck's headline for today, for the top bar.
+func event_title() -> String:
+	return str(sim.current_event.get("title", ""))
+
+## One line of flavour for today.
+func event_text() -> String:
+	return str(sim.current_event.get("text", ""))
+
 ## How many finds one curator can catalog per day.
 func curator_capacity() -> int:
 	return sim.curator_capacity
 
-## How many finds the curators can handle today.
+## How many finds the curators can handle today, after today's event.
 func daily_curation() -> int:
-	return sim.curators * sim.curator_capacity
+	return maxi(0, sim.curators * sim.curator_capacity + sim.event_curation_delta())
 
 func upgrade_cost(kind: String) -> int:
 	return sim.upgrade_cost(kind)
@@ -369,6 +409,7 @@ func end_day() -> Dictionary:
 		"raw_before": before_raw,
 		"raw_after": sim.raw_count(),
 		"event": sim.last_event,
+		"day_event": sim.last_day_event.duplicate(),
 	}
 	_day_narrative(summary)
 	check_goals()
@@ -401,6 +442,13 @@ func _day_narrative(s: Dictionary) -> void:
 		bits.append("Visitors paid £%d." % revenue)
 	else:
 		bits.append("No visitors paid today.")
+
+	# The day's event is named first, because it is the reason for the
+	# numbers that follow. The player should read this and think "ah, THAT
+	# is why" rather than wondering what the numbers mean.
+	var ev: Dictionary = s.get("day_event", {})
+	if not ev.is_empty():
+		bits.append("It was %s." % str(ev.get("title", "an ordinary day")))
 
 	var curated := int(s["curated"])
 	if curated > 0:

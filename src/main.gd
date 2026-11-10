@@ -463,6 +463,7 @@ func _rebuild_content() -> void:
 
 func _build_gallery_tab() -> void:
 	_content.add_child(_section_title("The Gallery"))
+	_content.add_child(_event_banner(state.today_event()))
 	_content.add_child(_hint(
 		"Visitors pay for the %d most valuable exhibits on display today. "
 		% state.demand()
@@ -860,6 +861,14 @@ func _show_day_report(s: Dictionary) -> void:
 	if ev != "":
 		col.add_child(_hint(ev))
 
+	# The day's event, named in the report so the player can connect the
+	# numbers to the cause. "Takings £40" means nothing on its own;
+	# "Fair Day" and "Takings £40" means something.
+	var day_ev: Dictionary = s.get("day_event", {})
+	if not day_ev.is_empty():
+		col.add_child(_spacer(0, 2))
+		col.add_child(_event_banner(day_ev))
+
 	col.add_child(_spacer(0, 4))
 	var ok := _button("Continue", func(): _clear_overlay())
 	ok.custom_minimum_size = Vector2(0, 46)
@@ -1096,6 +1105,49 @@ func _label(text: String, col: Color, size: int = 15) -> Label:
 	# label gives it the row's remaining width to wrap across.
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
+
+
+## The day's event, shown as a banner.
+##
+## The banner does three things at once: it names the weather, it spells out
+## the EFFECT in numbers the player already understands (more visitors, more
+## risk, faster cataloguing), and it is deliberately the first thing on the
+## Gallery tab, because the event is meant to inform a decision rather than
+## decorate one after the fact.
+func _event_banner(ev: Dictionary) -> Control:
+	if ev.is_empty():
+		return _spacer(0, 0)
+
+	var card := _card(COL_OCHRE)
+	var col := _card_col(card)
+
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	col.add_child(head)
+	head.add_child(_label("TODAY: %s" % str(ev.get("title", "")),
+		COL_OCHRE, 17))
+
+	var body := _label(str(ev.get("text", "")), COL_CREAM, 13)
+	col.add_child(body)
+
+	# The effect line. If the event does nothing measurable, say nothing.
+	var effects: Array[String] = []
+	var d := float(ev.get("demand", 1.0))
+	if absf(d - 1.0) > 0.001:
+		effects.append("visitors %s%.0f%%" % ["+" if d > 1.0 else "", (d - 1.0) * 100.0])
+	var t := float(ev.get("theft", 1.0))
+	if absf(t - 1.0) > 0.001:
+		effects.append("theft risk %s%.0f%%" % ["+" if t > 1.0 else "", (t - 1.0) * 100.0])
+	var c := int(ev.get("curation", 0))
+	if c != 0:
+		effects.append("cataloguing %s%d" % ["+" if c > 0 else "", c])
+	var ch := int(ev.get("charm", 0))
+	if ch != 0:
+		effects.append("%d charm(s) from the notice" % ch)
+	if not effects.is_empty():
+		col.add_child(_label("· ".join(effects), COL_SLATE, 12))
+
+	return card
 
 
 func _section_title(text: String) -> Control:

@@ -176,7 +176,7 @@ static func _trailing_operating_income(state: GameState, n: int) -> float:
 	return float(total) / float(rev.size() - start)
 
 
-## Mean DAILY gross takings over the last `n` days.
+## Mean DAILY gross takings over the last `n` days, ending today.
 ##
 ## This, not net income, is the honest yardstick for a milestone reward. Net
 ## income understates what the player is worth in the early game, because the
@@ -184,15 +184,62 @@ static func _trailing_operating_income(state: GameState, n: int) -> float:
 ## operating line, so a player who is working hard reads as barely breaking
 ## even. Gross takings are the number the player actually sees on the day
 ## report, so a reward scaled against it feels the same as it does to them.
+##
+## It is a WINSORIZED MEAN, and the reasoning matters:
+##
+##   * A plain mean is right about the typical case, but the daily event
+##     deck can put one loud day in the window: a Fair Day lifts takings by
+##     40%. That single day would inflate the yardstick the reward is
+##     scaled against, so a milestone landing right after a fair would be
+##     measured against an income the player will never see again.
+##   * A plain MEDIAN is the obvious other answer, and it is WRONG here. In
+##     the early game most days earn nothing at all - the gallery is empty
+##     until the curators have caught up - and those zeros are STRUCTURAL,
+##     not noise. The median of a mostly-zero window is 0, which would make
+##     every early milestone read as "landed on a day with no takings" and
+##     fail the ladder for no reason at all.
+##
+## So: mean over the window, with any single day's takings capped at twice
+## the median of the days the player actually earned. One outsized day
+## cannot move the yardstick much; a genuinely earning player still measures
+## correctly; and a sparse early window still measures as "a little income",
+## not as zero.
 static func _daily_revenue(state: GameState, n: int) -> float:
 	var rev := state.revenue_log()
 	if rev.is_empty():
 		return 0.0
 	var start := maxi(0, rev.size() - n)
-	var total := 0
+	var window: Array[int] = []
 	for i in range(start, rev.size()):
-		total += int(rev[i])
-	return float(total) / float(rev.size() - start)
+		window.append(int(rev[i]))
+	return _winsorized_mean(window)
+
+
+## Mean of a window, with a single outsized day capped.
+##
+## The cap is twice the median of the EARNING days in the window. Using the
+## earning days rather than all of them is what keeps the early game
+## working: if the player earned on one day only, that day's takings are
+## the median of the earning days and therefore uncapped, so the window
+## still measures as the small income it actually was.
+static func _winsorized_mean(window: Array[int]) -> float:
+	if window.is_empty():
+		return 0.0
+
+	var earning: Array[int] = []
+	for v in window:
+		if v > 0:
+			earning.append(v)
+
+	var cap := -1
+	if not earning.is_empty():
+		earning.sort()
+		cap = earning[int(earning.size() / 2)] * 2
+
+	var total := 0.0
+	for v in window:
+		total += float(mini(v, cap) if cap > 0 else v)
+	return total / float(window.size())
 
 
 ## Total gross takings over the last `n` days.

@@ -87,13 +87,14 @@ without limit — *RUNAWAY*). Both were caught in seconds, before any UI existed
 
 ```bash
 cd ~/Projects/GameStewKit
-./tests/validate.sh            # smoke + economy + ladder
+./tests/validate.sh            # smoke + economy + ladder + event deck
 ./tests/validate.sh --visual   # ...plus UI and reel captures
 ```
 
-Four stages: UI smoke test (drives real player actions, checks all six tabs
+Five stages: UI smoke test (drives real player actions, checks all six tabs
 render), 365-day economy baseline, player-path balance with the milestone
-ladder, and — under `--visual`` — a PNG per tab plus a mid-spin reel capture.
+ladder, the daily event deck's neutrality check, and — under `--visual` — a PNG
+per tab plus a mid-spin reel capture.
 
 Two rules the harnesses enforce, both learned the hard way:
 
@@ -132,6 +133,40 @@ LADDER VERDICT: healthy (every cash milestone is worth 1.0-12.0x daily takings)
 Milestones that land before the gallery earns anything pay in charms and luck
 instead of cash — otherwise milestone income masks an underlying economy
 problem instead of revealing it.
+
+The yardstick is a **winsorized mean** of the trailing week's gross takings:
+a plain median would collapse to zero in the early game, where most days earn
+nothing because the gallery is still empty (those zeros are structural, not
+noise), and a plain mean would let one loud Fair Day drag the number a
+milestone is scaled against.
+
+## The daily event deck
+
+Every day gets weather. `sim/event_deck.gd` is a seeded, pure-logic deck of
+eight events — a Fair Day, rain, the Wardens' Walk, Thief's Moon, a curator's
+holiday, an extra pair of hands, a notice in the paper — that change demand,
+theft risk, curation throughput and charms.
+
+Two rules make it safe to ship:
+
+- **It is rolled ahead of the day it governs.** The player sees the weather
+  *before* they commit the gallery floor, so it informs a decision instead of
+  explaining one afterwards.
+- **It is proven neutral, not assumed neutral.** `tests/validate.sh` runs the
+  same 365-day simulation twice — once with the deck, once without — and
+  fails if the economy drifts more than 8%. The deck's own multipliers
+  average to demand 1.0, theft 1.0, curation 0.0, with charm EV held at
+  0.2/day. A daily event system is the easiest way to accidentally rebalance
+  a management sim while looking like pure flavour.
+
+```
+--- deck multipliers ---
+demand EV=1.0000  theft EV=1.0000  curation EV=0.0000  charm EV=0.2000
+--- economy with deck vs without ---
+pure sim:  median daily operating income  decked=11539  bare=11817  ratio=0.976
+player path: median daily operating income  decked=11350  bare=11263  ratio=1.008
+EVENT VERDICT: neutral (the deck changes the shape of a day, not the slope of a campaign)
+```
 
 ## Export gotchas (cost real time — don't repeat them)
 

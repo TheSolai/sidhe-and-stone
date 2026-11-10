@@ -104,7 +104,6 @@ func _init() -> void:
 		print("%-20s %5d %9d %10.0f %8s %8d" % [
 			str(g["title"]), int(g["day"]), reward, daily,
 			("%.2f" % ratio) if ratio > 0.0 else "-", suggest])
-
 		# Only cash milestones can be measured against income. A milestone
 		# paid in charms or luck is a different kind of gift.
 		if reward <= 0:

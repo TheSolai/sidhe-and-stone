@@ -167,6 +167,44 @@ var curated_log: Array[int] = []      # finds catalogued per day
 ## Deterministic RNG for dig grades and theft, so runs are reproducible.
 var rng := RandomNumberGenerator.new()
 
+## ---------------------------------------------------------------------------
+## DAILY EVENTS
+## ---------------------------------------------------------------------------
+## The day's event. Rolled AHEAD of the day it governs, so the player can
+## actually react to it - decide what to display, whether to risk the gallery
+## tonight, how hard to push the curators. An event that is only revealed
+## after the day resolves is weather, not a decision.
+var event_deck := EventDeck.new()
+## The event governing the day currently being played.
+var current_event: Dictionary = {}
+## The event that governed the most recently resolved day. Kept separately
+## because the current event rolls forward the moment a day resolves.
+var last_day_event: Dictionary = {}
+## Separate RNG for the deck. Events must not perturb the rest of the
+## simulation's random stream, or turning the deck off would change the
+## baseline too and the harness could no longer tell whether the deck is
+## neutral or merely disguised.
+var event_rng := RandomNumberGenerator.new()
+## Switch the deck off entirely. The harness uses this to measure what the
+## deck is actually worth to the economy.
+##
+## Setting it re-rolls the current event immediately, so the switch takes
+## effect on the day in progress rather than the day after. Without this,
+## switching the deck off would leave the first day's event already dealt -
+## and the harness would be measuring a decked first day against a bare rest,
+## which is exactly the comparison the harness exists to avoid.
+var _events_enabled: bool = true
+var events_enabled: bool:
+	get:
+		return _events_enabled
+	set(value):
+		if _events_enabled == value:
+			return
+		_events_enabled = value
+		roll_event()
+## Every event that has been rolled, for the day report and the harness.
+var event_log: Array[Dictionary] = []
+
 var revenue_today: int = 0
 var opex_today: int = 0
 var capex_today: int = 0
@@ -223,6 +261,39 @@ var pending_spin: Dictionary = {}
 func demand_cap() -> int:
 	return _demand()
 
+## The event governing the day being played.
+func event() -> Dictionary:
+	return current_event
+
+## Roll the event that will govern the next day.
+##
+## The deck is rolled ahead of the day on purpose. The player needs to see
+## the event BEFORE they commit the gallery floor, or the event is just
+## narration rather than a decision.
+func roll_event() -> Dictionary:
+	if events_enabled:
+		current_event = event_deck.roll(event_rng)
+	else:
+		current_event = EventDeck.neutral()
+	event_log.append(current_event.duplicate())
+	return current_event
+
+## The demand multiplier the current event applies.
+func event_demand_mult() -> float:
+	return float(current_event.get("demand", 1.0))
+
+## The theft multiplier the current event applies.
+func event_theft_mult() -> float:
+	return float(current_event.get("theft", 1.0))
+
+## The change in curator throughput the current event applies.
+func event_curation_delta() -> int:
+	return int(current_event.get("curation", 0))
+
+## Charms the current event hands over for free.
+func event_charm() -> int:
+	return int(current_event.get("charm", 0))
+
 ## Curated value of one exhibit of a grade, after archivist bonuses.
 func exhibit_value(grade: String) -> int:
 	return _exhibit_value(grade)
@@ -258,7 +329,7 @@ func paying_split() -> Dictionary:
 ## Chance that one displayed artefact of this grade is stolen tonight.
 func theft_chance(grade: String) -> float:
 	var base := maxf(0.005, theft_base - ward_reduction * float(_count("wards")))
-	return base * float(FINDS.get(grade, FINDS["rubble"])["theft"])
+	return base * float(FINDS.get(grade, FINDS["rubble"])["theft"]) * event_theft_mult()
 
 ## Cost of the next purchase of an upgrade, or -1 if it is maxed.
 func upgrade_cost(kind: String) -> int:
@@ -369,6 +440,8 @@ var last_stolen_grades: Dictionary = {}
 
 func _init() -> void:
 	rng.seed = 20261110
+	event_rng.seed = 20261110
+	roll_event()
 
 # ---------------------------------------------------------------- helpers
 
@@ -472,7 +545,7 @@ func _finish_digs() -> void:
 ## bottleneck: more finds without more curators just piles up in the storeroom.
 func _curate() -> void:
 	var bonus := 1.0 + archivist_bonus * float(_count("archivists"))
-	var capacity := curators * curator_capacity
+	var capacity := maxi(0, curators * curator_capacity + event_curation_delta())
 	var grades := ["crown", "relic", "clay", "rubble"]
 	for _i in capacity:
 		var moved := false
@@ -519,7 +592,7 @@ func _restock_gallery() -> void:
 
 ## Nightly theft. Displayed artefacts are exposed; vaulted ones are not.
 func _theft() -> int:
-	var chance := maxf(0.005, theft_base - ward_reduction * float(_count("wards")))
+	var chance := maxf(0.005, theft_base - ward_reduction * float(_count("wards"))) * event_theft_mult()
 	var stolen := 0
 	last_stolen_grades = {}
 	for g in gallery.keys():
@@ -540,7 +613,7 @@ func _theft() -> int:
 func _demand() -> int:
 	var mult := pow(market_gain, float(_count("gallery")))
 	var time_mult := 1.0 + float(day) / demand_growth
-	return maxi(1, int(round(float(visitor_demand) * mult * time_mult)))
+	return maxi(1, int(round(float(visitor_demand) * mult * time_mult * event_demand_mult())))
 
 ## Spin the Fate Reel if policy allows and charms suffice.
 ## Returns the payout multiplier (1.0 if no spin).
@@ -616,8 +689,15 @@ func _dealer_sale() -> void:
 # ---------------------------------------------------------------- day
 
 ## Advance one day.
+##
+## The event rolled AHEAD of this day governs it. That ordering is the whole
+## point: the player commits the gallery floor knowing whether it is a Fair
+## Day or a Thief's Moon, and the event can therefore change what they do.
+## When the day resolves, the NEXT day's event is rolled, so the player
+## always sees the weather before they have to walk into it.
 func step() -> void:
 	day += 1
+	last_day_event = current_event.duplicate()
 	revenue_today = 0
 	opex_today = 0
 	capex_today = 0
@@ -644,12 +724,30 @@ func step() -> void:
 	_dealer_sale()
 	_try_buy_upgrades()
 
+	# A notice in the paper pays out in charms, not coin: a small windfall
+	# that buys a reel spin rather than solving the economy outright.
+	#
+	# The event title is NOT written into last_event. That field belongs to
+	# the ticker, and the ticker may already be carrying something more
+	# specific - "A dealer bought a relic for 120" - which the player
+	# cares about more than the name of the weather. The event reaches the
+	# player through the Gallery banner and the day report instead.
+	var charm_gift := event_charm()
+	if charm_gift > 0:
+		charms += charm_gift
+		if last_event == "":
+			last_event = "A notice in the paper brought %d charms" % charm_gift
+
 	revenue_log.append(revenue_today)
 	opex_log.append(opex_today)
 	capex_log.append(capex_today)
 	reel_revenue_log.append(reel_revenue_today)
 	stolen_log.append(last_stolen)
 	curated_log.append(curated_today)
+
+	# The next day's weather is rolled now, so the player sees it before
+	# they have to act on it.
+	roll_event()
 
 func run(days: int) -> Dictionary:
 	var money_curve: Array[int] = []
@@ -809,6 +907,11 @@ func to_dict() -> Dictionary:
 		"pending_spin": pending_spin.duplicate(),
 		"last_spin": last_spin.duplicate(),
 		"last_event": last_event,
+		"current_event": current_event.duplicate(),
+		"last_day_event": last_day_event.duplicate(),
+		"event_log": event_log.duplicate(),
+		"events_enabled": events_enabled,
+		"event_rng_state": str(event_rng.state),
 		"last_stolen": last_stolen,
 		"last_stolen_grades": last_stolen_grades.duplicate(),
 		"rng_state": str(rng.state),
@@ -840,6 +943,21 @@ func from_dict(d: Dictionary) -> void:
 	pending_spin = d.get("pending_spin", {})
 	last_spin = d.get("last_spin", {})
 	last_event = str(d.get("last_event", ""))
+	current_event = d.get("current_event", {})
+	last_day_event = d.get("last_day_event", {})
+	# Set the backing field directly: the property's setter re-rolls the
+	# event, and a load must restore the event that was SAVED rather than
+	# deal a new one on top of it.
+	_events_enabled = bool(d.get("events_enabled", true))
+	event_log.clear()
+	for e in d.get("event_log", []):
+		if typeof(e) == TYPE_DICTIONARY:
+			event_log.append(e)
+	var est := str(d.get("event_rng_state", ""))
+	if est.is_valid_int():
+		event_rng.state = int(est)
+	else:
+		event_rng.seed = 20261110
 	last_stolen = int(d.get("last_stolen", 0))
 	last_stolen_grades = _str_keyed(d.get("last_stolen_grades", {}))
 	manual = bool(d.get("manual", true))
