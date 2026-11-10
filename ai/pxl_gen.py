@@ -242,6 +242,146 @@ def extract_error(output: str) -> str:
     return output.strip()[:400]
 
 
+# ---------------------------------------------------------------- preflight
+#
+# A model will happily write a file that pxl then rejects, and the repair
+# round-trip costs a full model call each time. Cheap static checks catch
+# the most common failures BEFORE the build, so the repair loop only fires
+# for things that genuinely need a model to fix.
+
+PICO8_KEYS = set("0123456789abcdef")
+
+
+def _pal_keys(code: str) -> list:
+    """Every key used in a pal({...}) call."""
+    keys = []
+    for m in re.finditer(r"pal\(\s*\{(.*?)\}", code, re.S):
+        for km in re.finditer(r"([A-Za-z0-9_]+)\s*:", m.group(1)):
+            keys.append(km.group(1))
+    return keys
+
+
+def _grids(code: str) -> list:
+    """Every backtick grid literal in the file."""
+    return re.findall(r"`([^`]*)`", code)
+
+
+def _name_args_removed(code: str) -> str:
+    """Strip asset-name arguments so they are not mistaken for colour keys.
+
+    sprite("vessel", ...) names an asset; "vessel" is not a palette key. Only
+    colour positions should be checked against the palette.
+    """
+    out = code
+    for fn in ("sprite", "scene", "layer", "include", "stamp"):
+        out = re.sub(rf'\b{fn}\(\s*"[^"]*"', f"{fn}(", out)
+    return out
+
+
+def preflight(code: str) -> list:
+    """Static validation of generated pxl source.
+
+    Returns a list of human-readable problems. Empty means the file is worth
+    handing to pxl. These are the failures that local models hit most often
+    and that cost a wasted build+repair round trip each time.
+    """
+    problems = []
+
+    if not code.strip():
+        return ["file is empty"]
+
+    # --- SQL-style comments are a syntax error in JavaScript
+    for i, line in enumerate(code.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("--") or " --" in stripped:
+            problems.append(f"line {i}: SQL-style comment '--' is not valid "
+                            f"JavaScript, use '//'")
+            break
+
+    # --- pal() keys must be exactly one character
+    for key in _pal_keys(code):
+        if len(key) != 1:
+            problems.append(f"pal() key '{key}' is {len(key)} characters; "
+                            f"palette keys must be exactly 1 character")
+
+    # --- work out which colour keys actually exist
+    defined = {k for k in _pal_keys(code) if len(k) == 1}
+    uses_pico8 = 'use("pico8")' in code or "use('pico8')" in code
+    allowed = set(defined)
+    if uses_pico8:
+        allowed |= PICO8_KEYS
+
+    colour_code = _name_args_removed(code)
+
+    # --- quoted single-character colour keys must exist.
+    # Hex colours ("#1b1630") are fine; a bare key that is not in the palette
+    # is a build error. With use("pico8") the built-ins are ONLY 0-9 and a-f,
+    # so a key like "k" is undefined unless the file declares it itself.
+    for m in re.finditer(r'"([^"]*)"', colour_code):
+        val = m.group(1)
+        if len(val) != 1 or not val.isalnum():
+            continue
+        if val not in allowed:
+            problems.append(
+                f"colour key '{val}' is not defined; with use(\"pico8\") only "
+                f"0-9 a-f exist plus keys you declare yourself in pal()")
+
+    # --- grid characters must all be real palette keys
+    for g in _grids(code):
+        rows = [r.strip() for r in g.splitlines() if r.strip()]
+        for r in rows:
+            for ch in r:
+                if ch in ". _\t":
+                    continue
+                if ch not in allowed:
+                    problems.append(
+                        f"grid uses character '{ch}' which is not a defined "
+                        f"palette key")
+                    break
+            else:
+                continue
+            break
+
+    # --- ramps()/shades() need multi-character ramp strings
+    # reference.md: ramps("kDdu", "kTtq") - dark to light, 2+ keys each.
+    # shades("kDdlL", "#58a845", {...}) - 2+ NEW keys.
+    for fn in ("ramps", "shades"):
+        for m in re.finditer(rf"\b{fn}\(([^)]*)\)", code):
+            for arg in re.findall(r'"([^"]*)"', m.group(1)):
+                if len(arg) < 2:
+                    problems.append(
+                        f"{fn}() needs a ramp string of 2+ characters "
+                        f"(dark to light), got '{arg}'")
+
+    # --- every sprite needs an explicit canvas size
+    for m in re.finditer(r"sprite\(\s*\"([^\"]+)\"", code):
+        snippet = code[m.start():m.start() + 220]
+        if not re.search(r"\bw\s*:", snippet) and not re.search(r"\bh\s*:", snippet):
+            problems.append(f"sprite '{m.group(1)}' has no explicit "
+                            f"{{ w: N, h: N }} canvas size")
+
+    # --- degenerate filled-blob silhouettes
+    # A sprite where almost every pixel is opaque is not a sprite, it is a
+    # rectangle. Real sprites leave a transparent margin and gaps between
+    # separate parts.
+    for g in _grids(code):
+        rows = [r.strip() for r in g.splitlines() if r.strip()]
+        if len(rows) < 6:
+            continue
+        total = sum(len(r) for r in rows)
+        if total == 0:
+            continue
+        opaque = sum(1 for r in rows for ch in r if ch not in ". _")
+        fill = opaque / float(total)
+        if fill > 0.92:
+            problems.append(
+                f"grid is {fill:.0%} opaque - that is a filled blob, not a "
+                f"sprite; leave a transparent margin and gaps between parts")
+            break
+
+    return problems
+
+
 def summarise_lint(lint_out: str) -> str:
     """Compact the lint report down to the actionable findings."""
     lines = [ln for ln in lint_out.splitlines()
@@ -366,6 +506,21 @@ def build_asset(subject, name, out_root, size=16, colors=10, detail="",
     if not code.strip():
         print("  ! model returned nothing", flush=True)
         return None
+
+    # Preflight BEFORE any build attempt: cheap static checks catch the
+    # failures that would otherwise cost a full model repair round trip.
+    issues = preflight(code)
+    if issues:
+        print(f"  [preflight] {len(issues)} issue(s):", flush=True)
+        for p in issues:
+            print(f"     - {p}", flush=True)
+        history.append("preflight:\n" + "\n".join(issues))
+        code = repair_source(code, "static validation failed:\n"
+                             + "\n".join(issues), "", model, docs)
+        issues2 = preflight(code)
+        if issues2:
+            print(f"  [preflight] still {len(issues2)} issue(s) after repair",
+                  flush=True)
     src.write_text(code)
 
     lint_out = ""
