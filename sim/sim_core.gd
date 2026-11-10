@@ -161,6 +161,8 @@ var revenue_log: Array[int] = []      # gross revenue after the reel multiplier
 var opex_log: Array[int] = []         # upkeep + dig costs (recurring)
 var capex_log: Array[int] = []        # upgrade purchases (investment)
 var reel_revenue_log: Array[int] = [] # revenue attributable to the reel
+var stolen_log: Array[int] = []       # artefacts stolen per night
+var curated_log: Array[int] = []      # finds catalogued per day
 
 ## Deterministic RNG for dig grades and theft, so runs are reproducible.
 var rng := RandomNumberGenerator.new()
@@ -169,6 +171,15 @@ var revenue_today: int = 0
 var opex_today: int = 0
 var capex_today: int = 0
 var reel_revenue_today: int = 0
+
+## How many raw finds the curators catalogued today. This is the throughput
+## number the player needs: if it is lower than the number of finds that came
+## in, the storeroom is backing up and the curators are the bottleneck.
+var curated_today: int = 0
+## How many digs finished today.
+var digs_completed_today: int = 0
+## The multiplier actually applied to today's takings (1.0 if no spin).
+var payout_applied: float = 1.0
 
 ## ---------------------------------------------------------------------------
 ## PLAYER MODE
@@ -226,6 +237,28 @@ func on_display() -> int:
 ## Free display slots right now.
 func slots_free() -> int:
 	return maxi(0, gallery_slots - on_display())
+
+## How many of each grade ON DISPLAY actually earn money today.
+##
+## Visitors pay for the most valuable exhibits up to the demand cap, in value
+## order. Anything beyond that earns nothing but is still exposed to theft -
+## so the split between 'paying' and 'idle' IS the tension the player manages.
+## The UI shows the split explicitly instead of making the player infer it.
+func paying_split() -> Dictionary:
+	var out := {}
+	var cap := _demand()
+	var paid := 0
+	for g in ["crown", "relic", "clay", "rubble"]:
+		var n := int(gallery.get(g, 0))
+		var earning := clampi(cap - paid, 0, n)
+		out[g] = earning
+		paid += earning
+	return out
+
+## Chance that one displayed artefact of this grade is stolen tonight.
+func theft_chance(grade: String) -> float:
+	var base := maxf(0.005, theft_base - ward_reduction * float(_count("wards")))
+	return base * float(FINDS.get(grade, FINDS["rubble"])["theft"])
 
 ## Cost of the next purchase of an upgrade, or -1 if it is maxed.
 func upgrade_cost(kind: String) -> int:
@@ -332,6 +365,7 @@ func dig_cost(dig: String) -> int:
 
 ## Thefts that happened last night, for the ticker.
 var last_stolen: int = 0
+var last_stolen_grades: Dictionary = {}
 
 func _init() -> void:
 	rng.seed = 20261110
@@ -432,6 +466,7 @@ func _finish_digs() -> void:
 		for _i in n:
 			_add(raw, _pick_grade(def["grades"]), 1)
 		digging.erase(p)
+		digs_completed_today += 1
 
 ## Catalogue raw finds into curated exhibits. Curators are the throughput
 ## bottleneck: more finds without more curators just piles up in the storeroom.
@@ -446,6 +481,7 @@ func _curate() -> void:
 				raw[g] = int(raw[g]) - 1
 				_add(vault, g, 1)
 				moved = true
+				curated_today += 1
 				break
 		if not moved:
 			break
@@ -485,6 +521,7 @@ func _restock_gallery() -> void:
 func _theft() -> int:
 	var chance := maxf(0.005, theft_base - ward_reduction * float(_count("wards")))
 	var stolen := 0
+	last_stolen_grades = {}
 	for g in gallery.keys():
 		if stolen >= theft_cap:
 			break
@@ -496,6 +533,7 @@ func _theft() -> int:
 			if rng.randf() < p:
 				gallery[g] = int(gallery[g]) - 1
 				stolen += 1
+				last_stolen_grades[g] = int(last_stolen_grades.get(g, 0)) + 1
 	return stolen
 
 ## Visitors pay for the most valuable exhibits on display, up to the demand cap.
@@ -584,6 +622,9 @@ func step() -> void:
 	opex_today = 0
 	capex_today = 0
 	reel_revenue_today = 0
+	curated_today = 0
+	digs_completed_today = 0
+	payout_applied = 1.0
 
 	# operating costs: scale with what you own
 	var upkeep := sites * upkeep_per_site + curators * upkeep_per_curator \
@@ -598,6 +639,7 @@ func step() -> void:
 	last_stolen = _theft()
 
 	var mult := _spin_reel()
+	payout_applied = mult
 	_collect_takings(mult)
 	_dealer_sale()
 	_try_buy_upgrades()
@@ -606,6 +648,8 @@ func step() -> void:
 	opex_log.append(opex_today)
 	capex_log.append(capex_today)
 	reel_revenue_log.append(reel_revenue_today)
+	stolen_log.append(last_stolen)
+	curated_log.append(curated_today)
 
 func run(days: int) -> Dictionary:
 	var money_curve: Array[int] = []
@@ -737,3 +781,103 @@ static func analyse(curve: Array[int], revenue: Array[int], opex: Array[int], ca
 		"day1": curve[0],
 		"final": curve[n - 1],
 	}
+
+
+## Snapshot the entire simulation for saving.
+##
+## JSON is the format because a save you can read is a save you can debug.
+## Two details make the round trip faithful:
+##   * the RNG state is a uint64 and is stored as a STRING, because JSON
+##     numbers are doubles and would quietly corrupt the sequence
+##   * digging and pending_digs are keyed by INT site index, and JSON turns
+##     those keys into strings on the way out
+func to_dict() -> Dictionary:
+	return {
+		"day": day,
+		"money": money,
+		"sites": sites,
+		"curators": curators,
+		"charms": charms,
+		"raw": raw.duplicate(),
+		"vault": vault.duplicate(),
+		"gallery": gallery.duplicate(),
+		"digging": digging.duplicate(),
+		"pending_digs": pending_digs.duplicate(),
+		"upgrades_bought": upgrades_bought.duplicate(),
+		"reel": reel.to_dict(),
+		"pending_payout": pending_payout,
+		"pending_spin": pending_spin.duplicate(),
+		"last_spin": last_spin.duplicate(),
+		"last_event": last_event,
+		"last_stolen": last_stolen,
+		"last_stolen_grades": last_stolen_grades.duplicate(),
+		"rng_state": str(rng.state),
+		"revenue_log": revenue_log.duplicate(),
+		"opex_log": opex_log.duplicate(),
+		"capex_log": capex_log.duplicate(),
+		"reel_revenue_log": reel_revenue_log.duplicate(),
+		"stolen_log": stolen_log.duplicate(),
+		"curated_log": curated_log.duplicate(),
+		"manual": manual,
+	}
+
+
+## Restore a simulation snapshot produced by to_dict().
+func from_dict(d: Dictionary) -> void:
+	day = int(d.get("day", 0))
+	money = int(d.get("money", 240))
+	sites = int(d.get("sites", 3))
+	curators = int(d.get("curators", 1))
+	charms = int(d.get("charms", 6))
+	raw = _str_keyed(d.get("raw", {}))
+	vault = _str_keyed(d.get("vault", {}))
+	gallery = _str_keyed(d.get("gallery", {}))
+	digging = _int_keyed(d.get("digging", {}))
+	pending_digs = _int_keyed(d.get("pending_digs", {}))
+	upgrades_bought = _str_keyed(d.get("upgrades_bought", {}))
+	reel.from_dict(d.get("reel", {}))
+	pending_payout = float(d.get("pending_payout", 1.0))
+	pending_spin = d.get("pending_spin", {})
+	last_spin = d.get("last_spin", {})
+	last_event = str(d.get("last_event", ""))
+	last_stolen = int(d.get("last_stolen", 0))
+	last_stolen_grades = _str_keyed(d.get("last_stolen_grades", {}))
+	manual = bool(d.get("manual", true))
+	revenue_log = _int_array(d.get("revenue_log", []))
+	opex_log = _int_array(d.get("opex_log", []))
+	capex_log = _int_array(d.get("capex_log", []))
+	reel_revenue_log = _int_array(d.get("reel_revenue_log", []))
+	stolen_log = _int_array(d.get("stolen_log", []))
+	curated_log = _int_array(d.get("curated_log", []))
+	var st := str(d.get("rng_state", ""))
+	if st.is_valid_int():
+		rng.state = int(st)
+	else:
+		rng.seed = 20261110
+
+
+static func _str_keyed(src: Variant) -> Dictionary:
+	var out := {}
+	if typeof(src) != TYPE_DICTIONARY:
+		return out
+	for k in src:
+		out[str(k)] = src[k]
+	return out
+
+
+static func _int_keyed(src: Variant) -> Dictionary:
+	var out := {}
+	if typeof(src) != TYPE_DICTIONARY:
+		return out
+	for k in src:
+		out[int(k)] = src[k]
+	return out
+
+
+static func _int_array(src: Variant) -> Array[int]:
+	var out: Array[int] = []
+	if typeof(src) != TYPE_ARRAY:
+		return out
+	for v in src:
+		out.append(int(v))
+	return out

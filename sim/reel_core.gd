@@ -244,3 +244,37 @@ func _pick() -> String:
 		if roll <= acc:
 			return s
 	return "clover"
+
+
+## Snapshot the reel for saving.
+##
+## The RNG state is stored as a STRING on purpose: it is a uint64 and JSON
+## numbers are doubles, so round-tripping it as a number would corrupt the
+## sequence and silently change every future spin.
+func to_dict() -> Dictionary:
+	return {
+		"luck": luck,
+		"seed": seed_value,
+		"rng_state": str(rng.state),
+		"spins": spins,
+		"payout_total": payout_total,
+		"biggest_win": biggest_win,
+		"worst_spin": worst_spin,
+		"triple_hits": triple_hits,
+	}
+
+
+## Restore a reel snapshot. See to_dict() for why the RNG state is a string.
+func from_dict(d: Dictionary) -> void:
+	luck = float(d.get("luck", 0.0))
+	seed_value = int(d.get("seed", 20261110))
+	spins = int(d.get("spins", 0))
+	payout_total = float(d.get("payout_total", 0.0))
+	biggest_win = float(d.get("biggest_win", 0.0))
+	worst_spin = float(d.get("worst_spin", 99.0))
+	triple_hits = int(d.get("triple_hits", 0))
+	var st := str(d.get("rng_state", ""))
+	if st.is_valid_int():
+		rng.state = int(st)
+	else:
+		rng.seed = seed_value

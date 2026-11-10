@@ -61,7 +61,7 @@ const SYMBOL_STYLE := {
 
 const SYMBOL_ORDER := ["clover", "honey", "moon", "star", "bog", "blight"]
 
-const TABS := ["Gallery", "Vault", "Digs", "Staff"]
+const TABS := ["Gallery", "Vault", "Digs", "Staff", "Ledger"]
 
 var state := GameState.new()
 
@@ -86,12 +86,22 @@ var _tab_buttons: Array[Button] = []
 var _current_tab := 0
 var _table_panel: PanelContainer
 var _btn_table: Button
+var _overlay: Control
+var _btn_new: Button
+var _new_armed := false
 
 
 func _ready() -> void:
 	state.changed.connect(_on_state_changed)
+	state.tutorial_advanced.connect(_on_state_changed)
 	_build_ui()
 	_refresh()
+
+
+## Save the game to disk. Called after every day so a crash never costs more
+## than the current night.
+func _autosave() -> void:
+	state.save_to_disk()
 
 
 # ---------------------------------------------------------------- build
@@ -124,6 +134,13 @@ func _build_ui() -> void:
 	scroll.add_child(_content)
 
 	root.add_child(_build_footer())
+
+	# The overlay layer sits above everything and carries modal panels:
+	# the end-of-day report, and the confirm for starting a new game.
+	_overlay = Control.new()
+	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_overlay)
 
 
 func _build_topbar() -> Control:
@@ -293,6 +310,27 @@ func _build_footer() -> Control:
 		tabs.add_child(b)
 		_tab_buttons.append(b)
 
+	var io_row := HBoxContainer.new()
+	io_row.add_theme_constant_override("separation", 6)
+	col.add_child(io_row)
+
+	var b_save := _button("Save", _on_save_pressed)
+	b_save.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b_save.add_theme_font_size_override("font_size", 13)
+	io_row.add_child(b_save)
+
+	var b_load := _button("Load", _on_load_pressed)
+	b_load.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b_load.add_theme_font_size_override("font_size", 13)
+	b_load.disabled = not GameState.has_save()
+	io_row.add_child(b_load)
+
+	_btn_new = _button("New Game", _on_new_pressed)
+	_btn_new.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_btn_new.add_theme_font_size_override("font_size", 13)
+	_btn_new.add_theme_color_override("font_color", COL_RUST)
+	io_row.add_child(_btn_new)
+
 	var end := Button.new()
 	end.text = "End Day"
 	end.custom_minimum_size = Vector2(0, 52)
@@ -309,8 +347,12 @@ func _on_state_changed() -> void:
 
 
 func _refresh() -> void:
-	_lbl_day.text = "Day %d" % state.day()
+	# sim.day counts COMPLETED days, so the day being played is one more.
+	# Without this a new player is greeted with "Day 0".
+	_lbl_day.text = "Day %d" % (state.day() + 1)
 	_lbl_money.text = "£%d" % state.money()
+	_lbl_money.add_theme_color_override("font_color",
+		COL_RUST if state.money() < 0 else COL_OCHRE)
 	_lbl_charms.text = "☘ %d" % state.charms()
 	_lbl_luck.text = "Luck %.1f" % state.luck()
 
@@ -336,11 +378,16 @@ func _rebuild_content() -> void:
 		_content.remove_child(c)
 		c.queue_free()
 
+	# The coach sits above everything, because it is the thing the player
+	# most needs until they have done it once.
+	_build_tutorial_card()
+
 	match _current_tab:
 		0: _build_gallery_tab()
 		1: _build_vault_tab()
 		2: _build_digs_tab()
 		3: _build_staff_tab()
+		4: _build_ledger_tab()
 
 
 # ---------------------------------------------------------------- gallery
@@ -360,6 +407,7 @@ func _build_gallery_tab() -> void:
 	_content.add_child(case_row)
 
 	var gallery := state.gallery_counts()
+	var paying := state.paying_split()
 	var any := false
 	for grade in GRADE_ORDER:
 		var n := int(gallery.get(grade, 0))
@@ -372,8 +420,15 @@ func _build_gallery_tab() -> void:
 		row.add_child(_label("%s  %s" % [grade.capitalize(), "×%d" % n],
 			GRADE_COL[grade], 17))
 		row.add_child(_spacer(8, 0))
+		var earning := int(paying.get(grade, 0))
 		var value := _label("£%d/day each" % state.exhibit_value(grade), COL_DIM, 13)
 		row.add_child(value)
+		# The idle ones are the trap: they earn nothing but are still
+		# stealable. Say so plainly rather than letting the player discover it.
+		if earning < n:
+			var idle := _label("%d earning · %d over the cap" % [earning, n - earning],
+				COL_RUST, 12)
+			row.add_child(idle)
 		var sp := Control.new()
 		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(sp)
@@ -453,6 +508,12 @@ func _build_digs_tab() -> void:
 	_content.add_child(_hint(
 		"Assign each site a dig. Deeper digs take longer, cost more, and "
 		+ "yield rarer finds - but rarer finds attract more thieves."))
+	if state.money() < 0:
+		_content.add_child(_hint(
+			"You are £%d in the red. The fairies will dig on credit, but the "
+			% absi(state.money())
+			+ "bank is patient, not generous. Sell something from the vault, "
+			+ "or put a find on display."))
 
 	for i in state.sites():
 		var running := state.dig_in_progress(i)
@@ -476,7 +537,12 @@ func _build_digs_tab() -> void:
 					state.dig_days(dig)], func(d = dig): state.assign_dig(i, d))
 				b.add_theme_font_size_override("font_size", 12)
 				b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				b.disabled = state.money() < state.dig_cost(dig)
+				# Digs are allowed ON CREDIT. Blocking an unaffordable dig
+				# would dead-end the game: broke, no finds, no exhibits, no
+				# income, and nothing left to press. The debt is the
+				# punishment, not a locked button.
+				if state.money() < state.dig_cost(dig):
+					b.add_theme_color_override("font_color", COL_RUST)
 				btns.add_child(b)
 			row.add_child(btns)
 
@@ -631,6 +697,233 @@ func _on_end_day() -> void:
 		bits.append(ev)
 	_lbl_status.text = "  ·  ".join(bits)
 	_lbl_status.add_theme_color_override("font_color", COL_CREAM)
+	_autosave()
+	_show_day_report(s)
+	_refresh()
+
+
+# ---------------------------------------------------------------- day report
+
+## The end-of-day panel. This is the moment the player actually reads, so it
+## says what happened in words, not just in numbers.
+func _show_day_report(s: Dictionary) -> void:
+	_clear_overlay()
+
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_overlay.add_child(dim)
+
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_overlay.add_child(centre)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(600, 0)
+	panel.add_theme_stylebox_override("panel", _panel_style(COL_PANEL))
+	centre.add_child(panel)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	panel.add_child(col)
+
+	col.add_child(_section_title("Day %d" % int(s["day"])))
+
+	var revenue := int(s["revenue"])
+	var opex := int(s["opex"])
+	var delta := int(s["delta"])
+
+	col.add_child(_report_line("Takings", "£%d" % revenue,
+		COL_OCHRE if revenue > 0 else COL_DIM))
+	if opex > 0:
+		col.add_child(_report_line("Upkeep & dig costs", "-£%d" % opex, COL_DIM))
+	if int(s["capex"]) > 0:
+		col.add_child(_report_line("Invested", "-£%d" % int(s["capex"]), COL_SLATE))
+	col.add_child(_report_line("Net", "%s£%d" % ["+" if delta >= 0 else "-", absi(delta)],
+		COL_MOSS if delta >= 0 else COL_RUST))
+
+	col.add_child(_spacer(0, 4))
+
+	var payout := float(s["payout"])
+	if absf(payout - 1.0) > 0.001:
+		col.add_child(_report_line("Fate Reel", "×%.2f" % payout,
+			COL_OCHRE if payout > 1.0 else COL_RUST))
+
+	var curated := int(s["curated"])
+	if curated > 0:
+		col.add_child(_report_line("Catalogued", "%d find(s)" % curated, COL_CREAM))
+	if int(s["digs_done"]) > 0:
+		col.add_child(_report_line("Digs finished", "%d" % int(s["digs_done"]), COL_CREAM))
+
+	var stolen := int(s["stolen"])
+	if stolen > 0:
+		var grades: Dictionary = s["stolen_grades"]
+		var named: Array[String] = []
+		for g in ["crown", "relic", "clay", "rubble"]:
+			var n := int(grades.get(g, 0))
+			if n > 0:
+				named.append("%d %s" % [n, g])
+		col.add_child(_report_line("STOLEN", ", ".join(named), COL_RUST))
+
+	if int(s["raw_after"]) > 0:
+		col.add_child(_report_line("Storeroom", "%d waiting" % int(s["raw_after"]), COL_DIM))
+
+	var ev := str(s["event"])
+	if ev != "":
+		col.add_child(_hint(ev))
+
+	col.add_child(_spacer(0, 4))
+	var ok := _button("Continue", func(): _clear_overlay())
+	ok.custom_minimum_size = Vector2(0, 46)
+	ok.add_theme_font_size_override("font_size", 18)
+	col.add_child(ok)
+
+
+## One label/value line in the day report.
+func _report_line(key: String, value: String, col: Color) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_label(key, COL_DIM, 15))
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(sp)
+	row.add_child(_label(value, col, 16))
+	return row
+
+
+func _clear_overlay() -> void:
+	for c in _overlay.get_children():
+		_overlay.remove_child(c)
+		c.queue_free()
+
+
+# ---------------------------------------------------------------- tutorial
+
+## The coach card. It sits at the top of the content area and advances when
+## the player performs the action, so it never nags about a thing they have
+## already done.
+func _build_tutorial_card() -> void:
+	if not state.tutorial.active():
+		return
+	var card := _card(COL_OCHRE)
+	var row := _card_row(card)
+	row.add_child(_icon("curator", 30))
+	row.add_child(_label(state.tutorial.current_title(), COL_OCHRE, 17))
+	row.add_child(_spacer(4, 0))
+	row.add_child(_label(state.tutorial.current_body(), COL_CREAM, 13))
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(sp)
+	if str(state.tutorial.current().get("done", "")) == "":
+		row.add_child(_button("Got it", func(): state.tutorial.advance()))
+	var skip := _button("Skip", func(): state.skip_tutorial())
+	skip.add_theme_color_override("font_color", COL_DIM)
+	skip.add_theme_font_size_override("font_size", 12)
+	row.add_child(skip)
+	_content.add_child(card)
+
+
+# ---------------------------------------------------------------- ledger
+
+## The ledger: the player's own history. A management game where you cannot
+## see the curve you climbed is a management game played blind.
+func _build_ledger_tab() -> void:
+	_content.add_child(_section_title("The Ledger"))
+	_content.add_child(_hint(
+		"Every day, written down. Watch the middle column: that is the shape of "
+		+ "the outfit you are building."))
+
+	var rev := state.revenue_log()
+	var opx := state.opex_log()
+	var cap := state.capex_log()
+	var stol := state.stolen_log()
+	var cur := state.curated_log()
+
+	if rev.is_empty():
+		_content.add_child(_hint("Nothing yet. End a day and the ledger begins."))
+	else:
+		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 6)
+		_content.add_child(head)
+		head.add_child(_label("Day", COL_DIM, 13))
+		head.add_child(_label("Takings", COL_DIM, 13))
+		head.add_child(_label("Costs", COL_DIM, 13))
+		head.add_child(_label("Net", COL_DIM, 13))
+		head.add_child(_label("Cur", COL_DIM, 13))
+		head.add_child(_label("Stol", COL_DIM, 13))
+
+		var n := rev.size()
+		var start := maxi(0, n - 40)
+		for i in range(n - 1, start - 1, -1):
+			var net := int(rev[i]) - int(opx[i]) if i < opx.size() else 0
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 6)
+			row.add_child(_label("%d" % (i + 1), COL_CREAM, 13))
+			row.add_child(_label("%d" % int(rev[i]), COL_OCHRE, 13))
+			row.add_child(_label("%d" % (int(opx[i]) if i < opx.size() else 0), COL_DIM, 13))
+			row.add_child(_label("%s%d" % ["+" if net >= 0 else "-", absi(net)],
+				COL_MOSS if net >= 0 else COL_RUST, 13))
+			row.add_child(_label("%d" % (int(cur[i]) if i < cur.size() else 0), COL_CREAM, 13))
+			row.add_child(_label("%d" % (int(stol[i]) if i < stol.size() else 0),
+				COL_RUST if (i < stol.size() and int(stol[i]) > 0) else COL_DIM, 13))
+			_content.add_child(row)
+
+	_content.add_child(_spacer(0, 10))
+	_content.add_child(_section_title("Recent events"))
+	var events := state.recent_events(12)
+	if events.is_empty():
+		_content.add_child(_hint("Nothing recorded yet."))
+	for e in events:
+		var kind := str(e.get("kind", "plain"))
+		var tint := COL_CREAM
+		match kind:
+			"day": tint = COL_OCHRE
+			"display": tint = COL_MOSS
+			"upgrade": tint = COL_SLATE
+			"sale": tint = COL_RUST
+			"dig": tint = COL_DIM
+		_content.add_child(_label("Day %d — %s" % [int(e.get("day", 0)),
+			str(e.get("text", ""))], tint, 13))
+
+
+# ---------------------------------------------------------------- save/load
+
+func _on_save_pressed() -> void:
+	if state.save_to_disk():
+		_lbl_status.text = "Saved."
+		_lbl_status.add_theme_color_override("font_color", COL_MOSS)
+	else:
+		_lbl_status.text = "Could not save."
+		_lbl_status.add_theme_color_override("font_color", COL_RUST)
+
+
+func _on_load_pressed() -> void:
+	if state.load_from_disk():
+		_lbl_status.text = "Loaded."
+		_lbl_status.add_theme_color_override("font_color", COL_MOSS)
+		_clear_overlay()
+		_refresh()
+	else:
+		_lbl_status.text = "No save found."
+		_lbl_status.add_theme_color_override("font_color", COL_RUST)
+
+
+## New Game is destructive, so it asks twice. The button arms, then a second
+## press within the same session does it. It also clears the save on disk,
+## so "new game" means genuinely new and not secretly continuing later.
+func _on_new_pressed() -> void:
+	if not _new_armed:
+		_new_armed = true
+		_btn_new.text = "Really?"
+		_btn_new.add_theme_color_override("font_color", COL_RUST)
+		return
+	_new_armed = false
+	_btn_new.text = "New Game"
+	SaveSystem.clear_save()
+	state.reset()
+	_clear_overlay()
+	_lbl_status.text = "A fresh outfit. Good luck."
+	_lbl_status.add_theme_color_override("font_color", COL_OCHRE)
 	_refresh()
 
 
