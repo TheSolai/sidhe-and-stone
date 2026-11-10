@@ -19,6 +19,7 @@ extends RefCounted
 
 signal changed
 signal day_ended(summary: Dictionary)
+signal goal_achieved(goal: Dictionary)
 signal reel_spun(result: Dictionary)
 signal tutorial_advanced
 signal game_loaded
@@ -29,6 +30,11 @@ const DIG_TYPES := ["test_pit", "trench", "shaft"]
 
 var sim: SimCore
 var tutorial := Tutorial.new()
+
+## The ladder of milestones. Owned here, alongside the tutorial and the
+## ledger, because a goal is player-facing state: it has to survive a save
+## and it has to be able to give the player money.
+var goals := Goals.new()
 
 ## Rolling log of notable events, newest last. Bounded so a long game does
 ## not grow without limit.
@@ -47,6 +53,7 @@ func reset() -> void:
 	sim = SimCore.new()
 	sim.manual = true
 	tutorial = Tutorial.new()
+	goals = Goals.new()
 	ledger.clear()
 
 
@@ -159,6 +166,11 @@ func revenue_log() -> Array[int]:
 func opex_log() -> Array[int]:
 	return sim.opex_log
 
+## Revenue attributable to the Fate Reel. The harness needs this to prove
+## the gamble never dominates the management game.
+func reel_revenue_log() -> Array[int]:
+	return sim.reel_revenue_log
+
 func capex_log() -> Array[int]:
 	return sim.capex_log
 
@@ -174,6 +186,101 @@ func recent_events(n: int = 8) -> Array:
 	var start := maxi(0, ledger.size() - n)
 	for i in range(ledger.size() - 1, start - 1, -1):
 		out.append(ledger[i])
+	return out
+
+
+# ------------------------------------------------------------------ goals
+
+## The numbers the ladder measures. Every one of these is something the
+## player has already done - the goals do not add verbs, they make the
+## existing loop visible.
+func goal_context() -> Dictionary:
+	var curated_total := 0
+	for c in sim.curated_log:
+		curated_total += c
+	var clean_nights := 0
+	for s in sim.stolen_log:
+		if int(s) == 0:
+			clean_nights += 1
+	var best_day := 0
+	var total_revenue := 0
+	for r in sim.revenue_log:
+		best_day = maxi(best_day, int(r))
+		total_revenue += int(r)
+	return {
+		"days": sim.day,
+		"on_display": sim.on_display(),
+		"curated_total": curated_total,
+		"money": sim.money,
+		"vault_count": sim.vault_count(),
+		"gallery_slots": sim.gallery_slots,
+		"clean_nights": clean_nights,
+		"crowns_displayed": int(sim.gallery.get("crown", 0)),
+		"max_day_revenue": best_day,
+		"total_revenue": total_revenue,
+	}
+
+
+## Check every goal against the current state and pay out the ones that
+## have been reached. Returns the goals newly completed by this call.
+##
+## Goals are checked after every action, not just at end of day, because a
+## goal like "put one exhibit on the gallery floor" is completed the instant
+## the player does it - paying out at midnight would feel like the game had
+## miscounted.
+func check_goals() -> Array:
+	var ctx := goal_context()
+	var earned: Array = []
+	for g in Goals.GOALS:
+		var id := str(g["id"])
+		if goals.is_complete(id):
+			continue
+		if goals.progress_for(g, ctx) < float(g["target"]):
+			continue
+		if not goals.complete(id):
+			continue
+		_pay_goal_reward(g)
+		_log("Milestone: %s. %s" % [g["title"], goals.reward_text(g)], "goal")
+		earned.append(g)
+		goal_achieved.emit(g)
+	return earned
+
+
+## Grant a completed goal's reward.
+func _pay_goal_reward(g: Dictionary) -> void:
+	var r: Dictionary = g["reward"]
+	if r.has("money"):
+		sim.money += int(r["money"])
+	if r.has("charms"):
+		sim.charms += int(r["charms"])
+	if r.has("luck"):
+		sim.reel.luck = minf(0.9, sim.reel.luck + float(r["luck"]))
+
+
+## The goal the player is working toward right now, with its live progress.
+func next_goal() -> Dictionary:
+	var ctx := goal_context()
+	var g := goals.next_goal(ctx)
+	if g.is_empty():
+		return {}
+	return {
+		"goal": g,
+		"progress": goals.progress_for(g, ctx),
+		"target": int(g["target"]),
+	}
+
+
+## All goals with their progress, for the goals tab.
+func goal_list() -> Array:
+	var ctx := goal_context()
+	var out: Array = []
+	for g in Goals.GOALS:
+		out.append({
+			"goal": g,
+			"progress": goals.progress_for(g, ctx),
+			"target": int(g["target"]),
+			"complete": goals.is_complete(str(g["id"])),
+		})
 	return out
 
 
@@ -198,6 +305,7 @@ func display_one(grade: String) -> bool:
 	if not sim.display_one(grade):
 		return false
 	_log("%s moved to the gallery." % grade.capitalize(), "display")
+	check_goals()
 	_tutorial_report("displayed")
 	changed.emit()
 	return true
@@ -263,6 +371,7 @@ func end_day() -> Dictionary:
 		"event": sim.last_event,
 	}
 	_day_narrative(summary)
+	check_goals()
 	day_ended.emit(summary)
 	_tutorial_report("day_ended")
 	changed.emit()
@@ -347,6 +456,7 @@ func to_dict() -> Dictionary:
 	return {
 		"sim": sim.to_dict(),
 		"tutorial": tutorial.to_dict(),
+		"goals": goals.to_dict(),
 		"ledger": ledger.duplicate(true),
 	}
 
@@ -358,6 +468,7 @@ func from_dict(d: Dictionary) -> void:
 	sim.from_dict(d.get("sim", {}))
 	sim.manual = true
 	tutorial.from_dict(d.get("tutorial", {}))
+	goals.from_dict(d.get("goals", {}))
 	ledger.clear()
 	for e in d.get("ledger", []):
 		if typeof(e) == TYPE_DICTIONARY:

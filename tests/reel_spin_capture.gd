@@ -16,6 +16,9 @@ var ui
 var _done := false
 
 func _init() -> void:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--out="):
+			_out = a.substr(6)
 	_capture.call_deferred()
 	_watchdog.call_deferred()
 
@@ -116,6 +119,13 @@ func _glyphs() -> String:
 	return "|".join(parts)
 
 func _shot(nm: String, cx: int, cy: int, cw: int, ch: int) -> void:
+	# `force_draw()` renders into the viewport texture whether or not the
+	# window is on screen. `await frame_post_draw` would wait for an actual
+	# PRESENTATION, which macOS suspends when the window is occluded - the
+	# await then never resumes and the harness hangs (verified 2026-11-10).
+	await process_frame
+	RenderingServer.force_draw()
+	await process_frame
 	var img := root.get_texture().get_image()
 	if img == null:
 		return
@@ -126,6 +136,9 @@ func _shot(nm: String, cx: int, cy: int, cw: int, ch: int) -> void:
 	img.get_region(r).save_png("%s/%s.png" % [_out, nm])
 
 func _shot_full(nm: String) -> void:
+	await process_frame
+	RenderingServer.force_draw()
+	await process_frame
 	var img := root.get_texture().get_image()
 	if img != null:
 		img.save_png("%s/%s.png" % [_out, nm])

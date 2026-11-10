@@ -21,8 +21,13 @@ produced by an actual export, not assumed.
 ```
 project.godot          portrait 720x1280, GL Compatibility, ETC2/ASTC on
 src/main.gd            touch-driven grid shell (mobile-first skeleton)
+src/game_state.gd      player-facing seam over the economy (UI never touches SimCore)
+src/goals.gd           12-goal progression ladder, measured from real player actions
 sim/sim_core.gd        pure-logic economy model — no engine deps
 sim/run_sim.gd         headless balance harness
+sim/player_path.gd     plays the game the way a player does, through GameState
+sim/run_player_balance.gd  milestone-ladder balance harness
+tests/validate.sh      the standing validation workflow
 export_presets.cfg     all four targets, known-good settings
 ```
 
@@ -78,6 +83,56 @@ without limit — *RUNAWAY*). Both were caught in seconds, before any UI existed
 - ETC2/ASTC texture compression enabled — **Android export refuses to run
   without it**.
 
+## The standing validation workflow
+
+```bash
+cd ~/Projects/GameStewKit
+./tests/validate.sh            # smoke + economy + ladder
+./tests/validate.sh --visual   # ...plus UI and reel captures
+```
+
+Four stages: UI smoke test (drives real player actions, checks all six tabs
+render), 365-day economy baseline, player-path balance with the milestone
+ladder, and — under `--visual`` — a PNG per tab plus a mid-spin reel capture.
+
+Two rules the harnesses enforce, both learned the hard way:
+
+- **A capture must prove the screen redrew.** Every PNG can save with `err=0`
+  while the display is asleep and the framebuffer is frozen. The harness
+  fingerprints the pixels and reports `FROZEN` when consecutive frames are
+  byte-identical, and `validate.sh` **fails** on that verdict.
+- **Wait on `force_draw()`, not on presentation.** `await process_frame` fires
+  when a frame is *scheduled*; `await RenderingServer.frame_post_draw` waits
+  for a *presentation*, which macOS suspends when the window is occluded — the
+  await then never resumes and the run hangs. `RenderingServer.force_draw()`
+  renders into the viewport texture either way.
+
+## The milestone ladder
+
+12 goals across `Opening`, `Steady Trade` and `Renown`. They measure actions
+players already perform (dig, display, earn, hire) rather than adding new
+verbs, and they pay out automatically into the ledger.
+
+The balance harness plays through `GameState` — the same path a player uses —
+so milestone payouts feed back into measured progression. Rewards are scaled
+against the player's **measured gross daily takings at the moment the
+milestone lands**, and every cash milestone must land within 1.0–12.0×
+daily takings:
+
+```
+goal                   day    reward takings/day    ratio
+A Very Good Day          5       250         64     3.93
+The Treasury Grows       8       950        226     4.20
+Full Coffers            14      2500        576     4.34
+An Institution          30     12500       2097     5.96
+Renowned                60     36000       8729     4.12
+LADDER VERDICT: healthy (every cash milestone is worth 1.0-12.0x daily takings)
+```
+
+Milestones that land before the gallery earns anything pay in charms and luck
+instead of cash — otherwise milestone income masks an underlying economy
+problem instead of revealing it.
+
 ## Export gotchas (cost real time — don't repeat them)
 
 1. Android export **refuses to run** unless
@@ -93,7 +148,8 @@ without limit — *RUNAWAY*). Both were caught in seconds, before any UI existed
 
 ## Next steps
 
+- Play the slice and say what's *boring* — that critique gates the Kairosoft
+  onboarding work, which is the real craft in the genre.
 - Add art. Start with a 16×16 tileset; the sim needs none to be balanced.
-- Wire `src/main.gd` to `SimCore` so the playable grid *is* the model.
 - Add the AdMob plugin (Poing Studios, MIT, Godot 4.2+) for mobile ads.
 - Test on a real phone early — the editor is not the device.

@@ -66,7 +66,7 @@ const SYMBOL_ORDER := ["clover", "honey", "moon", "star", "bog", "blight"]
 ## faking three.
 const REEL_STOP_TIMES := [0.55, 0.72, 0.90]
 
-const TABS := ["Gallery", "Vault", "Digs", "Staff", "Ledger"]
+const TABS := ["Gallery", "Vault", "Digs", "Staff", "Goals", "Ledger"]
 
 var state := GameState.new()
 
@@ -94,6 +94,9 @@ var _btn_table: Button
 var _overlay: Control
 var _btn_new: Button
 var _new_armed := false
+var _lbl_goal: Label
+var _lbl_goal_sub: Label
+var _bar_goal: ProgressBar
 
 
 func _ready() -> void:
@@ -152,9 +155,17 @@ func _build_topbar() -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _panel_style(COL_PANEL))
 
+	# A PanelContainer stretches EVERY child to the full rect, so the stats
+	# row and the milestone strip have to live in one column, not two
+	# siblings. Two siblings meant the milestone strip was drawn on top of
+	# the day and money.
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 4)
+	panel.add_child(stack)
+
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
-	panel.add_child(row)
+	stack.add_child(row)
 
 	_lbl_day = _stat_label("Day 1", COL_CREAM)
 	row.add_child(_lbl_day)
@@ -169,6 +180,43 @@ func _build_topbar() -> Control:
 	row.add_child(_lbl_charms)
 	_lbl_luck = _stat_label("Luck 0.0", COL_SLATE)
 	row.add_child(_lbl_luck)
+
+	# The milestone strip. A management game where the next goal lives on a
+	# tab the player has to go and find is a game that feels endless. This
+	# line is always on screen, so the ladder is never more than a glance
+	# away - it is the thing that makes "day 40" feel different from "day 4".
+	#
+	# The title and the description are SEPARATE labels, both full width.
+	# They used to be one autowrapping label inside the header row, and that
+	# clipped: a wrapping Label cannot know its height until its width is
+	# known, and a horizontal container allocates height BEFORE width is
+	# resolved. The second line was simply cut off. Stacked full-width
+	# labels in the vertical stack do not have that problem.
+	var grow := VBoxContainer.new()
+	grow.add_theme_constant_override("separation", 3)
+	stack.add_child(grow)
+
+	var ghead := HBoxContainer.new()
+	ghead.add_theme_constant_override("separation", 6)
+	grow.add_child(ghead)
+	ghead.add_child(_label("MILESTONE", COL_OCHRE, 11))
+
+	_lbl_goal = _label("", COL_CREAM, 12)
+	_lbl_goal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	grow.add_child(_lbl_goal)
+
+	_lbl_goal_sub = _label("", COL_DIM, 11)
+	_lbl_goal_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	grow.add_child(_lbl_goal_sub)
+
+	_bar_goal = ProgressBar.new()
+	_bar_goal.show_percentage = false
+	_bar_goal.custom_minimum_size = Vector2(0, 6)
+	_bar_goal.max_value = 1.0
+	_bar_goal.step = 0.001
+	_bar_goal.add_theme_stylebox_override("background", _panel_style(COL_BG))
+	_bar_goal.add_theme_stylebox_override("fill", _panel_style(COL_OCHRE))
+	grow.add_child(_bar_goal)
 	return panel
 
 
@@ -372,6 +420,21 @@ func _refresh() -> void:
 	_btn_spin.disabled = not state.can_spin() or _spin_active
 	_btn_spin.text = "Spin (%d☘)" % state.charm_cost()
 
+	# The milestone strip: the next goal on the ladder and how close it is.
+	var ng := state.next_goal()
+	if ng.is_empty():
+		_lbl_goal.text = "Every milestone earned. The gallery is yours."
+		_lbl_goal.add_theme_color_override("font_color", COL_OCHRE)
+		_lbl_goal_sub.text = ""
+		_bar_goal.value = 1.0
+	else:
+		var g: Dictionary = ng["goal"]
+		_lbl_goal.text = str(g["title"])
+		_lbl_goal.add_theme_color_override("font_color", COL_CREAM)
+		_lbl_goal_sub.text = "%s   (%d/%d)" % [str(g["body"]),
+			int(ng["progress"]), int(ng["target"])]
+		_bar_goal.value = clampf(float(ng["progress"]) / maxf(1.0, float(ng["target"])), 0.0, 1.0)
+
 	for i in _tab_buttons.size():
 		_tab_buttons[i].button_pressed = (i == _current_tab)
 
@@ -392,7 +455,8 @@ func _rebuild_content() -> void:
 		1: _build_vault_tab()
 		2: _build_digs_tab()
 		3: _build_staff_tab()
-		4: _build_ledger_tab()
+		4: _build_goals_tab()
+		5: _build_ledger_tab()
 
 
 # ---------------------------------------------------------------- gallery
@@ -847,6 +911,64 @@ func _build_tutorial_card() -> void:
 	_content.add_child(card)
 
 
+# ---------------------------------------------------------------- goals
+
+## The milestone ladder. Twelve goals in three tiers, every one of them
+## something the player has already been doing - the tab does not add
+## verbs, it makes the existing loop visible.
+func _build_goals_tab() -> void:
+	_content.add_child(_section_title("Milestones"))
+	_content.add_child(_hint(
+		"Three tiers, twelve goals. Each one pays out the moment you reach "
+		+ "it - you do not claim them, you earn them."))
+
+	var entries := state.goal_list()
+	var tier := ""
+	for e in entries:
+		var g: Dictionary = e["goal"]
+		var t := str(g["tier"])
+		if t != tier:
+			tier = t
+			_content.add_child(_label(t.to_upper(), COL_OCHRE, 13))
+
+		var done := bool(e["complete"])
+		var accent := COL_MOSS if done else COL_SLATE
+		var card := _card(accent)
+		var col := _card_col(card)
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		col.add_child(row)
+
+		var title_col := VBoxContainer.new()
+		title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title_col.add_theme_constant_override("separation", 1)
+		row.add_child(title_col)
+		title_col.add_child(_label(str(g["title"]), COL_CREAM if not done else COL_MOSS, 15))
+		title_col.add_child(_label(str(g["body"]), COL_DIM, 12))
+
+		if done:
+			row.add_child(_label("✓ EARNED", COL_MOSS, 13))
+		else:
+			row.add_child(_label("%d/%d" % [int(e["progress"]), int(e["target"])],
+				COL_OCHRE, 13))
+
+		var reward := _label("Reward: %s" % state.goals.reward_text(g), COL_DIM, 11)
+		col.add_child(reward)
+
+		if not done:
+			var bar := ProgressBar.new()
+			bar.show_percentage = false
+			bar.custom_minimum_size = Vector2(0, 5)
+			bar.max_value = maxf(1.0, float(e["target"]))
+			bar.value = float(e["progress"])
+			bar.add_theme_stylebox_override("background", _panel_style(COL_BG))
+			bar.add_theme_stylebox_override("fill", _panel_style(COL_OCHRE))
+			col.add_child(bar)
+
+		_content.add_child(card)
+
+
 # ---------------------------------------------------------------- ledger
 
 ## The ledger: the player's own history. A management game where you cannot
@@ -1046,10 +1168,16 @@ func _card_row(panel: PanelContainer) -> HBoxContainer:
 ## The card is rebuilt as a single column so the second line sits UNDER the
 ## title rather than fighting it for width in the same row.
 func _card_col(panel: PanelContainer) -> VBoxContainer:
+	# The original row is REMOVED from the panel, not just emptied. A
+	# PanelContainer stretches every child to the full rect, so leaving an
+	# empty row in there put a second full-size container on top of the
+	# column - invisible, but it sat over the card's buttons.
 	var row := panel.get_child(0) as HBoxContainer
+	panel.remove_child(row)
 	for c in row.get_children():
 		row.remove_child(c)
 		c.queue_free()
+	row.queue_free()
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 4)
 	panel.add_child(col)
