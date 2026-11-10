@@ -9,3 +9,13 @@ build/
 
 # macOS
 .DS_Store
+
+# AI art pipeline
+ai/art/**/*_raw*.png
+ai/art/**/out*/
+ai/__pycache__/
+*.pyc
+
+# Vendored pxl: keep source + dist, skip heavy showcase/docs media
+tools/pxl/showcase/
+tools/pxl/docs/

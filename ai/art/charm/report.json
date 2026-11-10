@@ -1,0 +1,6 @@
+{
+  "name": "charm",
+  "px_source": "/Users/amre/Projects/GameStewKit/ai/art/charm/charm.px.js",
+  "lint": "charm: 1 finding\n  jaggy          1 doubled corner in 1-px lines (an L where the line should step diagonally). Remove the corner pixel so the line steps cleanly.\n                 at 24,20\n1 finding in 1 asset",
+  "cleanup": "cleanup: 31x32, 133 orphans absorbed, 0 jaggies repaired\nrewrote /Users/amre/Projects/GameStewKit/ai/art/charm/charm.px.js"
+}
