@@ -1,0 +1,58 @@
+[
+  {
+    "name": "artefact_rubble",
+    "subject": "a chunky grey fieldstone, roughly hewn, sitting on the ground",
+    "size": 16,
+    "colors": 6,
+    "detail": "One hero object, centred. Irregular angular stone with a couple of chips. Two tones of grey plus a dark outline. The silhouette must read as 'rough stone'."
+  },
+  {
+    "name": "artefact_clay",
+    "subject": "a small hand-thrown clay pot with a narrow neck and a round belly",
+    "size": 16,
+    "colors": 6,
+    "detail": "One hero object, centred. A simple vessel shape. Warm terracotta with a lighter highlight band on one side and a dark outline. The silhouette must read as 'pot'."
+  },
+  {
+    "name": "artefact_relic",
+    "subject": "a small carved stone brooch or idol face with two eyes",
+    "size": 16,
+    "colors": 7,
+    "detail": "One hero object, centred. A roughly carved face or brooch shape. Cool grey-green stone with two darker eye pixels. The silhouette must read as 'carved face'."
+  },
+  {
+    "name": "artefact_crown",
+    "subject": "a small ancient gold crown or torc with three points",
+    "size": 16,
+    "colors": 7,
+    "detail": "One hero object, centred. Three distinct points, a band across the bottom, a jewel pixel in the centre. Warm gold with a bright highlight. The silhouette must read as 'crown'."
+  },
+  {
+    "name": "dig_site",
+    "subject": "an archaeological dig site: a rectangular pit of dark earth with a spoil heap beside it",
+    "size": 24,
+    "colors": 8,
+    "detail": "A small scene, not a single object. The pit is a dark open rectangle seen slightly from above, with a mound of lighter dug earth beside it and a tiny wooden marker stake. Keep it to 3 distinct shapes."
+  },
+  {
+    "name": "curator",
+    "subject": "a small friendly curator fairy, the size of a hand, wearing a tiny coat and holding a magnifier",
+    "size": 16,
+    "colors": 8,
+    "detail": "One character, centred, facing the viewer. A tiny figure with a distinct head, body and a magnifier held to one side. Gaps between head and body so the silhouette reads."
+  },
+  {
+    "name": "gallery_case",
+    "subject": "an empty museum display case: a wooden base, a glass box and a small brass label plate",
+    "size": 24,
+    "colors": 8,
+    "detail": "One object, centred. A rectangular base, a transparent-looking box drawn as a light outline only, and a tiny plaque. Leave the middle EMPTY - the case holds artefacts later."
+  },
+  {
+    "name": "reel_wheel",
+    "subject": "a wooden fortune-teller wheel with six spokes and a small brass hub",
+    "size": 24,
+    "colors": 8,
+    "detail": "One object, centred, seen face-on. A ring with six spokes radiating from a small hub. The ring and spokes are separate shapes with gaps between them."
+  }
+]

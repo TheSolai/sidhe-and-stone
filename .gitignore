@@ -19,3 +19,7 @@ ai/__pycache__/
 # Vendored pxl: keep source + dist, skip heavy showcase/docs media
 tools/pxl/showcase/
 tools/pxl/docs/
+
+# Art pipeline build output (regenerate with: pxl build)
+art/*/out/
+art/*/report.json

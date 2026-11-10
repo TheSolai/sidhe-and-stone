@@ -37,6 +37,19 @@ const GRADE_COL := {
 
 const GRADE_ORDER := ["crown", "relic", "clay", "rubble"]
 
+## Generated pixel art lives in assets/sprites. Every one of these was drawn
+## as code with pxl - which means it IS the pixel grid, with binary alpha and
+## a fixed palette - and checked against a rendered ASCII grid before it was
+## allowed near the UI. See ai/regen_sprites.py for the reproducible build.
+const SPRITE_DIR := "res://assets/sprites/"
+
+const GRADE_SPRITE := {
+	"crown": "artefact_crown",
+	"relic": "artefact_relic",
+	"clay": "artefact_clay",
+	"rubble": "artefact_rubble",
+}
+
 const SYMBOL_STYLE := {
 	"clover": {"glyph": "☘", "col": Color("7d9a52"), "name": "Clover"},
 	"honey": {"glyph": "❋", "col": Color("e0a83c"), "name": "Honey"},
@@ -154,6 +167,8 @@ func _build_reel_strip() -> Control:
 	title.add_theme_color_override("font_color", COL_OCHRE)
 	title.add_theme_font_size_override("font_size", 15)
 	head.add_child(title)
+
+	head.add_child(_icon("reel_wheel", 26))
 
 	_lbl_payout = Label.new()
 	_lbl_payout.text = "×1.00"
@@ -337,6 +352,13 @@ func _build_gallery_tab() -> void:
 		% state.demand()
 		+ "Anything beyond that earns nothing but can still be stolen."))
 
+	var case_row := HBoxContainer.new()
+	case_row.add_theme_constant_override("separation", 8)
+	case_row.add_child(_icon("gallery_case", 44))
+	case_row.add_child(_label("Exhibits on display bring visitors through the door.",
+		COL_DIM, 13))
+	_content.add_child(case_row)
+
 	var gallery := state.gallery_counts()
 	var any := false
 	for grade in GRADE_ORDER:
@@ -346,6 +368,7 @@ func _build_gallery_tab() -> void:
 		any = true
 		var card := _card(GRADE_COL[grade])
 		var row := _card_row(card)
+		row.add_child(_icon(GRADE_SPRITE[grade], 34))
 		row.add_child(_label("%s  %s" % [grade.capitalize(), "×%d" % n],
 			GRADE_COL[grade], 17))
 		row.add_child(_spacer(8, 0))
@@ -392,6 +415,7 @@ func _build_vault_tab() -> void:
 		any = true
 		var card := _card(GRADE_COL[grade])
 		var row := _card_row(card)
+		row.add_child(_icon(GRADE_SPRITE[grade], 34))
 		row.add_child(_label("%s  ×%d" % [grade.capitalize(), n], GRADE_COL[grade], 17))
 		row.add_child(_spacer(8, 0))
 		row.add_child(_label("£%d/day each" % state.exhibit_value(grade), COL_DIM, 13))
@@ -434,6 +458,7 @@ func _build_digs_tab() -> void:
 		var running := state.dig_in_progress(i)
 		var card := _card(COL_PANEL_HI)
 		var row := _card_row(card)
+		row.add_child(_icon("dig_site", 34))
 		row.add_child(_label("Site %d" % (i + 1), COL_CREAM, 17))
 
 		if not running.is_empty():
@@ -494,6 +519,8 @@ func _build_staff_tab() -> void:
 		var cost := state.upgrade_cost(kind)
 		var card := _card(COL_PANEL_HI)
 		var row := _card_row(card)
+		if kind == "curator":
+			row.add_child(_icon("curator", 30))
 		row.add_child(_label("%s  (owned %d)" % [r[1], state.upgrade_count(kind)],
 			COL_CREAM, 16))
 		row.add_child(_spacer(4, 0))
@@ -641,6 +668,23 @@ func _spacer(w: float, h: float) -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(w, h)
 	return c
+
+
+## A generated sprite as a UI icon.
+##
+## The textures are tiny (13-23 px) and must stay crisp, so the filter is
+## NEAREST and the texture is scaled by the layout rather than resampled.
+func _icon(file: String, px: int = 40) -> TextureRect:
+	var tr := TextureRect.new()
+	var path := SPRITE_DIR + file + ".png"
+	if ResourceLoader.exists(path):
+		tr.texture = load(path)
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.custom_minimum_size = Vector2(px, px)
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return tr
 
 
 func _panel_style(col: Color) -> StyleBoxFlat:

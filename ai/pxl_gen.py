@@ -226,6 +226,21 @@ def pxl_lint(src: Path):
     return (res.stdout or "") + (res.stderr or "")
 
 
+def pxl_ascii(src: Path, name: str) -> str:
+    """Render an asset as a text grid.
+
+    This is the reliable critique channel. llava:34b is unreliable at 16x16
+    - it calls a shamrock a tree and sometimes returns grounding JSON - but a
+    CODE model reads a character grid perfectly well. Handing the model its
+    own rendered output as text lets it critique and repair the sprite
+    without a vision model in the loop at all.
+    """
+    cmd = [NODE, "bin/pxl.js", "ascii", str(Path(src).resolve()), name]
+    res = subprocess.run(cmd, capture_output=True, text=True, timeout=180,
+                         cwd=str(PXL_DIR))
+    return (res.stdout or "") + (res.stderr or "")
+
+
 def pxl_serve_check(src: Path):
     """Confirm pxl can parse the file at all (cheap syntax gate)."""
     cmd = [NODE, "bin/pxl.js", "list", str(src)]
@@ -442,13 +457,24 @@ corners, and reduce the colour count.
 Return ONLY the corrected pxl source file. No markdown fence, no commentary."""
 
 
-def repair_source(code, error, lint_findings, model, docs):
+def repair_source(code, error, lint_findings, model, docs, grid=""):
     block = ""
     if lint_findings:
         block = (f"\npxl lint ALSO reported these findings to fix:\n"
                  f"{lint_findings}\n")
+    grid_block = ""
+    if grid:
+        grid_block = (
+            "\nHere is how your sprite ACTUALLY renders, one character per "
+            "pixel ('.' is transparent):\n\n"
+            f"{grid}\n\n"
+            "Read that grid carefully. Every defect below is visible in it: a "
+            "shape that reads as a flat bar instead of a crown, a solid "
+            "slab where a hollow shape belongs, a detail painted over in the "
+            "wrong colour. Fix the DRAWING CODE so the rendered grid matches "
+            "the intended subject.\n")
     prompt = REPAIR_TEMPLATE.format(error=error, finding_block=block,
-                                    code=code, pxl_docs=docs)
+                                    code=code, pxl_docs=docs) + grid_block
     raw = ollama_chat(prompt, model=model, temperature=0.35, num_predict=2200)
     return sanitise(raw)
 
@@ -475,6 +501,92 @@ CRITIQUE: <3-5 short lines>
 BRIEF: <the replacement brief>"""
 
 
+# --- ASCII self-critique -------------------------------------------------
+#
+# The critique a code model gives of its own rendered output. This is the
+# channel that actually works at 16x16: the grid is exact, and a text model
+# can reason about a character grid in a way a vision model at this
+# resolution cannot. It is what caught the crown rendering as a flat bar and
+# the display case as a solid white slab - defects the linter passed.
+
+ASCII_CRITIQUE_PROMPT = """You are the art director of a cozy KairoSoft-style
+management game with Irish folklore themes. You are reviewing a pixel-art
+sprite that has ALREADY BEEN RENDERED.
+
+Here is the rendered sprite, one character per pixel. '.' is transparent:
+
+{grid}
+
+The intended subject was: {subject}
+
+Judge what you can SEE in that grid:
+1. SILHOUETTE - does the shape read as the subject at a glance, or does it
+   collapse into a flat bar, a solid slab, or a blob?
+2. SHAPE FIDELITY - are the parts actually the right shape? A hollow thing
+   must be hollow. A crown must have points on top. A wheel must have a ring
+   and spokes, not a solid field.
+3. COLOUR FAULTS - is any detail painted over in the wrong colour? Any
+   feature invisible because it matches its neighbour?
+4. NOISE - stray isolated pixels, or shapes that float free of the subject.
+5. BALANCE - is the subject centred and readable, with a transparent margin?
+
+Then write the fixes as a short list of CONCRETE drawing changes. Name the
+parts and say what shape they should be. Be specific and brief.
+
+Reply in exactly this format:
+PROBLEMS: <one line per problem>
+FIXES: <what to change in the drawing code>"""
+
+
+def ascii_critique(src: Path, name: str, subject: str, model="qwen3-coder:30b",
+                    timeout=420):
+    """Critique a rendered sprite from its own text grid."""
+    grid = pxl_ascii(src, name)
+    if not grid.strip() or "." not in grid:
+        print(f"    ! ascii grid empty for {name}", flush=True)
+        return None, ""
+    prompt = ASCII_CRITIQUE_PROMPT.format(grid=grid, subject=subject)
+    text = ollama_chat(prompt, model=model, temperature=0.3,
+                       num_predict=700, timeout=timeout)
+    problems, fixes = None, ""
+    for line in text.splitlines():
+        s = line.strip()
+        if s.upper().startswith("PROBLEMS:"):
+            problems = s.split(":", 1)[1].strip()
+        elif s.upper().startswith("FIXES:"):
+            fixes = s.split(":", 1)[1].strip()
+    # The model sometimes ignores the requested labels. Fall back to using
+    # the whole reply as the fix list rather than silently dropping it -
+    # an unparsed critique is a wasted critique.
+    if not problems and not fixes and text.strip():
+        problems = text.strip()[:600]
+        fixes = text.strip()[:1200]
+    return problems, fixes
+
+
+def brief_has_drift(original_subject: str, brief: str) -> bool:
+    """Does the revised brief describe a DIFFERENT subject?
+
+    The vision critique is advisory and untrusted: at 16x16 it hallucinates.
+    Observed failure - a stone relic came back as "a friendly leprechaun"
+    and a museum display case as "a cozy Irish pub". Regenerating from a
+    brief that drifted to another subject replaces good art with nonsense,
+    so a drifted brief is discarded rather than used.
+    """
+    if not brief.strip():
+        return True
+    stop = {"a", "an", "the", "of", "with", "and", "or", "in", "on", "to",
+            "game", "sprite", "pixel", "pixel-art", "art", "create", "that",
+            "is", "it", "for", "from", "small", "one", "should", "its",
+            "charming", "irish", "folklore", "charm"}
+    subj = {w for w in re.findall(r"[a-z]{4,}", original_subject.lower())
+            if w not in stop}
+    br = {w for w in re.findall(r"[a-z]{4,}", brief.lower()) if w not in stop}
+    if not subj:
+        return False
+    return not (subj & br)
+
+
 def vision_critique(png_path: Path, model="llava:34b", timeout=420):
     import base64
     with open(png_path, "rb") as f:
@@ -495,8 +607,10 @@ def vision_critique(png_path: Path, model="llava:34b", timeout=420):
 
 def build_asset(subject, name, out_root, size=16, colors=10, detail="",
                 model="qwen3-coder:30b", vision_model="llava:34b",
-                max_repairs=3, use_vision=True, docs=PXL_DOCS, verbose=True):
-    art_dir = Path(out_root) / name
+                max_repairs=3, use_vision=True, docs=PXL_DOCS, verbose=True,
+                ascii_review=True, ascii_model="qwen3-coder:30b",
+                ascii_rounds=1):
+    art_dir = (Path(out_root) / name).resolve()
     art_dir.mkdir(parents=True, exist_ok=True)
     src = art_dir / f"{name}.px.js"
     out_dir = art_dir / "out"
@@ -547,6 +661,53 @@ def build_asset(subject, name, out_root, size=16, colors=10, detail="",
                              findings, model, docs)
         src.write_text(code)
 
+    # --- ASCII self-critique and repair --------------------------------
+    # The linter only checks that the code is VALID. It says nothing about
+    # whether the drawing READS as the subject. The rendered grid does.
+    grid = ""
+    if ascii_review:
+        print("  [ascii] critiquing rendered grid", flush=True)
+        problems, fixes = ascii_critique(src, name, subject,
+                                         model=ascii_model)
+        grid = pxl_ascii(src, name)
+        result["ascii_problems"] = problems
+        result["ascii_fixes"] = fixes
+        result["ascii_grid"] = grid
+        print(f"  [ascii] {problems or 'no problems found'}", flush=True)
+
+        if fixes and ascii_rounds > 0:
+            print("  [ascii] repairing from grid critique", flush=True)
+            code = repair_source(
+                code,
+                "your sprite does not read as the intended subject:\n"
+                + (problems or ""),
+                "", model, docs, grid=grid)
+            src.write_text(code)
+            for attempt in range(max_repairs + 1):
+                ok, output = pxl_build(src, out_dir)
+                if not ok:
+                    err = extract_error(output)
+                    code = repair_source(code, err, "", model, docs, grid=grid)
+                    src.write_text(code)
+                    continue
+                lint_out = pxl_lint(src)
+                findings = summarise_lint(lint_out)
+                clean = "0 findings" in lint_out or "clean" in findings.lower()
+                if clean or attempt == max_repairs:
+                    break
+                code = repair_source(code, "lint reported findings",
+                                     findings, model, docs, grid=grid)
+                src.write_text(code)
+            pxl_build(src, out_dir)
+            grid = pxl_ascii(src, name)
+            result["ascii_grid"] = grid
+            # second look at the repaired grid
+            problems2, fixes2 = ascii_critique(src, name, subject,
+                                               model=ascii_model)
+            result["ascii_problems_after"] = problems2
+            print(f"  [ascii] after repair: {problems2 or 'no problems found'}",
+                  flush=True)
+
     # final build so the PNG on disk matches the final source
     pxl_build(src, out_dir)
 
@@ -563,6 +724,20 @@ def build_asset(subject, name, out_root, size=16, colors=10, detail="",
         result["critique"] = critique
         result["revised_brief"] = brief
         print(f"  [vision] {critique}", flush=True)
+
+        # A brief that drifted to a different subject is worse than no brief.
+        # llava at 16x16 hallucinates freely: a stone relic came back as
+        # "a friendly leprechaun" and a museum case as "a cozy Irish pub".
+        # Regenerating from a drifted brief replaces good art with nonsense,
+        # so it is discarded.
+        if brief and brief_has_drift(subject, brief):
+            print("  [vision] brief drifted to another subject - DISCARDED",
+                  flush=True)
+            result["vision_brief_rejected"] = "drift"
+            brief = None
+        elif not brief:
+            print("  [vision] empty critique - no regeneration", flush=True)
+            result["vision_brief_rejected"] = "empty"
 
         if brief:
             print("  [vision] regenerating from revised brief", flush=True)
