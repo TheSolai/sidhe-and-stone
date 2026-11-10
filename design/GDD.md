@@ -4,8 +4,10 @@
 **Genre:** Cozy management simulation (KairoSoft lineage)
 **Platform:** iOS / Android (portrait first), then Web and desktop
 **Engine:** Godot 4.7.2
-**Status:** Vertical slice in progress. Economy implemented and balance-validated
-headless. UI not yet wired.
+**Status:** Playable. The full loop is wired to the UI, the game saves and
+reloads, the first run is coached, and every day's events are reported in
+words rather than implied by a number. The balance harness still runs
+alongside, so any change to the economy is re-validated the same day.
 
 ---
 
@@ -188,10 +190,10 @@ supposed to grow, so the verdict is driven by operating income.
 Baseline (365 days, reel on):
 
 ```
-money: day1=24  final=88126
-operating income/day: early=4225  late=11912   volatility CV=0.45
-active days: 85.8%   capex share of revenue: 93.1%
-reel: 3.7% of revenue | spins=162 avg payout=1.071 | luck=0.60 | EV(luck)=1.084 EV(0)=1.031
+money: day1=24  final=531220
+operating income/day: early=7591  late=12197   volatility CV=0.40
+active days: 87.7%   capex share of revenue: 82.8%
+reel: 7.7% of revenue | spins=343 avg payout=1.078 | luck=0.60 | EV(luck)=1.084 EV(0)=1.031
 VERDICT: healthy (operating income stable across the curve)
 ```
 
@@ -199,7 +201,7 @@ Reel off: also healthy. Parameter sweeps across demand growth (600–1400),
 market gain (1.20–1.45), site upkeep (1–4) and reel cost (1–5) all return
 `healthy`.
 
-**Note on capex share:** 93% of revenue is reinvested. That is high, but it is
+**Note on capex share:** 83% of revenue is reinvested. That is high, but it is
 the greedy reinvestment policy working as designed — surplus buys upgrades
 rather than accumulating. It is a signal the growth loop is being driven by
 player decisions, not by idle accumulation. Worth watching; if it ever
@@ -234,20 +236,69 @@ images.
 
 ## 7. UI
 
-Portrait. One thumb. Five-minute session shape: open, take the day's
-decisions, glance at the result, close.
+Portrait. One thumb. Five-minute session shape: open, take the day's decisions, glance at the result, close.
 
-- **Top bar:** money, day, charms, luck.
-- **Centre:** the gallery floor — grid of exhibit slots with sprite, grade,
-  and a lock icon if warded.
-- **Bottom tab bar:** Gallery · Dig Sites · Curators · Staff · Reel.
-- **The Fate Reel** lives in its own tab with a physical reel that animates
-  through its symbols. The player can always see the current payout table, so
-  the mechanic never feels arbitrary.
-- **Vault** is a separate tab from Gallery. Moving an artefact between them
-  is the core interaction and should be one drag.
+Built entirely in code so the layout stays consistent and the scene file stays
+trivial. Everything on screen is a thin view over `GameState`: the UI reads
+state, calls an action, and refreshes. It never touches the economy directly,
+which is what keeps the balance the harness proves and the balance the player
+feels the same numbers.
 
----
+- **Top bar:** money, day, charms, luck. Money turns red in the red.
+- **The Fate Reel** is a permanent strip, not a tab. A luck mechanic the
+  player has to go looking for is a luck mechanic they will forget exists.
+  The payout table is one tap away, so the mechanic never feels arbitrary.
+- **Centre:** the gallery floor — exhibit cards with sprite, grade, daily
+  value, and a live count of how many of them actually earn.
+- **Bottom tab bar:** Gallery · Vault · Digs · Staff · Ledger.
+- **Vault** is a separate tab from Gallery. Moving an artefact between them is
+  the core interaction.
+- **End Day** is a full-width button at the bottom, always reachable.
+
+### 7.1 The four systems that turned a slice into a game
+
+The economy and the UI existed before this pass. What was missing was
+everything that makes a *game* rather than a model with buttons on it.
+
+**Saving.** `SimCore` and `ReelCore` snapshot to JSON; `GameState` owns the
+round trip; `SaveSystem` writes atomically (temp file, then rename) so a
+crash mid-write leaves the previous good save intact rather than a
+half-written file that cannot be loaded. Two details make the round trip
+faithful: the RNG state is stored as a **string** (it is a uint64 and JSON
+numbers are doubles, so a numeric round trip would corrupt the sequence and
+silently reroll every future theft), and the dig dictionaries are keyed by
+**int** site index, which JSON turns into strings on the way out.
+
+**The coach** (`src/tutorial.gd`). Six beats. The central one teaches the
+vault-versus-display choice, not "here are the buttons". A beat completes
+when the player *does the thing*, checked against real game state, so it can
+never advance on a timer and nag about something already done. Skippable,
+always.
+
+**The day report.** Ending a day opens a panel that says what happened in
+words: takings, costs, net, what was catalogued, which digs finished, what
+the reel paid, and — importantly — **which** artefacts were stolen. "2
+stolen" tells a player nothing about whether it was their crown or their
+rubble that went.
+
+**The ledger.** The player's own day-by-day history plus a rolling event log.
+A management game where you cannot see the curve you climbed is a management
+game played blind.
+
+### 7.2 Demand visibility (open question 2, answered)
+
+Gallery cards now state how many of each grade actually earn: "2 earning -
+1 over the cap". Visitors pay for the most valuable exhibits up to the demand
+cap, so anything beyond it earns nothing while still being stealable. That
+trap used to be invisible - enforceable, but not legible.
+
+### 7.3 No dead ends
+
+Dig buttons are **not** disabled when the purse is empty. Blocking an
+unaffordable dig meant: broke, no finds, no exhibits, no income, and no
+button left to press - an unrecoverable hole. Digs are allowed on credit; the
+debt is the punishment. The top bar turns red, and the Digs tab explains the
+situation.
 
 ## 8. Monetisation
 
@@ -264,27 +315,53 @@ Free to play. Core loop never paywalled.
 
 ## 9. Scope: what ships in the vertical slice
 
-1. One full loop: dig → catalogue → vault → display → takings → reinvest.
+1. One full loop: dig -> catalogue -> vault -> display -> takings -> reinvest.
 2. Portrait mobile UI wired to `SimCore`.
 3. A visible, animated Fate Reel.
 4. Pixel art for: three dig-site states, four artefact grades, one gallery
    case, one curator, the reel, and the UI chrome.
 5. The balance harness running alongside, so every art/economy change is
    re-validated the same day.
+6. Saving and loading.
+7. First-run coaching that teaches the central decision.
+8. An end-of-day report in words.
+9. A ledger the player can read their own history in.
 
 **Not in the slice:** multiplayer, the full artefact roster, story events,
 audio, iOS release (blocked on an Apple Developer account).
 
----
+### 9.1 What "done" means, and how it is proven
+
+A scene that parses is not a scene that runs, and a scene that runs is not
+necessarily a scene that *looks* right. Three harnesses, all run on every
+change:
+
+- **Balance** (`sim/run_sim.gd`) - 365 days, judges the economy, fails
+  loudly on `STALLS`, `DECLINING`, `RUNAWAY`, `REEL DOMINATES`, `CHAOTIC`.
+- **Smoke** (`tests/ui_smoke.gd`) - drives the real UI through a full
+  session. Currently **76 checks**: the loop, the reel's bounds, the
+  tutorial, the ledger, the save/load round trip (including RNG state and
+  day history), the demand split, and the credit path.
+- **Capture** (`tests/ui_capture.gd`) - renders PNGs of every tab *and both
+  modal screens*, because the day report and the coach only ever exist for a
+  moment in play and are therefore the easiest thing in the game to get
+  wrong. This is where the gallery text-collapse bug was caught: the smoke
+  test had passed it happily.
+
+**Headless smoke tests prove sprites LOAD. Only rendering the frame proves
+they LOOK right.** That lesson is load-bearing here.
 
 ## 10. Open questions
 
 1. **Does the vault-vs-display risk read as fun or as fiddly?** The theft rate
    (5% base per displayed artefact per night, capped at 2/night) is currently
-   a guess. It needs playtesting, not reasoning.
-2. **Is the demand cap visible enough?** Players must understand that a tenth
-   relic on display earns nothing. The UI has to *show* that, not just
-   enforce it.
+   a guess. It needs playtesting, not reasoning. This is now the single
+   biggest open question, and the coach deliberately teaches the choice
+   before the player has to feel it.
+2. **Is the demand cap visible enough?** *Now shown: gallery cards state "2
+   earning - 1 over the cap" per grade, and the cap is restated on the
+   Gallery tab. Enforced AND legible - but still open as a playtest question.
+   Present is not the same as understood.*
 3. **Art volume.** Every artefact grade and every dig state needs sprites. The
    local pipeline makes this cheap but its output needs a human eye; the
    `llava:34b` critique is advisory only and has already misidentified
