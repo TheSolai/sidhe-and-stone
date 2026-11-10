@@ -415,25 +415,36 @@ func _build_gallery_tab() -> void:
 			continue
 		any = true
 		var card := _card(GRADE_COL[grade])
-		var row := _card_row(card)
+		var col := _card_col(card)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		col.add_child(row)
 		row.add_child(_icon(GRADE_SPRITE[grade], 34))
 		row.add_child(_label("%s  %s" % [grade.capitalize(), "×%d" % n],
 			GRADE_COL[grade], 17))
 		row.add_child(_spacer(8, 0))
-		var earning := int(paying.get(grade, 0))
-		var value := _label("£%d/day each" % state.exhibit_value(grade), COL_DIM, 13)
-		row.add_child(value)
-		# The idle ones are the trap: they earn nothing but are still
-		# stealable. Say so plainly rather than letting the player discover it.
-		if earning < n:
-			var idle := _label("%d earning · %d over the cap" % [earning, n - earning],
-				COL_RUST, 12)
-			row.add_child(idle)
+		row.add_child(_label("£%d/day each" % state.exhibit_value(grade), COL_DIM, 13))
 		var sp := Control.new()
 		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(sp)
 		var b := _button("To Vault", func(): state.vault_one(grade))
 		row.add_child(b)
+
+		# The second line is the game's central decision, made legible.
+		# Two facts the player needs at the moment they decide whether to
+		# risk an exhibit: how much of it actually earns, and how likely it
+		# is to be stolen tonight. "2 stolen" after the fact tells them
+		# nothing they can act on; this does.
+		var earning := int(paying.get(grade, 0))
+		var bits: Array[String] = []
+		if earning < n:
+			bits.append("%d earning · %d over the cap" % [earning, n - earning])
+		else:
+			bits.append("%d earning" % earning)
+		var risk := state.theft_chance(grade)
+		bits.append("%.1f%% theft risk tonight" % (risk * 100.0))
+		col.add_child(_label(" · ".join(bits),
+			COL_RUST if (earning < n or risk > 0.07) else COL_DIM, 12))
 		_content.add_child(card)
 
 	if not any:
@@ -1016,6 +1027,20 @@ func _card(accent: Color) -> PanelContainer:
 ## The content row inside a card.
 func _card_row(panel: PanelContainer) -> HBoxContainer:
 	return panel.get_child(0) as HBoxContainer
+
+
+## The vertical body inside a card, for cards that carry more than one line.
+## The card is rebuilt as a single column so the second line sits UNDER the
+## title rather than fighting it for width in the same row.
+func _card_col(panel: PanelContainer) -> VBoxContainer:
+	var row := panel.get_child(0) as HBoxContainer
+	for c in row.get_children():
+		row.remove_child(c)
+		c.queue_free()
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	panel.add_child(col)
+	return col
 
 
 func _button(text: String, cb: Callable) -> Button:

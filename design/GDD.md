@@ -292,7 +292,20 @@ Gallery cards now state how many of each grade actually earn: "2 earning -
 cap, so anything beyond it earns nothing while still being stealable. That
 trap used to be invisible - enforceable, but not legible.
 
-### 7.3 No dead ends
+### 7.3 Risk made legible
+
+Each gallery card's second line also states the overnight theft risk for that
+grade - "1 earning · 5.8% theft risk tonight". The rate was always computed
+(`SimCore.theft_chance`); it was simply never shown, which made the central
+decision a guess dressed as a feeling.
+
+The decision the player is actually making, on one line: *£45/day at 5.8%
+risk, or £18/day and sleep*. Both the reward and the risk are on the card,
+in the same place, at the moment of choosing. A crown is worth six times a
+relic and pulls half again as much attention - the whole risk curve is now
+one readable line instead of a table in a design document.
+
+### 7.4 No dead ends
 
 Dig buttons are **not** disabled when the purse is empty. Blocking an
 unaffordable dig meant: broke, no finds, no exhibits, no income, and no
