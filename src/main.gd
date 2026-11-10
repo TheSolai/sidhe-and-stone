@@ -61,6 +61,11 @@ const SYMBOL_STYLE := {
 
 const SYMBOL_ORDER := ["clover", "honey", "moon", "star", "bog", "blight"]
 
+## When each reel stops, in seconds. A slot machine lands one reel at a time,
+## and that stagger is the whole difference between three reels and one wheel
+## faking three.
+const REEL_STOP_TIMES := [0.55, 0.72, 0.90]
+
 const TABS := ["Gallery", "Vault", "Digs", "Staff", "Ledger"]
 
 var state := GameState.new()
@@ -638,24 +643,32 @@ func _process(delta: float) -> void:
 	if not _spin_active:
 		return
 	_spin_t += delta
-	# Cycle through symbols for a beat before settling.
-	if _spin_t < 0.9:
-		if fmod(_spin_t, 0.08) < delta:
-			_spin_cycle += 1
-			for i in _reel_labels.size():
-				var s: String = SYMBOL_ORDER[_spin_cycle % SYMBOL_ORDER.size()]
+	var reels: Array = _spin_result["reels"]
+	var all_stopped := true
+	for i in _reel_labels.size():
+		var stop_t: float = REEL_STOP_TIMES[i] if i < REEL_STOP_TIMES.size() else 0.9
+		if _spin_t < stop_t:
+			all_stopped = false
+			# Each reel runs on its own phase. They used to blink in
+			# lockstep - the same symbol in all three windows - which
+			# read as one wheel pretending to be three.
+			if fmod(_spin_t, 0.08) < delta:
+				_spin_cycle += 1
+				var phase := _spin_cycle + i * 2
+				var s: String = SYMBOL_ORDER[phase % SYMBOL_ORDER.size()]
 				_reel_labels[i].text = SYMBOL_STYLE[s]["glyph"]
 				_reel_labels[i].add_theme_color_override("font_color", COL_DIM)
+		else:
+			# This reel has landed and locked in its result.
+			var s: String = reels[i]
+			_reel_labels[i].text = SYMBOL_STYLE[s]["glyph"]
+			_reel_labels[i].add_theme_color_override("font_color", SYMBOL_STYLE[s]["col"])
+	if not all_stopped:
 		return
 
-	# Settled: reveal the real result.
+	# Every reel has landed: reveal the real result.
 	_spin_active = false
 	_spin_revealed = true
-	var reels: Array = _spin_result["reels"]
-	for i in _reel_labels.size():
-		var s: String = reels[i]
-		_reel_labels[i].text = SYMBOL_STYLE[s]["glyph"]
-		_reel_labels[i].add_theme_color_override("font_color", SYMBOL_STYLE[s]["col"])
 
 	var payout := float(_spin_result["payout"])
 	var pattern := str(_spin_result["pattern"])

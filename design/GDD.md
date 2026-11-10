@@ -305,7 +305,31 @@ in the same place, at the moment of choosing. A crown is worth six times a
 relic and pulls half again as much attention - the whole risk curve is now
 one readable line instead of a table in a design document.
 
-### 7.4 No dead ends
+### 7.4 The reel was one wheel pretending to be three
+
+The Fate Reel is the game's signature mechanic, and until today nobody had
+ever actually watched it run - the smoke test proved the spin *resolved*, and
+the static capture proved the reel *existed*, and neither of those things is
+the same as the reel looking like a reel.
+
+Capturing it mid-spin exposed the defect: all three windows cycled in
+lockstep, showing the same symbol in all three (`ERR|ERR|ERR`, `MOON|MOON|MOON`).
+One wheel blinking three times.
+
+Now each reel runs on its own phase and lands on its own schedule - 0.55s,
+0.72s, 0.90s - so the strip resolves left to right like a slot machine
+should. The reveal has weight now, because you watch the last reel fall.
+
+Two lessons from building the capture harness, both worth more than the fix:
+- **Dismiss the first-run coach before capturing anything.** The coach card
+  sits over the reel strip, so the first reel "screenshot" was a picture of
+  a tutorial card. Every pixel of that first capture was the coach.
+- **Assert on text, not on pixels.** The capture harness reports the reel
+  glyphs as strings (`≈|☘|★`), so the evidence is readable without trusting a
+  vision model to describe a screenshot correctly. The bug was found by
+  reading strings; the screenshots confirmed it afterwards.
+
+### 7.5 No dead ends
 
 Dig buttons are **not** disabled when the purse is empty. Blocking an
 unaffordable dig meant: broke, no finds, no exhibits, no income, and no
