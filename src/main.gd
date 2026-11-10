@@ -651,6 +651,11 @@ func _label(text: String, col: Color, size: int = 15) -> Label:
 	l.add_theme_color_override("font_color", col)
 	l.add_theme_font_size_override("font_size", size)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# An autowrapping Label inside an HBoxContainer reports a minimum width of
+	# roughly one character, so without this the container squeezes it into a
+	# 1px column and every letter wraps onto its own line. Expanding the
+	# label gives it the row's remaining width to wrap across.
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 
 
