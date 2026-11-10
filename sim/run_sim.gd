@@ -11,6 +11,7 @@ extends SceneTree
 ##   --upkeep-plot=N       daily operating cost per plot
 ##   --reel-policy=MODE    always | off | never-spins (default always)
 ##   --reel-cost=N         charms per spin
+##   --charm-rate=F        charms earned per paying exhibit
 ##   --reel-seed=N         RNG seed for reproducible runs
 ##
 ## Exit code is always 0; read the VERDICT line. This harness is the reason
@@ -35,6 +36,8 @@ func _init() -> void:
 			core.reel_policy = a.split("=")[1]
 		elif a.begins_with("--reel-cost="):
 			core.reel_charm_cost = int(a.split("=")[1])
+		elif a.begins_with("--charm-rate="):
+			core.charm_per_unit = float(a.split("=")[1])
 		elif a.begins_with("--reel-seed="):
 			core.reel.reseed(int(a.split("=")[1]))
 

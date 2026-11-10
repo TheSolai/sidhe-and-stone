@@ -118,7 +118,18 @@ var reel_charm_cost: int = 2
 ## "always" spins whenever affordable, "off" never spins.
 var reel_policy: String = "always"
 ## Charm earned per exhibit earning takings.
-var charm_per_unit: float = 0.05
+##
+## This rate is the reel's throttle, and it is deliberately tied to SUCCESS.
+## A struggling outfit barely sells anything, earns almost no charms, and so
+## can rarely spin: the luck mechanic is a reward for having built
+## something, not a lifeline for having built nothing. A healthy economy
+## earns a spin roughly every other day, which is often enough to make it
+## feel present and rare enough to make each one a decision.
+##
+## Measured (365 days, autopilot): at 0.05 the reel ran 162 spins and 3.7%
+## of revenue; at 0.15 it runs ~343 spins and 7.8%; above that it saturates
+## at one spin per day and the share stops moving. 0.15 is the knee.
+var charm_per_unit: float = 0.15
 
 # ---------------------------------------------------------------- state
 
@@ -158,6 +169,169 @@ var revenue_today: int = 0
 var opex_today: int = 0
 var capex_today: int = 0
 var reel_revenue_today: int = 0
+
+## ---------------------------------------------------------------------------
+## PLAYER MODE
+## ---------------------------------------------------------------------------
+## The headless harness runs the economy on autopilot: it picks the richest
+## dig, restocks the gallery itself, spins the reel every day and buys any
+## upgrade it can afford. That is exactly what you want for balance analysis
+## and exactly what you do NOT want for a playable game.
+##
+## In manual mode the same simulation code answers to the player instead:
+## digs are assigned by hand, exhibits are moved between vault and gallery by
+## hand, the reel is spun by hand, and upgrades are bought by hand. Nothing
+## about the maths changes, which is the point: the balance the harness
+## proves is the balance the player feels.
+var manual: bool = false
+## site index -> dig type the player has assigned for the next day.
+var pending_digs: Dictionary = {}
+## Set when the player asks for a reel spin. Consumed by the next step().
+## (Manual mode spins through spin_reel_now() instead, so the player sees the
+## result land before the day resolves.)
+## The most recent reel result, for the UI to display.
+var last_spin: Dictionary = {}
+## A short human-readable note about what just happened, for the UI ticker.
+var last_event: String = ""
+
+## ---------------------------------------------------------------------------
+## PUBLIC API FOR THE UI
+## ---------------------------------------------------------------------------
+## Everything the interface needs to show the player their situation and act
+## on it. Kept in one place so the UI never reaches into private state.
+
+## The player's payout multiplier for the day, set by a spin before the day
+## resolves. The reel is spun and ANIMATED first, then the day is resolved
+## with the result already known - the player watches the gamble land before
+## they see the money, which is the entire emotional point of a reel.
+var pending_payout: float = 1.0
+## The last spin the player asked for, for the UI to animate.
+var pending_spin: Dictionary = {}
+
+## How many artefacts visitors will pay for today.
+func demand_cap() -> int:
+	return _demand()
+
+## Curated value of one exhibit of a grade, after archivist bonuses.
+func exhibit_value(grade: String) -> int:
+	return _exhibit_value(grade)
+
+## How many artefacts are currently on display.
+func on_display() -> int:
+	var n := 0
+	for g in gallery:
+		n += int(gallery[g])
+	return n
+
+## Free display slots right now.
+func slots_free() -> int:
+	return maxi(0, gallery_slots - on_display())
+
+## Cost of the next purchase of an upgrade, or -1 if it is maxed.
+func upgrade_cost(kind: String) -> int:
+	if not UPGRADES.has(kind):
+		return -1
+	if _count(kind) >= int(UPGRADES[kind]["max"]):
+		return -1
+	return _upgrade_cost(kind)
+
+## Buy one of an upgrade. Returns true if it was bought.
+func buy_upgrade(kind: String) -> bool:
+	if not UPGRADES.has(kind):
+		return false
+	var cost := upgrade_cost(kind)
+	if cost < 0 or money < cost:
+		return false
+	money -= cost
+	capex_today += cost
+	upgrades_bought[kind] = _count(kind) + 1
+	match kind:
+		"site":
+			sites += 1
+		"curator":
+			curators += 1
+		"gallery":
+			gallery_slots += gallery_slot_gain
+		"omen":
+			reel.luck = minf(0.9, reel.luck + float(UPGRADES["omen"]["luck"]))
+	last_event = "Bought %s" % kind
+	return true
+
+## Assign a dig type to a site for the next day.
+func assign_dig(site: int, dig: String) -> void:
+	if not DIGS.has(dig):
+		return
+	if site < 0 or site >= sites:
+		return
+	pending_digs[site] = dig
+
+## Forget a site's pending assignment, leaving it idle.
+func clear_dig(site: int) -> void:
+	pending_digs.erase(site)
+
+## Move one curated artefact from the vault onto display.
+func display_one(grade: String) -> bool:
+	if int(vault.get(grade, 0)) <= 0:
+		return false
+	if slots_free() <= 0:
+		return false
+	vault[grade] = int(vault[grade]) - 1
+	_add(gallery, grade, 1)
+	return true
+
+## Move one displayed artefact back into the vault.
+func vault_one(grade: String) -> bool:
+	if int(gallery.get(grade, 0)) <= 0:
+		return false
+	gallery[grade] = int(gallery[grade]) - 1
+	_add(vault, grade, 1)
+	return true
+
+## Spin the Fate Reel on the player's behalf, spending charms. The result is
+## held as pending_payout and applied when the day resolves.
+## Returns {} if the player cannot afford a spin.
+func spin_reel_now() -> Dictionary:
+	if charms < reel_charm_cost:
+		return {}
+	charms -= reel_charm_cost
+	var res := reel.spin()
+	pending_spin = res
+	pending_payout = float(res["payout"])
+	return res
+
+## Whether the player can currently afford a spin.
+func can_spin() -> bool:
+	return charms >= reel_charm_cost
+
+## Total artefacts waiting to be catalogued.
+func raw_count() -> int:
+	var n := 0
+	for g in raw:
+		n += int(raw[g])
+	return n
+
+## Total curated artefacts sitting in the vault.
+func vault_count() -> int:
+	var n := 0
+	for g in vault:
+		n += int(vault[g])
+	return n
+
+## Daily operating cost of everything currently owned.
+func daily_upkeep() -> int:
+	return sites * upkeep_per_site + curators * upkeep_per_curator \
+		+ _count("wards") * upkeep_per_ward
+
+## How long a dig of this type takes, in days.
+func dig_days(dig: String) -> int:
+	return int(DIGS.get(dig, DIGS["test_pit"])["days"])
+
+## Cost of a dig of this type.
+func dig_cost(dig: String) -> int:
+	return int(DIGS.get(dig, DIGS["test_pit"])["cost"])
+
+## Thefts that happened last night, for the ticker.
+var last_stolen: int = 0
 
 func _init() -> void:
 	rng.seed = 20261110
@@ -202,6 +376,8 @@ func _upgrade_cost(kind: String) -> int:
 
 func _try_buy_upgrades() -> void:
 	for kind in UPGRADES:
+		if manual:
+			continue  # the player buys upgrades by hand
 		var bought := _count(kind)
 		if bought >= int(UPGRADES[kind]["max"]):
 			continue
@@ -227,13 +403,23 @@ func _open_digs() -> void:
 	for p in range(sites):
 		if digging.has(p):
 			continue
-		var dig := _pick_dig()
+		var dig := ""
+		if manual:
+			# Only dig what the player assigned. Idle sites stay idle - an
+			# unused site is the player's problem, not the simulation's.
+			dig = str(pending_digs.get(p, ""))
+			if dig == "":
+				continue
+		else:
+			dig = _pick_dig()
 		if dig == "":
 			continue
 		var cost := int(DIGS[dig]["cost"])
 		money -= cost
 		opex_today += cost
 		digging[p] = {"dig": dig, "ready_day": day + int(DIGS[dig]["days"])}
+		if manual:
+			pending_digs.erase(p)
 
 ## Finish any dig whose time is up, yielding raw finds.
 func _finish_digs() -> void:
@@ -274,6 +460,8 @@ func _exhibit_value(grade: String) -> int:
 ## the demand cap earns nothing but still risks theft, so the game only puts
 ## out a little more than it expects to sell.
 func _restock_gallery() -> void:
+	if manual:
+		return  # the player curates the display by hand
 	var wanted := mini(gallery_slots, int(ceil(float(_demand()) * 1.3)))
 	var on_display := 0
 	for g in gallery:
@@ -319,12 +507,20 @@ func _demand() -> int:
 ## Spin the Fate Reel if policy allows and charms suffice.
 ## Returns the payout multiplier (1.0 if no spin).
 func _spin_reel() -> float:
+	if manual:
+		# The player already spun (and watched it land) before the day
+		# resolved. Apply that payout exactly once, then reset it.
+		var p := pending_payout
+		pending_payout = 1.0
+		pending_spin = {}
+		return p
 	if reel_policy == "off":
 		return 1.0
 	if charms < reel_charm_cost:
 		return 1.0
 	charms -= reel_charm_cost
 	var res := reel.spin()
+	last_spin = res
 	return float(res["payout"])
 
 ## Collect the day's takings, multiplied by the reel.
@@ -349,9 +545,25 @@ func _collect_takings(multiplier: float) -> void:
 	# Charms accrue once per paying exhibit, not per coin.
 	charms += int(round(float(paid) * charm_per_unit))
 
+## Sell one vaulted artefact to a dealer for half its value, immediately.
+## The player's decision, not an automatic safety valve.
+func sell_one(grade: String) -> bool:
+	if int(vault.get(grade, 0)) <= 0:
+		return false
+	vault[grade] = int(vault[grade]) - 1
+	var cash := int(round(float(_exhibit_value(grade)) * dealer_rate))
+	money += cash
+	revenue_today += cash
+	last_event = "Sold a %s to a dealer for %d" % [grade, cash]
+	return true
+
 ## Sell a vaulted artefact to a dealer for quick cash. A safety valve so a
 ## player who over-invests cannot spiral into an unrecoverable hole.
 func _dealer_sale() -> void:
+	if manual:
+		# A dealer must never quietly sell the player's artefacts. In manual
+		# mode the player does it explicitly, from the Vault tab.
+		return
 	if money >= 60:
 		return
 	for g in ["rubble", "clay", "relic", "crown"]:
@@ -360,6 +572,7 @@ func _dealer_sale() -> void:
 			var cash := int(round(float(_exhibit_value(g)) * dealer_rate))
 			money += cash
 			revenue_today += cash
+			last_event = "A dealer bought a %s for %d" % [g, cash]
 			return
 
 # ---------------------------------------------------------------- day
@@ -382,7 +595,7 @@ func step() -> void:
 	_curate()
 	_open_digs()
 	_restock_gallery()
-	_theft()
+	last_stolen = _theft()
 
 	var mult := _spin_reel()
 	_collect_takings(mult)
