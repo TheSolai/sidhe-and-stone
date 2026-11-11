@@ -24,6 +24,9 @@ tools/pxl/docs/
 art/*/out/
 art/*/report.json
 
+# Local Python venv (Pillow, for ai/contact_sheet.py)
+.venv/
+
 # Web build output (regenerate with: npm run build)
 web/dist/
 web/public/sprites/

@@ -6,11 +6,21 @@ judged as a set, and the set is where palette drift shows up. One sheet also
 costs one image in the model's context instead of eight.
 
 The sheet is also where the "does this read as deliberate pixel art" question
-gets answered honestly, because the sprites are shown at the size the player
-will actually see them: small.
+gets answered honestly. Two sizes matter, and neither is the default:
+
+  --scale 6  (default) zoomed inspection, for reading the pixels
+  --scale 1  native size, for judging what the player actually sees
+
+At the default the sprites are blown up 5x (18px) or 3x (26px) to fill the
+cell, which is good for spotting single-pixel errors but hides the real
+question: does the shape still read at 18x18? Run --scale 1 for that, and
+trust it over the zoomed version when the two disagree.
 
 Usage:
     python3 ai/contact_sheet.py --in art/sprites --out art/contact_sheet.png
+    python3 ai/contact_sheet.py --in assets/sprites --out art/native.png --scale 1
+
+Requires Pillow:  python3 -m venv .venv && .venv/bin/pip install Pillow
 """
 
 import argparse
