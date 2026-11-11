@@ -157,7 +157,6 @@ check(
 // A milestone reward must be worth roughly FOUR DAYS of the player's gross
 // takings at the moment it lands. Outside the 1x-12x band the ladder stops
 // mattering or replaces the game.
-const TARGET_DAYS = 4.0;
 const RATIO_FLOOR = 1.0;
 const RATIO_CEILING = 12.0;
 

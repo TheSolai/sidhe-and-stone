@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#16120f" />
+    <meta
+      name="description"
+      content="Sidhe &amp; Stone — a cozy management sim about excavating Irish fairy mounds, cataloguing what you find, and deciding what the public gets to see."
+    />
+    <title>Sidhe &amp; Stone</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #16120f;
+        --paper: #e8dcc4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #16120f;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* A warm vignette so the letterbox does not read as dead space. */
+        background:
+          radial-gradient(ellipse at 50% 40%, #2f251d 0%, #16120f 70%),
+          #16120f;
+      }
+
+      #stage {
+        position: relative;
+        display: block;
+        line-height: 0;
+      }
+
+      canvas {
+        display: block;
+        /* Nearest-neighbour for the final upscale: pixel art must stay crisp
+           and even, and a smooth scale makes it look like a JPEG. */
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        touch-action: none;
+        cursor: pointer;
+        /* A soft drop shadow lifts the game off the vignette. */
+        filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55));
+      }
+
+      /* Screen-reader-only live region: the canvas is opaque to assistive
+         technology, so every meaningful state change is announced here. */
+      #announcer {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      #boot {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #d6d4c8;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        line-height: 1.6;
+        text-align: center;
+      }
+
+      #boot.hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="game" width="960" height="540" aria-label="Sidhe and Stone game"></canvas>
+      <div id="boot">Loading the mounds…</div>
+      <div id="announcer" role="status" aria-live="polite"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

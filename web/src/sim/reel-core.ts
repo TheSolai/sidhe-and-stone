@@ -126,6 +126,11 @@ export class ReelCore {
     const counts = new Map<string, number>();
     for (const r of reels) counts.set(r, (counts.get(r) ?? 0) + 1);
 
+    // `best` mirrors the GDScript original, where it is also assigned but
+    // never read. It is kept so this file stays a line-for-line mirror of
+    // `sim/reel_core.gd`; deleting it would change nothing observable but
+    // would make the two harder to diff.
+    // @ts-ignore -- deliberately mirrored dead assignment
     let best = '';
     let bestCount = 0;
     let bestMult = 0.0;

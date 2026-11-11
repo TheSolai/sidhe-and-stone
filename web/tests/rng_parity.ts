@@ -126,8 +126,9 @@ for (const [seedText, rec] of Object.entries(fixtures)) {
     ['range_reversed', 10, 1],
   ];
   for (const [key, from, to] of ranges) {
-    const values = r[key] as number[];
-    const states = r[`${key}_state`] as string[];
+    const table = r as unknown as Record<string, number[] | string[]>;
+    const values = table[key] as number[];
+    const states = table[`${key}_state`] as string[];
     const rng = new GodotRandom(seed);
     for (let i = 0; i < values.length; i++) {
       const got = rng.randiRange(from, to);
