@@ -322,7 +322,7 @@ deliberate, documented change — not a porting artefact.
 | 1 | TS economy port | 365-day curve identical to GDScript | **✅ Done** |
 | 2 | Palette + sprite rework | Contact sheet passes review | **✅ Done** |
 | 3 | Web UI screens | All 8 screens interactive | **✅ Done** |
-| 4 | Save/load, sound, onboarding | Playable start-to-finish | **✅ Done** — save/load + onboarding landed; sound outstanding |
+| 4 | Save/load, sound, onboarding | Playable start-to-finish | **✅ Done** |
 | 5 | Verification suite | Every gate in §7 passes | **✅ Done** |
 
 Phases 1 and 2 run **in parallel** — the economy port does not depend on the
