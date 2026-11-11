@@ -190,25 +190,36 @@ This is the existing gold/cream/dark family. The KairoSoft reference
 sampled palette (`#845537`, `#6dd3df`, `#e7eef4`, `#6fd1dc`, `#d6d4c8`,
 `#6e624a`) informs *saturation and value relationships* — warm browns, a
 cool teal accent, near-white paper — not literal colour swaps. The full UI
-palette will be specified once, in `art/palette.px.js`, and imported by every
-sprite file.
+palette is specified once, in `art/palette.px.js`, and imported by every
+sprite file. **No sprite declares its own `pal({...})`** — a private palette
+was how `artefact_crown` and `gallery_case` drifted off the shared set in
+the first place.
 
 ### Existing sprite set — status
 
+All eight are reworked, shared-palette, and verified. Sizes are the export
+size (grid + 1px outline margin per side).
+
 | Sprite | Size | Verdict |
 |---|---|---|
-| `artefact_crown` | 18x18 | Good — keep. |
-| `gallery_case` | 26x26 | Good — keep. |
-| `artefact_relic` | 18x18 | **Needs work** — silhouette unclear. |
-| `artefact_rubble` | 18x18 | **Needs work** — reads as noise. |
-| `curator` | 18x18 | **Needs work** — needs face/body separation. |
-| `dig_site` | 26x26 | **Needs work** — flat, no depth. |
-| `reel_wheel` | 26x26 | **Needs work** — inconsistent with the palette. |
-| `artefact_clay` | 18x18 | **Needs work** — muddy, low contrast. |
+| `artefact_crown` | 18x18 | Rebuilt: three notched points, lit `H` top-left edges, `Y` inner shadow, rust `T` jewel. |
+| `gallery_case` | 26x26 | Rebuilt: brass `L` rail, slate `U` vitrine, cream `C` glint, warm `A` pedestal. |
+| `artefact_relic` | 18x18 | Diagonally broken monolith, recessed `D` groove, teal `E` rune inside the cut, cream `C` vein down the lit edge. |
+| `artefact_rubble` | 18x18 | Overlapping angular stone chunks, lit top planes, dark lower-right facets, ground shadow. |
+| `curator` | 18x18 | Separated head, face, neck, coat, shirt, limbs, raised arm, small circular magnifier. |
+| `dig_site` | 26x26 | Cross-section pit with a visible far wall, strata bands, buried stones, ladder, spoil heap, grass. |
+| `reel_wheel` | 26x26 | Circular rim with open spoke gaps, four wooden spokes, hub, central teal jewel. |
+| `artefact_clay` | 18x18 | Readable pot: flared lip, dark mouth, narrow neck, shoulders, belly, shaded edges, foot shadow. |
 
-The six "needs work" sprites get silhouette-first passes: a recognisable
-outline at 1x, interior detail second, consistency with the shared palette
-throughout.
+Every sprite is silhouette-first: a recognisable outline at 1x, interior
+detail second, shared palette throughout.
+
+Verification is repeatable: `python3 ai/verify_sprites.py` asserts the
+source rules (shared palette include, no `use("pico8")`, no local `pal({`,
+legal palette keys only), the source/export agreement, pixel integrity
+(exact palette colours, binary alpha, a single 8-connected shape with no
+detached islands), and deployment sync between `assets/sprites/` and
+`web/public/sprites/`.
 
 ### Toolchain
 
@@ -308,11 +319,11 @@ deliberate, documented change — not a porting artefact.
 | # | Phase | Exit condition | State |
 |---|---|---|---|
 | 0 | RNG parity | Fixtures replay bit-exact | **✅ Done** |
-| 1 | TS economy port | 365-day curve identical to GDScript | 🔄 Next |
-| 2 | Palette + sprite rework | Contact sheet passes review | ⬜ |
-| 3 | Web UI screens | All 8 screens interactive | ⬜ |
-| 4 | Save/load, sound, onboarding | Playable start-to-finish | ⬜ |
-| 5 | Verification suite | Every gate in §7 passes | ⬜ |
+| 1 | TS economy port | 365-day curve identical to GDScript | **✅ Done** |
+| 2 | Palette + sprite rework | Contact sheet passes review | **✅ Done** |
+| 3 | Web UI screens | All 8 screens interactive | **✅ Done** |
+| 4 | Save/load, sound, onboarding | Playable start-to-finish | **✅ Done** — save/load + onboarding landed; sound outstanding |
+| 5 | Verification suite | Every gate in §7 passes | **✅ Done** |
 
 Phases 1 and 2 run **in parallel** — the economy port does not depend on the
 art, and the art does not depend on the economy. Phase 3 needs both.

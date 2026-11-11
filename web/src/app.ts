@@ -25,7 +25,7 @@ import {
 } from './ui/screen.ts';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH, Surface } from './ui/surface.ts';
 import { SpriteSet } from './ui/sprites.ts';
-import { drawPanel, drawText, FONT } from './ui/widgets.ts';
+import { drawPanel, drawText, FONT, measureText } from './ui/widgets.ts';
 
 import { TitleScreen } from './ui/screens/title.ts';
 import { DigSiteScreen } from './ui/screens/dig-site.ts';
@@ -553,8 +553,7 @@ export class App {
     let ly = y + 52;
     for (const word of words) {
       const test = lineText.length === 0 ? word : `${lineText} ${word}`;
-      if (g.measureText(test).width > maxWidth && lineText.length > 0) {
-        g.font = FONT.body;
+      if (measureText(test, FONT.body) > maxWidth && lineText.length > 0) {
         drawText(g, lineText, x + 28, ly, { font: FONT.body, color: PAL.D });
         ly += 19;
         lineText = word;

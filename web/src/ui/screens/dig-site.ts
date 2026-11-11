@@ -17,7 +17,7 @@ import { DIGS } from '../../sim/sim-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawPanel, drawText, drawWell, FONT } from '../widgets.ts';
+import { drawPanel, drawText, drawWell, FONT, measureText } from '../widgets.ts';
 
 export class DigSiteScreen implements Screen {
   public readonly id = 'dig';
@@ -208,8 +208,7 @@ export class DigSiteScreen implements Screen {
     const omen = state.todayEvent();
     if (omen && omen.title) {
       const text = `Omen: ${omen.title}`;
-      g.font = FONT.small;
-      const tw = g.measureText(text).width;
+      const tw = measureText(text, FONT.small);
       drawText(g, text, ctx.surface.canvas.width - 24 - tw, 68, {
         font: FONT.small,
         color: PAL.U,

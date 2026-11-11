@@ -15,7 +15,7 @@ import { PAL } from '../palette.ts';
 import type { GoalProgress } from '../../sim/game-state.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money } from '../screen.ts';
-import { drawPanel, drawText, drawWell, FONT } from '../widgets.ts';
+import { drawPanel, drawText, drawWell, FONT, measureText } from '../widgets.ts';
 
 export class GoalsScreen implements Screen {
   public readonly id = 'goals';
@@ -190,8 +190,7 @@ export class GoalsScreen implements Screen {
     drawText(g, 'GOALS', 24, 62, { font: FONT.large, color: PAL.D });
 
     const text = `${done} of ${list.length} reached`;
-    g.font = FONT.small;
-    const tw = g.measureText(text).width;
+    const tw = measureText(text, FONT.small);
     drawText(g, text, ctx.surface.canvas.width - 24 - tw, 68, {
       font: FONT.small,
       color: PAL.N,

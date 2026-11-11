@@ -1,0 +1,3509 @@
+{
+  "1": {
+    "all_payouts": {
+      "blight,blight,blight": "333333333333eb3f",
+      "blight,blight,bog": "52b81e85eb51ee3f",
+      "blight,blight,clover": "52b81e85eb51ee3f",
+      "blight,blight,honey": "52b81e85eb51ee3f",
+      "blight,blight,moon": "52b81e85eb51ee3f",
+      "blight,blight,star": "52b81e85eb51ee3f",
+      "blight,bog,blight": "52b81e85eb51ee3f",
+      "blight,bog,bog": "e17a14ae47e1ee3f",
+      "blight,bog,clover": "000000000000f03f",
+      "blight,bog,honey": "000000000000f03f",
+      "blight,bog,moon": "000000000000f03f",
+      "blight,bog,star": "000000000000f03f",
+      "blight,clover,blight": "52b81e85eb51ee3f",
+      "blight,clover,bog": "000000000000f03f",
+      "blight,clover,clover": "ae47e17a14aef13f",
+      "blight,clover,honey": "000000000000f03f",
+      "blight,clover,moon": "000000000000f03f",
+      "blight,clover,star": "000000000000f03f",
+      "blight,honey,blight": "52b81e85eb51ee3f",
+      "blight,honey,bog": "000000000000f03f",
+      "blight,honey,clover": "000000000000f03f",
+      "blight,honey,honey": "5c8fc2f5285cf33f",
+      "blight,honey,moon": "000000000000f03f",
+      "blight,honey,star": "000000000000f03f",
+      "blight,moon,blight": "52b81e85eb51ee3f",
+      "blight,moon,bog": "000000000000f03f",
+      "blight,moon,clover": "000000000000f03f",
+      "blight,moon,honey": "000000000000f03f",
+      "blight,moon,moon": "9a9999999999f53f",
+      "blight,moon,star": "000000000000f03f",
+      "blight,star,blight": "52b81e85eb51ee3f",
+      "blight,star,bog": "000000000000f03f",
+      "blight,star,clover": "000000000000f03f",
+      "blight,star,honey": "000000000000f03f",
+      "blight,star,moon": "000000000000f03f",
+      "blight,star,star": "f6285c8fc2f5f83f",
+      "bog,blight,blight": "52b81e85eb51ee3f",
+      "bog,blight,bog": "e17a14ae47e1ee3f",
+      "bog,blight,clover": "000000000000f03f",
+      "bog,blight,honey": "000000000000f03f",
+      "bog,blight,moon": "000000000000f03f",
+      "bog,blight,star": "000000000000f03f",
+      "bog,bog,blight": "e17a14ae47e1ee3f",
+      "bog,bog,bog": "cdccccccccccec3f",
+      "bog,bog,clover": "e17a14ae47e1ee3f",
+      "bog,bog,honey": "e17a14ae47e1ee3f",
+      "bog,bog,moon": "e17a14ae47e1ee3f",
+      "bog,bog,star": "e17a14ae47e1ee3f",
+      "bog,clover,blight": "000000000000f03f",
+      "bog,clover,bog": "e17a14ae47e1ee3f",
+      "bog,clover,clover": "ae47e17a14aef13f",
+      "bog,clover,honey": "000000000000f03f",
+      "bog,clover,moon": "000000000000f03f",
+      "bog,clover,star": "000000000000f03f",
+      "bog,honey,blight": "000000000000f03f",
+      "bog,honey,bog": "e17a14ae47e1ee3f",
+      "bog,honey,clover": "000000000000f03f",
+      "bog,honey,honey": "5c8fc2f5285cf33f",
+      "bog,honey,moon": "000000000000f03f",
+      "bog,honey,star": "000000000000f03f",
+      "bog,moon,blight": "000000000000f03f",
+      "bog,moon,bog": "e17a14ae47e1ee3f",
+      "bog,moon,clover": "000000000000f03f",
+      "bog,moon,honey": "000000000000f03f",
+      "bog,moon,moon": "9a9999999999f53f",
+      "bog,moon,star": "000000000000f03f",
+      "bog,star,blight": "000000000000f03f",
+      "bog,star,bog": "e17a14ae47e1ee3f",
+      "bog,star,clover": "000000000000f03f",
+      "bog,star,honey": "000000000000f03f",
+      "bog,star,moon": "000000000000f03f",
+      "bog,star,star": "f6285c8fc2f5f83f",
+      "clover,blight,blight": "52b81e85eb51ee3f",
+      "clover,blight,bog": "000000000000f03f",
+      "clover,blight,clover": "ae47e17a14aef13f",
+      "clover,blight,honey": "000000000000f03f",
+      "clover,blight,moon": "000000000000f03f",
+      "clover,blight,star": "000000000000f03f",
+      "clover,bog,blight": "000000000000f03f",
+      "clover,bog,bog": "e17a14ae47e1ee3f",
+      "clover,bog,clover": "ae47e17a14aef13f",
+      "clover,bog,honey": "000000000000f03f",
+      "clover,bog,moon": "000000000000f03f",
+      "clover,bog,star": "000000000000f03f",
+      "clover,clover,blight": "ae47e17a14aef13f",
+      "clover,clover,bog": "ae47e17a14aef13f",
+      "clover,clover,clover": "cdccccccccccf43f",
+      "clover,clover,honey": "ae47e17a14aef13f",
+      "clover,clover,moon": "ae47e17a14aef13f",
+      "clover,clover,star": "ae47e17a14aef13f",
+      "clover,honey,blight": "000000000000f03f",
+      "clover,honey,bog": "000000000000f03f",
+      "clover,honey,clover": "ae47e17a14aef13f",
+      "clover,honey,honey": "5c8fc2f5285cf33f",
+      "clover,honey,moon": "000000000000f03f",
+      "clover,honey,star": "000000000000f03f",
+      "clover,moon,blight": "000000000000f03f",
+      "clover,moon,bog": "000000000000f03f",
+      "clover,moon,clover": "ae47e17a14aef13f",
+      "clover,moon,honey": "000000000000f03f",
+      "clover,moon,moon": "9a9999999999f53f",
+      "clover,moon,star": "000000000000f03f",
+      "clover,star,blight": "000000000000f03f",
+      "clover,star,bog": "000000000000f03f",
+      "clover,star,clover": "ae47e17a14aef13f",
+      "clover,star,honey": "000000000000f03f",
+      "clover,star,moon": "000000000000f03f",
+      "clover,star,star": "f6285c8fc2f5f83f",
+      "honey,blight,blight": "52b81e85eb51ee3f",
+      "honey,blight,bog": "000000000000f03f",
+      "honey,blight,clover": "000000000000f03f",
+      "honey,blight,honey": "5c8fc2f5285cf33f",
+      "honey,blight,moon": "000000000000f03f",
+      "honey,blight,star": "000000000000f03f",
+      "honey,bog,blight": "000000000000f03f",
+      "honey,bog,bog": "e17a14ae47e1ee3f",
+      "honey,bog,clover": "000000000000f03f",
+      "honey,bog,honey": "5c8fc2f5285cf33f",
+      "honey,bog,moon": "000000000000f03f",
+      "honey,bog,star": "000000000000f03f",
+      "honey,clover,blight": "000000000000f03f",
+      "honey,clover,bog": "000000000000f03f",
+      "honey,clover,clover": "ae47e17a14aef13f",
+      "honey,clover,honey": "5c8fc2f5285cf33f",
+      "honey,clover,moon": "000000000000f03f",
+      "honey,clover,star": "000000000000f03f",
+      "honey,honey,blight": "5c8fc2f5285cf33f",
+      "honey,honey,bog": "5c8fc2f5285cf33f",
+      "honey,honey,clover": "5c8fc2f5285cf33f",
+      "honey,honey,honey": "9a9999999999f93f",
+      "honey,honey,moon": "5c8fc2f5285cf33f",
+      "honey,honey,star": "5c8fc2f5285cf33f",
+      "honey,moon,blight": "000000000000f03f",
+      "honey,moon,bog": "000000000000f03f",
+      "honey,moon,clover": "000000000000f03f",
+      "honey,moon,honey": "5c8fc2f5285cf33f",
+      "honey,moon,moon": "9a9999999999f53f",
+      "honey,moon,star": "000000000000f03f",
+      "honey,star,blight": "000000000000f03f",
+      "honey,star,bog": "000000000000f03f",
+      "honey,star,clover": "000000000000f03f",
+      "honey,star,honey": "5c8fc2f5285cf33f",
+      "honey,star,moon": "000000000000f03f",
+      "honey,star,star": "f6285c8fc2f5f83f",
+      "moon,blight,blight": "52b81e85eb51ee3f",
+      "moon,blight,bog": "000000000000f03f",
+      "moon,blight,clover": "000000000000f03f",
+      "moon,blight,honey": "000000000000f03f",
+      "moon,blight,moon": "9a9999999999f53f",
+      "moon,blight,star": "000000000000f03f",
+      "moon,bog,blight": "000000000000f03f",
+      "moon,bog,bog": "e17a14ae47e1ee3f",
+      "moon,bog,clover": "000000000000f03f",
+      "moon,bog,honey": "000000000000f03f",
+      "moon,bog,moon": "9a9999999999f53f",
+      "moon,bog,star": "000000000000f03f",
+      "moon,clover,blight": "000000000000f03f",
+      "moon,clover,bog": "000000000000f03f",
+      "moon,clover,clover": "ae47e17a14aef13f",
+      "moon,clover,honey": "000000000000f03f",
+      "moon,clover,moon": "9a9999999999f53f",
+      "moon,clover,star": "000000000000f03f",
+      "moon,honey,blight": "000000000000f03f",
+      "moon,honey,bog": "000000000000f03f",
+      "moon,honey,clover": "000000000000f03f",
+      "moon,honey,honey": "5c8fc2f5285cf33f",
+      "moon,honey,moon": "9a9999999999f53f",
+      "moon,honey,star": "000000000000f03f",
+      "moon,moon,blight": "9a9999999999f53f",
+      "moon,moon,bog": "9a9999999999f53f",
+      "moon,moon,clover": "9a9999999999f53f",
+      "moon,moon,honey": "9a9999999999f53f",
+      "moon,moon,moon": "0000000000000040",
+      "moon,moon,star": "9a9999999999f53f",
+      "moon,star,blight": "000000000000f03f",
+      "moon,star,bog": "000000000000f03f",
+      "moon,star,clover": "000000000000f03f",
+      "moon,star,honey": "000000000000f03f",
+      "moon,star,moon": "9a9999999999f53f",
+      "moon,star,star": "f6285c8fc2f5f83f",
+      "star,blight,blight": "52b81e85eb51ee3f",
+      "star,blight,bog": "000000000000f03f",
+      "star,blight,clover": "000000000000f03f",
+      "star,blight,honey": "000000000000f03f",
+      "star,blight,moon": "000000000000f03f",
+      "star,blight,star": "f6285c8fc2f5f83f",
+      "star,bog,blight": "000000000000f03f",
+      "star,bog,bog": "e17a14ae47e1ee3f",
+      "star,bog,clover": "000000000000f03f",
+      "star,bog,honey": "000000000000f03f",
+      "star,bog,moon": "000000000000f03f",
+      "star,bog,star": "f6285c8fc2f5f83f",
+      "star,clover,blight": "000000000000f03f",
+      "star,clover,bog": "000000000000f03f",
+      "star,clover,clover": "ae47e17a14aef13f",
+      "star,clover,honey": "000000000000f03f",
+      "star,clover,moon": "000000000000f03f",
+      "star,clover,star": "f6285c8fc2f5f83f",
+      "star,honey,blight": "000000000000f03f",
+      "star,honey,bog": "000000000000f03f",
+      "star,honey,clover": "000000000000f03f",
+      "star,honey,honey": "5c8fc2f5285cf33f",
+      "star,honey,moon": "000000000000f03f",
+      "star,honey,star": "f6285c8fc2f5f83f",
+      "star,moon,blight": "000000000000f03f",
+      "star,moon,bog": "000000000000f03f",
+      "star,moon,clover": "000000000000f03f",
+      "star,moon,honey": "000000000000f03f",
+      "star,moon,moon": "9a9999999999f53f",
+      "star,moon,star": "f6285c8fc2f5f83f",
+      "star,star,blight": "f6285c8fc2f5f83f",
+      "star,star,bog": "f6285c8fc2f5f83f",
+      "star,star,clover": "f6285c8fc2f5f83f",
+      "star,star,honey": "f6285c8fc2f5f83f",
+      "star,star,moon": "f6285c8fc2f5f83f",
+      "star,star,star": "cdcccccccccc0440"
+    },
+    "expected_value_by_luck": {
+      "0.0": "30ad8acc727df03f",
+      "0.25": "c836b3a2f1d6f03f",
+      "0.5": "c416666afd32f13f",
+      "0.75": "502fce090191f13f",
+      "0.9": "2f1da48725caf13f"
+    },
+    "final_rng_state": "-6424334302765203161",
+    "pattern_distribution_by_luck": {
+      "0.0": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.25": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.5": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.75": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.9": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      }
+    },
+    "rng_state_after_spin": [
+      "-3865055664179818387",
+      "6818897392469921195",
+      "-5688863219078362119",
+      "9037474382452337367",
+      "5793103590778801605",
+      "-8789219471688713149",
+      "3629889001526608337",
+      "-7194620166017872401",
+      "-578342490137570275",
+      "-1467273505192809509",
+      "-6863582985516502871",
+      "4262579450725261831",
+      "6296503748939744117",
+      "1860576859780299891",
+      "-6975425778092197759",
+      "-7954004469532391649",
+      "6573358763130092493",
+      "-7050301152582398453",
+      "1579927575293016409",
+      "8009553194292567351",
+      "4853357917214743845",
+      "-1268811008965590877",
+      "6528189523801871153",
+      "-2307446332733635505",
+      "-8443305111969937539",
+      "2524789806148793403",
+      "2788044503157450249",
+      "-5420209624466776985",
+      "-1498308697032336683",
+      "-1931257467519678253",
+      "-2732453506367565343",
+      "-1769028480591116929",
+      "3557658363185805101",
+      "433714431610674795",
+      "-2839017216785025351",
+      "-7884346551353204841",
+      "312141928642886789",
+      "4151190529418220803",
+      "8165415726408168593",
+      "8182899112118520495",
+      "-1969772562019890467",
+      "-348602914876715877",
+      "2633739836280154985",
+      "1363131155696281287",
+      "-5331442132036009419",
+      "148999506547598643",
+      "7417805696029883201",
+      "-1046899082079595553",
+      "-7819429930332126579",
+      "-3977650603843371317",
+      "-5769585073074125799",
+      "-9048815226539871753",
+      "-2466380641423463451",
+      "5660632679972108643",
+      "-1599229368811559439",
+      "2354047447860437263",
+      "-7587431424919577027",
+      "2862572386366682363",
+      "-2722746569236430647",
+      "-6424334302765203161"
+    ],
+    "spins": [
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "honey",
+          "star"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "star",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "clover",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "honey",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "bog",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "clover",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "star",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "blight",
+          "honey",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "honey",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "star",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "star"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "bog",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "clover",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "moon",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "blight",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "9a9999999999f53f",
+        "reels": [
+          "moon",
+          "honey",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "star",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "moon",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "honey",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "clover",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "star",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "cdccccccccccec3f",
+        "reels": [
+          "bog",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "333333333333eb3f",
+        "reels": [
+          "blight",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "moon",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "honey",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "bog"
+        ]
+      }
+    ],
+    "stats": {
+      "biggest_win": "9a9999999999f53f",
+      "payout_total": "b91e85eb51404e40",
+      "spins": 60,
+      "triple_hits": 2,
+      "worst_spin": "333333333333eb3f"
+    },
+    "weights_by_luck": {
+      "0.0": [
+        [
+          "clover",
+          "0000000000003a40"
+        ],
+        [
+          "honey",
+          "0000000000003040"
+        ],
+        [
+          "moon",
+          "0000000000002040"
+        ],
+        [
+          "star",
+          "0000000000001040"
+        ],
+        [
+          "bog",
+          "0000000000003a40"
+        ],
+        [
+          "blight",
+          "0000000000003640"
+        ]
+      ],
+      "0.25": [
+        [
+          "clover",
+          "3333333333333f40"
+        ],
+        [
+          "honey",
+          "3333333333333340"
+        ],
+        [
+          "moon",
+          "3333333333332340"
+        ],
+        [
+          "star",
+          "3333333333331340"
+        ],
+        [
+          "bog",
+          "52b81e85eb513540"
+        ],
+        [
+          "blight",
+          "0ad7a3703d0a3240"
+        ]
+      ],
+      "0.5": [
+        [
+          "clover",
+          "3333333333334240"
+        ],
+        [
+          "honey",
+          "6666666666663640"
+        ],
+        [
+          "moon",
+          "6666666666662640"
+        ],
+        [
+          "star",
+          "6666666666661640"
+        ],
+        [
+          "bog",
+          "a3703d0ad7a33040"
+        ],
+        [
+          "blight",
+          "285c8fc2f5282c40"
+        ]
+      ],
+      "0.75": [
+        [
+          "clover",
+          "cdcccccccccc4440"
+        ],
+        [
+          "honey",
+          "9a99999999993940"
+        ],
+        [
+          "moon",
+          "9a99999999992940"
+        ],
+        [
+          "star",
+          "9a99999999991940"
+        ],
+        [
+          "bog",
+          "e951b81e85eb2740"
+        ],
+        [
+          "blight",
+          "3c0ad7a3703d2440"
+        ]
+      ],
+      "0.9": [
+        [
+          "clover",
+          "5d8fc2f5285c4640"
+        ],
+        [
+          "honey",
+          "86eb51b81e853b40"
+        ],
+        [
+          "moon",
+          "86eb51b81e852b40"
+        ],
+        [
+          "star",
+          "86eb51b81e851b40"
+        ],
+        [
+          "bog",
+          "e6fba9f1d24d2240"
+        ],
+        [
+          "blight",
+          "5de5d022dbf91e40"
+        ]
+      ]
+    }
+  },
+  "20261110": {
+    "all_payouts": {
+      "blight,blight,blight": "333333333333eb3f",
+      "blight,blight,bog": "52b81e85eb51ee3f",
+      "blight,blight,clover": "52b81e85eb51ee3f",
+      "blight,blight,honey": "52b81e85eb51ee3f",
+      "blight,blight,moon": "52b81e85eb51ee3f",
+      "blight,blight,star": "52b81e85eb51ee3f",
+      "blight,bog,blight": "52b81e85eb51ee3f",
+      "blight,bog,bog": "e17a14ae47e1ee3f",
+      "blight,bog,clover": "000000000000f03f",
+      "blight,bog,honey": "000000000000f03f",
+      "blight,bog,moon": "000000000000f03f",
+      "blight,bog,star": "000000000000f03f",
+      "blight,clover,blight": "52b81e85eb51ee3f",
+      "blight,clover,bog": "000000000000f03f",
+      "blight,clover,clover": "ae47e17a14aef13f",
+      "blight,clover,honey": "000000000000f03f",
+      "blight,clover,moon": "000000000000f03f",
+      "blight,clover,star": "000000000000f03f",
+      "blight,honey,blight": "52b81e85eb51ee3f",
+      "blight,honey,bog": "000000000000f03f",
+      "blight,honey,clover": "000000000000f03f",
+      "blight,honey,honey": "5c8fc2f5285cf33f",
+      "blight,honey,moon": "000000000000f03f",
+      "blight,honey,star": "000000000000f03f",
+      "blight,moon,blight": "52b81e85eb51ee3f",
+      "blight,moon,bog": "000000000000f03f",
+      "blight,moon,clover": "000000000000f03f",
+      "blight,moon,honey": "000000000000f03f",
+      "blight,moon,moon": "9a9999999999f53f",
+      "blight,moon,star": "000000000000f03f",
+      "blight,star,blight": "52b81e85eb51ee3f",
+      "blight,star,bog": "000000000000f03f",
+      "blight,star,clover": "000000000000f03f",
+      "blight,star,honey": "000000000000f03f",
+      "blight,star,moon": "000000000000f03f",
+      "blight,star,star": "f6285c8fc2f5f83f",
+      "bog,blight,blight": "52b81e85eb51ee3f",
+      "bog,blight,bog": "e17a14ae47e1ee3f",
+      "bog,blight,clover": "000000000000f03f",
+      "bog,blight,honey": "000000000000f03f",
+      "bog,blight,moon": "000000000000f03f",
+      "bog,blight,star": "000000000000f03f",
+      "bog,bog,blight": "e17a14ae47e1ee3f",
+      "bog,bog,bog": "cdccccccccccec3f",
+      "bog,bog,clover": "e17a14ae47e1ee3f",
+      "bog,bog,honey": "e17a14ae47e1ee3f",
+      "bog,bog,moon": "e17a14ae47e1ee3f",
+      "bog,bog,star": "e17a14ae47e1ee3f",
+      "bog,clover,blight": "000000000000f03f",
+      "bog,clover,bog": "e17a14ae47e1ee3f",
+      "bog,clover,clover": "ae47e17a14aef13f",
+      "bog,clover,honey": "000000000000f03f",
+      "bog,clover,moon": "000000000000f03f",
+      "bog,clover,star": "000000000000f03f",
+      "bog,honey,blight": "000000000000f03f",
+      "bog,honey,bog": "e17a14ae47e1ee3f",
+      "bog,honey,clover": "000000000000f03f",
+      "bog,honey,honey": "5c8fc2f5285cf33f",
+      "bog,honey,moon": "000000000000f03f",
+      "bog,honey,star": "000000000000f03f",
+      "bog,moon,blight": "000000000000f03f",
+      "bog,moon,bog": "e17a14ae47e1ee3f",
+      "bog,moon,clover": "000000000000f03f",
+      "bog,moon,honey": "000000000000f03f",
+      "bog,moon,moon": "9a9999999999f53f",
+      "bog,moon,star": "000000000000f03f",
+      "bog,star,blight": "000000000000f03f",
+      "bog,star,bog": "e17a14ae47e1ee3f",
+      "bog,star,clover": "000000000000f03f",
+      "bog,star,honey": "000000000000f03f",
+      "bog,star,moon": "000000000000f03f",
+      "bog,star,star": "f6285c8fc2f5f83f",
+      "clover,blight,blight": "52b81e85eb51ee3f",
+      "clover,blight,bog": "000000000000f03f",
+      "clover,blight,clover": "ae47e17a14aef13f",
+      "clover,blight,honey": "000000000000f03f",
+      "clover,blight,moon": "000000000000f03f",
+      "clover,blight,star": "000000000000f03f",
+      "clover,bog,blight": "000000000000f03f",
+      "clover,bog,bog": "e17a14ae47e1ee3f",
+      "clover,bog,clover": "ae47e17a14aef13f",
+      "clover,bog,honey": "000000000000f03f",
+      "clover,bog,moon": "000000000000f03f",
+      "clover,bog,star": "000000000000f03f",
+      "clover,clover,blight": "ae47e17a14aef13f",
+      "clover,clover,bog": "ae47e17a14aef13f",
+      "clover,clover,clover": "cdccccccccccf43f",
+      "clover,clover,honey": "ae47e17a14aef13f",
+      "clover,clover,moon": "ae47e17a14aef13f",
+      "clover,clover,star": "ae47e17a14aef13f",
+      "clover,honey,blight": "000000000000f03f",
+      "clover,honey,bog": "000000000000f03f",
+      "clover,honey,clover": "ae47e17a14aef13f",
+      "clover,honey,honey": "5c8fc2f5285cf33f",
+      "clover,honey,moon": "000000000000f03f",
+      "clover,honey,star": "000000000000f03f",
+      "clover,moon,blight": "000000000000f03f",
+      "clover,moon,bog": "000000000000f03f",
+      "clover,moon,clover": "ae47e17a14aef13f",
+      "clover,moon,honey": "000000000000f03f",
+      "clover,moon,moon": "9a9999999999f53f",
+      "clover,moon,star": "000000000000f03f",
+      "clover,star,blight": "000000000000f03f",
+      "clover,star,bog": "000000000000f03f",
+      "clover,star,clover": "ae47e17a14aef13f",
+      "clover,star,honey": "000000000000f03f",
+      "clover,star,moon": "000000000000f03f",
+      "clover,star,star": "f6285c8fc2f5f83f",
+      "honey,blight,blight": "52b81e85eb51ee3f",
+      "honey,blight,bog": "000000000000f03f",
+      "honey,blight,clover": "000000000000f03f",
+      "honey,blight,honey": "5c8fc2f5285cf33f",
+      "honey,blight,moon": "000000000000f03f",
+      "honey,blight,star": "000000000000f03f",
+      "honey,bog,blight": "000000000000f03f",
+      "honey,bog,bog": "e17a14ae47e1ee3f",
+      "honey,bog,clover": "000000000000f03f",
+      "honey,bog,honey": "5c8fc2f5285cf33f",
+      "honey,bog,moon": "000000000000f03f",
+      "honey,bog,star": "000000000000f03f",
+      "honey,clover,blight": "000000000000f03f",
+      "honey,clover,bog": "000000000000f03f",
+      "honey,clover,clover": "ae47e17a14aef13f",
+      "honey,clover,honey": "5c8fc2f5285cf33f",
+      "honey,clover,moon": "000000000000f03f",
+      "honey,clover,star": "000000000000f03f",
+      "honey,honey,blight": "5c8fc2f5285cf33f",
+      "honey,honey,bog": "5c8fc2f5285cf33f",
+      "honey,honey,clover": "5c8fc2f5285cf33f",
+      "honey,honey,honey": "9a9999999999f93f",
+      "honey,honey,moon": "5c8fc2f5285cf33f",
+      "honey,honey,star": "5c8fc2f5285cf33f",
+      "honey,moon,blight": "000000000000f03f",
+      "honey,moon,bog": "000000000000f03f",
+      "honey,moon,clover": "000000000000f03f",
+      "honey,moon,honey": "5c8fc2f5285cf33f",
+      "honey,moon,moon": "9a9999999999f53f",
+      "honey,moon,star": "000000000000f03f",
+      "honey,star,blight": "000000000000f03f",
+      "honey,star,bog": "000000000000f03f",
+      "honey,star,clover": "000000000000f03f",
+      "honey,star,honey": "5c8fc2f5285cf33f",
+      "honey,star,moon": "000000000000f03f",
+      "honey,star,star": "f6285c8fc2f5f83f",
+      "moon,blight,blight": "52b81e85eb51ee3f",
+      "moon,blight,bog": "000000000000f03f",
+      "moon,blight,clover": "000000000000f03f",
+      "moon,blight,honey": "000000000000f03f",
+      "moon,blight,moon": "9a9999999999f53f",
+      "moon,blight,star": "000000000000f03f",
+      "moon,bog,blight": "000000000000f03f",
+      "moon,bog,bog": "e17a14ae47e1ee3f",
+      "moon,bog,clover": "000000000000f03f",
+      "moon,bog,honey": "000000000000f03f",
+      "moon,bog,moon": "9a9999999999f53f",
+      "moon,bog,star": "000000000000f03f",
+      "moon,clover,blight": "000000000000f03f",
+      "moon,clover,bog": "000000000000f03f",
+      "moon,clover,clover": "ae47e17a14aef13f",
+      "moon,clover,honey": "000000000000f03f",
+      "moon,clover,moon": "9a9999999999f53f",
+      "moon,clover,star": "000000000000f03f",
+      "moon,honey,blight": "000000000000f03f",
+      "moon,honey,bog": "000000000000f03f",
+      "moon,honey,clover": "000000000000f03f",
+      "moon,honey,honey": "5c8fc2f5285cf33f",
+      "moon,honey,moon": "9a9999999999f53f",
+      "moon,honey,star": "000000000000f03f",
+      "moon,moon,blight": "9a9999999999f53f",
+      "moon,moon,bog": "9a9999999999f53f",
+      "moon,moon,clover": "9a9999999999f53f",
+      "moon,moon,honey": "9a9999999999f53f",
+      "moon,moon,moon": "0000000000000040",
+      "moon,moon,star": "9a9999999999f53f",
+      "moon,star,blight": "000000000000f03f",
+      "moon,star,bog": "000000000000f03f",
+      "moon,star,clover": "000000000000f03f",
+      "moon,star,honey": "000000000000f03f",
+      "moon,star,moon": "9a9999999999f53f",
+      "moon,star,star": "f6285c8fc2f5f83f",
+      "star,blight,blight": "52b81e85eb51ee3f",
+      "star,blight,bog": "000000000000f03f",
+      "star,blight,clover": "000000000000f03f",
+      "star,blight,honey": "000000000000f03f",
+      "star,blight,moon": "000000000000f03f",
+      "star,blight,star": "f6285c8fc2f5f83f",
+      "star,bog,blight": "000000000000f03f",
+      "star,bog,bog": "e17a14ae47e1ee3f",
+      "star,bog,clover": "000000000000f03f",
+      "star,bog,honey": "000000000000f03f",
+      "star,bog,moon": "000000000000f03f",
+      "star,bog,star": "f6285c8fc2f5f83f",
+      "star,clover,blight": "000000000000f03f",
+      "star,clover,bog": "000000000000f03f",
+      "star,clover,clover": "ae47e17a14aef13f",
+      "star,clover,honey": "000000000000f03f",
+      "star,clover,moon": "000000000000f03f",
+      "star,clover,star": "f6285c8fc2f5f83f",
+      "star,honey,blight": "000000000000f03f",
+      "star,honey,bog": "000000000000f03f",
+      "star,honey,clover": "000000000000f03f",
+      "star,honey,honey": "5c8fc2f5285cf33f",
+      "star,honey,moon": "000000000000f03f",
+      "star,honey,star": "f6285c8fc2f5f83f",
+      "star,moon,blight": "000000000000f03f",
+      "star,moon,bog": "000000000000f03f",
+      "star,moon,clover": "000000000000f03f",
+      "star,moon,honey": "000000000000f03f",
+      "star,moon,moon": "9a9999999999f53f",
+      "star,moon,star": "f6285c8fc2f5f83f",
+      "star,star,blight": "f6285c8fc2f5f83f",
+      "star,star,bog": "f6285c8fc2f5f83f",
+      "star,star,clover": "f6285c8fc2f5f83f",
+      "star,star,honey": "f6285c8fc2f5f83f",
+      "star,star,moon": "f6285c8fc2f5f83f",
+      "star,star,star": "cdcccccccccc0440"
+    },
+    "expected_value_by_luck": {
+      "0.0": "30ad8acc727df03f",
+      "0.25": "c836b3a2f1d6f03f",
+      "0.5": "c416666afd32f13f",
+      "0.75": "502fce090191f13f",
+      "0.9": "2f1da48725caf13f"
+    },
+    "final_rng_state": "1477486218927759320",
+    "pattern_distribution_by_luck": {
+      "0.0": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.25": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.5": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.75": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.9": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      }
+    },
+    "rng_state_after_spin": [
+      "1656955589670092918",
+      "8792668566067121132",
+      "1828778193944474290",
+      "5423635011626656328",
+      "2673529161503677486",
+      "9045283661531977188",
+      "7535425021901068522",
+      "6501481313169957568",
+      "-1533260480903019290",
+      "8129458850744059100",
+      "8145680024067390498",
+      "1651494341579143224",
+      "2767823664883260062",
+      "-5661971457904281388",
+      "-6782517863405683622",
+      "-2083369501589273936",
+      "-8982686422488416938",
+      "8090801998500467148",
+      "80972213317368210",
+      "-1820494797620780504",
+      "-6987842973241651954",
+      "6971144423941697476",
+      "-1982810934212357174",
+      "-4755079247547959648",
+      "-7275538304670619194",
+      "7968240740405605052",
+      "3390362499549309698",
+      "-6799291027800449000",
+      "5336978000884822910",
+      "-2985081847973905740",
+      "-8776840571828986054",
+      "5712035217282809488",
+      "1858538459589085750",
+      "-6568623050744404052",
+      "7327769072749924466",
+      "9051842358765564424",
+      "-6621015095516377618",
+      "7365972793405151652",
+      "3721008992594239146",
+      "-4270863374181442944",
+      "-6615213858821398874",
+      "-532978736622538596",
+      "8466032721524681186",
+      "-1698736981920245768",
+      "6214507584799661150",
+      "-2579287681206825836",
+      "-8000849133883059686",
+      "1260668935174179440",
+      "3570087071994046230",
+      "-209876710990541428",
+      "7199854931001538386",
+      "8547254815215440360",
+      "6844725303950876366",
+      "-6830377443265408124",
+      "7297899556896176522",
+      "4704578979626454624",
+      "-7790516817752628346",
+      "3017936884258717308",
+      "-3099891541609776958",
+      "1477486218927759320"
+    ],
+    "spins": [
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "clover",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "333333333333eb3f",
+        "reels": [
+          "blight",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "honey",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "blight",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "clover",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "bog",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "bog",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "clover",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "blight",
+          "star"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "moon",
+          "star"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "star"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "9a9999999999f53f",
+        "reels": [
+          "moon",
+          "blight",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "star",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "moon",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "cdccccccccccec3f",
+        "reels": [
+          "bog",
+          "bog",
+          "bog"
+        ]
+      }
+    ],
+    "stats": {
+      "biggest_win": "9a9999999999f53f",
+      "payout_total": "85eb51b81e6d4e40",
+      "spins": 60,
+      "triple_hits": 2,
+      "worst_spin": "333333333333eb3f"
+    },
+    "weights_by_luck": {
+      "0.0": [
+        [
+          "clover",
+          "0000000000003a40"
+        ],
+        [
+          "honey",
+          "0000000000003040"
+        ],
+        [
+          "moon",
+          "0000000000002040"
+        ],
+        [
+          "star",
+          "0000000000001040"
+        ],
+        [
+          "bog",
+          "0000000000003a40"
+        ],
+        [
+          "blight",
+          "0000000000003640"
+        ]
+      ],
+      "0.25": [
+        [
+          "clover",
+          "3333333333333f40"
+        ],
+        [
+          "honey",
+          "3333333333333340"
+        ],
+        [
+          "moon",
+          "3333333333332340"
+        ],
+        [
+          "star",
+          "3333333333331340"
+        ],
+        [
+          "bog",
+          "52b81e85eb513540"
+        ],
+        [
+          "blight",
+          "0ad7a3703d0a3240"
+        ]
+      ],
+      "0.5": [
+        [
+          "clover",
+          "3333333333334240"
+        ],
+        [
+          "honey",
+          "6666666666663640"
+        ],
+        [
+          "moon",
+          "6666666666662640"
+        ],
+        [
+          "star",
+          "6666666666661640"
+        ],
+        [
+          "bog",
+          "a3703d0ad7a33040"
+        ],
+        [
+          "blight",
+          "285c8fc2f5282c40"
+        ]
+      ],
+      "0.75": [
+        [
+          "clover",
+          "cdcccccccccc4440"
+        ],
+        [
+          "honey",
+          "9a99999999993940"
+        ],
+        [
+          "moon",
+          "9a99999999992940"
+        ],
+        [
+          "star",
+          "9a99999999991940"
+        ],
+        [
+          "bog",
+          "e951b81e85eb2740"
+        ],
+        [
+          "blight",
+          "3c0ad7a3703d2440"
+        ]
+      ],
+      "0.9": [
+        [
+          "clover",
+          "5d8fc2f5285c4640"
+        ],
+        [
+          "honey",
+          "86eb51b81e853b40"
+        ],
+        [
+          "moon",
+          "86eb51b81e852b40"
+        ],
+        [
+          "star",
+          "86eb51b81e851b40"
+        ],
+        [
+          "bog",
+          "e6fba9f1d24d2240"
+        ],
+        [
+          "blight",
+          "5de5d022dbf91e40"
+        ]
+      ]
+    }
+  },
+  "7": {
+    "all_payouts": {
+      "blight,blight,blight": "333333333333eb3f",
+      "blight,blight,bog": "52b81e85eb51ee3f",
+      "blight,blight,clover": "52b81e85eb51ee3f",
+      "blight,blight,honey": "52b81e85eb51ee3f",
+      "blight,blight,moon": "52b81e85eb51ee3f",
+      "blight,blight,star": "52b81e85eb51ee3f",
+      "blight,bog,blight": "52b81e85eb51ee3f",
+      "blight,bog,bog": "e17a14ae47e1ee3f",
+      "blight,bog,clover": "000000000000f03f",
+      "blight,bog,honey": "000000000000f03f",
+      "blight,bog,moon": "000000000000f03f",
+      "blight,bog,star": "000000000000f03f",
+      "blight,clover,blight": "52b81e85eb51ee3f",
+      "blight,clover,bog": "000000000000f03f",
+      "blight,clover,clover": "ae47e17a14aef13f",
+      "blight,clover,honey": "000000000000f03f",
+      "blight,clover,moon": "000000000000f03f",
+      "blight,clover,star": "000000000000f03f",
+      "blight,honey,blight": "52b81e85eb51ee3f",
+      "blight,honey,bog": "000000000000f03f",
+      "blight,honey,clover": "000000000000f03f",
+      "blight,honey,honey": "5c8fc2f5285cf33f",
+      "blight,honey,moon": "000000000000f03f",
+      "blight,honey,star": "000000000000f03f",
+      "blight,moon,blight": "52b81e85eb51ee3f",
+      "blight,moon,bog": "000000000000f03f",
+      "blight,moon,clover": "000000000000f03f",
+      "blight,moon,honey": "000000000000f03f",
+      "blight,moon,moon": "9a9999999999f53f",
+      "blight,moon,star": "000000000000f03f",
+      "blight,star,blight": "52b81e85eb51ee3f",
+      "blight,star,bog": "000000000000f03f",
+      "blight,star,clover": "000000000000f03f",
+      "blight,star,honey": "000000000000f03f",
+      "blight,star,moon": "000000000000f03f",
+      "blight,star,star": "f6285c8fc2f5f83f",
+      "bog,blight,blight": "52b81e85eb51ee3f",
+      "bog,blight,bog": "e17a14ae47e1ee3f",
+      "bog,blight,clover": "000000000000f03f",
+      "bog,blight,honey": "000000000000f03f",
+      "bog,blight,moon": "000000000000f03f",
+      "bog,blight,star": "000000000000f03f",
+      "bog,bog,blight": "e17a14ae47e1ee3f",
+      "bog,bog,bog": "cdccccccccccec3f",
+      "bog,bog,clover": "e17a14ae47e1ee3f",
+      "bog,bog,honey": "e17a14ae47e1ee3f",
+      "bog,bog,moon": "e17a14ae47e1ee3f",
+      "bog,bog,star": "e17a14ae47e1ee3f",
+      "bog,clover,blight": "000000000000f03f",
+      "bog,clover,bog": "e17a14ae47e1ee3f",
+      "bog,clover,clover": "ae47e17a14aef13f",
+      "bog,clover,honey": "000000000000f03f",
+      "bog,clover,moon": "000000000000f03f",
+      "bog,clover,star": "000000000000f03f",
+      "bog,honey,blight": "000000000000f03f",
+      "bog,honey,bog": "e17a14ae47e1ee3f",
+      "bog,honey,clover": "000000000000f03f",
+      "bog,honey,honey": "5c8fc2f5285cf33f",
+      "bog,honey,moon": "000000000000f03f",
+      "bog,honey,star": "000000000000f03f",
+      "bog,moon,blight": "000000000000f03f",
+      "bog,moon,bog": "e17a14ae47e1ee3f",
+      "bog,moon,clover": "000000000000f03f",
+      "bog,moon,honey": "000000000000f03f",
+      "bog,moon,moon": "9a9999999999f53f",
+      "bog,moon,star": "000000000000f03f",
+      "bog,star,blight": "000000000000f03f",
+      "bog,star,bog": "e17a14ae47e1ee3f",
+      "bog,star,clover": "000000000000f03f",
+      "bog,star,honey": "000000000000f03f",
+      "bog,star,moon": "000000000000f03f",
+      "bog,star,star": "f6285c8fc2f5f83f",
+      "clover,blight,blight": "52b81e85eb51ee3f",
+      "clover,blight,bog": "000000000000f03f",
+      "clover,blight,clover": "ae47e17a14aef13f",
+      "clover,blight,honey": "000000000000f03f",
+      "clover,blight,moon": "000000000000f03f",
+      "clover,blight,star": "000000000000f03f",
+      "clover,bog,blight": "000000000000f03f",
+      "clover,bog,bog": "e17a14ae47e1ee3f",
+      "clover,bog,clover": "ae47e17a14aef13f",
+      "clover,bog,honey": "000000000000f03f",
+      "clover,bog,moon": "000000000000f03f",
+      "clover,bog,star": "000000000000f03f",
+      "clover,clover,blight": "ae47e17a14aef13f",
+      "clover,clover,bog": "ae47e17a14aef13f",
+      "clover,clover,clover": "cdccccccccccf43f",
+      "clover,clover,honey": "ae47e17a14aef13f",
+      "clover,clover,moon": "ae47e17a14aef13f",
+      "clover,clover,star": "ae47e17a14aef13f",
+      "clover,honey,blight": "000000000000f03f",
+      "clover,honey,bog": "000000000000f03f",
+      "clover,honey,clover": "ae47e17a14aef13f",
+      "clover,honey,honey": "5c8fc2f5285cf33f",
+      "clover,honey,moon": "000000000000f03f",
+      "clover,honey,star": "000000000000f03f",
+      "clover,moon,blight": "000000000000f03f",
+      "clover,moon,bog": "000000000000f03f",
+      "clover,moon,clover": "ae47e17a14aef13f",
+      "clover,moon,honey": "000000000000f03f",
+      "clover,moon,moon": "9a9999999999f53f",
+      "clover,moon,star": "000000000000f03f",
+      "clover,star,blight": "000000000000f03f",
+      "clover,star,bog": "000000000000f03f",
+      "clover,star,clover": "ae47e17a14aef13f",
+      "clover,star,honey": "000000000000f03f",
+      "clover,star,moon": "000000000000f03f",
+      "clover,star,star": "f6285c8fc2f5f83f",
+      "honey,blight,blight": "52b81e85eb51ee3f",
+      "honey,blight,bog": "000000000000f03f",
+      "honey,blight,clover": "000000000000f03f",
+      "honey,blight,honey": "5c8fc2f5285cf33f",
+      "honey,blight,moon": "000000000000f03f",
+      "honey,blight,star": "000000000000f03f",
+      "honey,bog,blight": "000000000000f03f",
+      "honey,bog,bog": "e17a14ae47e1ee3f",
+      "honey,bog,clover": "000000000000f03f",
+      "honey,bog,honey": "5c8fc2f5285cf33f",
+      "honey,bog,moon": "000000000000f03f",
+      "honey,bog,star": "000000000000f03f",
+      "honey,clover,blight": "000000000000f03f",
+      "honey,clover,bog": "000000000000f03f",
+      "honey,clover,clover": "ae47e17a14aef13f",
+      "honey,clover,honey": "5c8fc2f5285cf33f",
+      "honey,clover,moon": "000000000000f03f",
+      "honey,clover,star": "000000000000f03f",
+      "honey,honey,blight": "5c8fc2f5285cf33f",
+      "honey,honey,bog": "5c8fc2f5285cf33f",
+      "honey,honey,clover": "5c8fc2f5285cf33f",
+      "honey,honey,honey": "9a9999999999f93f",
+      "honey,honey,moon": "5c8fc2f5285cf33f",
+      "honey,honey,star": "5c8fc2f5285cf33f",
+      "honey,moon,blight": "000000000000f03f",
+      "honey,moon,bog": "000000000000f03f",
+      "honey,moon,clover": "000000000000f03f",
+      "honey,moon,honey": "5c8fc2f5285cf33f",
+      "honey,moon,moon": "9a9999999999f53f",
+      "honey,moon,star": "000000000000f03f",
+      "honey,star,blight": "000000000000f03f",
+      "honey,star,bog": "000000000000f03f",
+      "honey,star,clover": "000000000000f03f",
+      "honey,star,honey": "5c8fc2f5285cf33f",
+      "honey,star,moon": "000000000000f03f",
+      "honey,star,star": "f6285c8fc2f5f83f",
+      "moon,blight,blight": "52b81e85eb51ee3f",
+      "moon,blight,bog": "000000000000f03f",
+      "moon,blight,clover": "000000000000f03f",
+      "moon,blight,honey": "000000000000f03f",
+      "moon,blight,moon": "9a9999999999f53f",
+      "moon,blight,star": "000000000000f03f",
+      "moon,bog,blight": "000000000000f03f",
+      "moon,bog,bog": "e17a14ae47e1ee3f",
+      "moon,bog,clover": "000000000000f03f",
+      "moon,bog,honey": "000000000000f03f",
+      "moon,bog,moon": "9a9999999999f53f",
+      "moon,bog,star": "000000000000f03f",
+      "moon,clover,blight": "000000000000f03f",
+      "moon,clover,bog": "000000000000f03f",
+      "moon,clover,clover": "ae47e17a14aef13f",
+      "moon,clover,honey": "000000000000f03f",
+      "moon,clover,moon": "9a9999999999f53f",
+      "moon,clover,star": "000000000000f03f",
+      "moon,honey,blight": "000000000000f03f",
+      "moon,honey,bog": "000000000000f03f",
+      "moon,honey,clover": "000000000000f03f",
+      "moon,honey,honey": "5c8fc2f5285cf33f",
+      "moon,honey,moon": "9a9999999999f53f",
+      "moon,honey,star": "000000000000f03f",
+      "moon,moon,blight": "9a9999999999f53f",
+      "moon,moon,bog": "9a9999999999f53f",
+      "moon,moon,clover": "9a9999999999f53f",
+      "moon,moon,honey": "9a9999999999f53f",
+      "moon,moon,moon": "0000000000000040",
+      "moon,moon,star": "9a9999999999f53f",
+      "moon,star,blight": "000000000000f03f",
+      "moon,star,bog": "000000000000f03f",
+      "moon,star,clover": "000000000000f03f",
+      "moon,star,honey": "000000000000f03f",
+      "moon,star,moon": "9a9999999999f53f",
+      "moon,star,star": "f6285c8fc2f5f83f",
+      "star,blight,blight": "52b81e85eb51ee3f",
+      "star,blight,bog": "000000000000f03f",
+      "star,blight,clover": "000000000000f03f",
+      "star,blight,honey": "000000000000f03f",
+      "star,blight,moon": "000000000000f03f",
+      "star,blight,star": "f6285c8fc2f5f83f",
+      "star,bog,blight": "000000000000f03f",
+      "star,bog,bog": "e17a14ae47e1ee3f",
+      "star,bog,clover": "000000000000f03f",
+      "star,bog,honey": "000000000000f03f",
+      "star,bog,moon": "000000000000f03f",
+      "star,bog,star": "f6285c8fc2f5f83f",
+      "star,clover,blight": "000000000000f03f",
+      "star,clover,bog": "000000000000f03f",
+      "star,clover,clover": "ae47e17a14aef13f",
+      "star,clover,honey": "000000000000f03f",
+      "star,clover,moon": "000000000000f03f",
+      "star,clover,star": "f6285c8fc2f5f83f",
+      "star,honey,blight": "000000000000f03f",
+      "star,honey,bog": "000000000000f03f",
+      "star,honey,clover": "000000000000f03f",
+      "star,honey,honey": "5c8fc2f5285cf33f",
+      "star,honey,moon": "000000000000f03f",
+      "star,honey,star": "f6285c8fc2f5f83f",
+      "star,moon,blight": "000000000000f03f",
+      "star,moon,bog": "000000000000f03f",
+      "star,moon,clover": "000000000000f03f",
+      "star,moon,honey": "000000000000f03f",
+      "star,moon,moon": "9a9999999999f53f",
+      "star,moon,star": "f6285c8fc2f5f83f",
+      "star,star,blight": "f6285c8fc2f5f83f",
+      "star,star,bog": "f6285c8fc2f5f83f",
+      "star,star,clover": "f6285c8fc2f5f83f",
+      "star,star,honey": "f6285c8fc2f5f83f",
+      "star,star,moon": "f6285c8fc2f5f83f",
+      "star,star,star": "cdcccccccccc0440"
+    },
+    "expected_value_by_luck": {
+      "0.0": "30ad8acc727df03f",
+      "0.25": "c836b3a2f1d6f03f",
+      "0.5": "c416666afd32f13f",
+      "0.75": "502fce090191f13f",
+      "0.9": "2f1da48725caf13f"
+    },
+    "final_rng_state": "6829195864477702389",
+    "pattern_distribution_by_luck": {
+      "0.0": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.25": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.5": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.75": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      },
+      "0.9": {
+        "miss": "4bca1b403701de3f",
+        "pair": "90eb07e88bf3de3f",
+        "triple": "0b51e2bee659a83f"
+      }
+    },
+    "rng_state_after_spin": [
+      "-6651435163328666101",
+      "-4059858086083522215",
+      "2767215381861365047",
+      "-1755586563769502427",
+      "4848650111192225955",
+      "3034559818522913585",
+      "-2552305153812997041",
+      "6405861777831862141",
+      "-3449789151891895237",
+      "-8217038308720542199",
+      "9212864992914945127",
+      "3842799831734825685",
+      "-3817480101034827565",
+      "-1918339057440839199",
+      "-8625640662418268801",
+      "7769924245371883309",
+      "-2910153265228974485",
+      "-3457934360059916615",
+      "2606664414823757719",
+      "4910574040832251013",
+      "-8162657728121443069",
+      "8463377579312598161",
+      "7706888549993587375",
+      "-5044770368380525859",
+      "-7170956065212357477",
+      "-6077270288953015447",
+      "3294970062512979655",
+      "5934511529755875893",
+      "-7858946711144268493",
+      "7999981150097986369",
+      "-2960037055493690401",
+      "1899286764562274957",
+      "4308359189598066379",
+      "6776882665189317657",
+      "-2710356574405490185",
+      "8177576664717181925",
+      "-2989043860715237021",
+      "-2887299250570543631",
+      "2854427703516100879",
+      "-8921148500378307011",
+      "-6489430445326299909",
+      "-8347672162843682615",
+      "5815079011389102375",
+      "-1655721765715930731",
+      "-3633619027423090285",
+      "8043935075089190049",
+      "1863480953818221119",
+      "868405235448034797",
+      "4119987456582960939",
+      "6288521551010855289",
+      "-258880756766118825",
+      "4990896679662420805",
+      "2175061440765216195",
+      "-3275023741414785199",
+      "-5464765270497992849",
+      "-2835721135582226019",
+      "1126341831132507",
+      "-5367323367028277719",
+      "8894504297057600391",
+      "6829195864477702389"
+    ],
+    "spins": [
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "clover",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "star"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "star",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "moon",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "clover",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "clover",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "blight",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "honey",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "9a9999999999f93f",
+        "reels": [
+          "honey",
+          "honey",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "star",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "star",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "cdccccccccccf43f",
+        "reels": [
+          "clover",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "honey",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "bog",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "moon"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "5c8fc2f5285cf33f",
+        "reels": [
+          "honey",
+          "honey",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "clover",
+          "bog",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "blight",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "clover",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "star",
+          "bog",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "honey",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "star",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "cdccccccccccf43f",
+        "reels": [
+          "clover",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "clover",
+          "blight",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "clover",
+          "blight",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "moon",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "honey",
+          "bog",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "moon",
+          "blight"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "bog",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "clover",
+          "blight",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "52b81e85eb51ee3f",
+        "reels": [
+          "blight",
+          "blight",
+          "star"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "moon",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "e17a14ae47e1ee3f",
+        "reels": [
+          "bog",
+          "bog",
+          "honey"
+        ]
+      },
+      {
+        "pattern": "pair",
+        "payout": "ae47e17a14aef13f",
+        "reels": [
+          "bog",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "triple",
+        "payout": "cdccccccccccf43f",
+        "reels": [
+          "clover",
+          "clover",
+          "clover"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "blight",
+          "clover",
+          "bog"
+        ]
+      },
+      {
+        "pattern": "miss",
+        "payout": "000000000000f03f",
+        "reels": [
+          "bog",
+          "moon",
+          "blight"
+        ]
+      }
+    ],
+    "stats": {
+      "biggest_win": "9a9999999999f93f",
+      "payout_total": "5c8fc2f5280c4f40",
+      "spins": 60,
+      "triple_hits": 4,
+      "worst_spin": "52b81e85eb51ee3f"
+    },
+    "weights_by_luck": {
+      "0.0": [
+        [
+          "clover",
+          "0000000000003a40"
+        ],
+        [
+          "honey",
+          "0000000000003040"
+        ],
+        [
+          "moon",
+          "0000000000002040"
+        ],
+        [
+          "star",
+          "0000000000001040"
+        ],
+        [
+          "bog",
+          "0000000000003a40"
+        ],
+        [
+          "blight",
+          "0000000000003640"
+        ]
+      ],
+      "0.25": [
+        [
+          "clover",
+          "3333333333333f40"
+        ],
+        [
+          "honey",
+          "3333333333333340"
+        ],
+        [
+          "moon",
+          "3333333333332340"
+        ],
+        [
+          "star",
+          "3333333333331340"
+        ],
+        [
+          "bog",
+          "52b81e85eb513540"
+        ],
+        [
+          "blight",
+          "0ad7a3703d0a3240"
+        ]
+      ],
+      "0.5": [
+        [
+          "clover",
+          "3333333333334240"
+        ],
+        [
+          "honey",
+          "6666666666663640"
+        ],
+        [
+          "moon",
+          "6666666666662640"
+        ],
+        [
+          "star",
+          "6666666666661640"
+        ],
+        [
+          "bog",
+          "a3703d0ad7a33040"
+        ],
+        [
+          "blight",
+          "285c8fc2f5282c40"
+        ]
+      ],
+      "0.75": [
+        [
+          "clover",
+          "cdcccccccccc4440"
+        ],
+        [
+          "honey",
+          "9a99999999993940"
+        ],
+        [
+          "moon",
+          "9a99999999992940"
+        ],
+        [
+          "star",
+          "9a99999999991940"
+        ],
+        [
+          "bog",
+          "e951b81e85eb2740"
+        ],
+        [
+          "blight",
+          "3c0ad7a3703d2440"
+        ]
+      ],
+      "0.9": [
+        [
+          "clover",
+          "5d8fc2f5285c4640"
+        ],
+        [
+          "honey",
+          "86eb51b81e853b40"
+        ],
+        [
+          "moon",
+          "86eb51b81e852b40"
+        ],
+        [
+          "star",
+          "86eb51b81e851b40"
+        ],
+        [
+          "bog",
+          "e6fba9f1d24d2240"
+        ],
+        [
+          "blight",
+          "5de5d022dbf91e40"
+        ]
+      ]
+    }
+  },
+  "_event_deck": {
+    "events": [
+      {
+        "charm": 0,
+        "curation": 0,
+        "demand": "666666666666f63f",
+        "id": "fair_day",
+        "text": "The village fair has come to town. Half the county is queueing at the door.",
+        "theft": "cdccccccccccf43f",
+        "title": "Fair Day",
+        "weight": 10
+      },
+      {
+        "charm": 0,
+        "curation": 0,
+        "demand": "333333333333e33f",
+        "id": "rain",
+        "text": "Rain all afternoon. The queue never formed, but the pickpockets loved it.",
+        "theft": "666666666666e63f",
+        "title": "Rain on the Cobbles",
+        "weight": 10
+      },
+      {
+        "charm": 0,
+        "curation": 0,
+        "demand": "000000000000f03f",
+        "id": "warded_night",
+        "text": "The wardens patrol the galleries tonight. Nothing will go missing.",
+        "theft": "9a9999999999d93f",
+        "title": "The Wardens Walk",
+        "weight": 8
+      },
+      {
+        "charm": 0,
+        "curation": 0,
+        "demand": "000000000000f03f",
+        "id": "thief_moon",
+        "text": "There is a low red moon over the dig, and the town feels untrustworthy.",
+        "theft": "9a9999999999f93f",
+        "title": "Thief's Moon",
+        "weight": 8
+      },
+      {
+        "charm": 0,
+        "curation": -1,
+        "demand": "000000000000f03f",
+        "id": "curator_holiday",
+        "text": "One of the curators has taken the day. The storeroom will have to wait.",
+        "theft": "000000000000f03f",
+        "title": "Curator's Holiday",
+        "weight": 7
+      },
+      {
+        "charm": 0,
+        "curation": 1,
+        "demand": "000000000000f03f",
+        "id": "extra_hands",
+        "text": "A volunteer has turned up to help catalogue. Twice the usual work.",
+        "theft": "000000000000f03f",
+        "title": "An Extra Pair of Hands",
+        "weight": 7
+      },
+      {
+        "charm": 2,
+        "curation": 0,
+        "demand": "000000000000f03f",
+        "id": "museum_notice",
+        "text": "A piece about the museum ran in the county paper. People are charmed by it.",
+        "theft": "000000000000f03f",
+        "title": "A Notice in the Paper",
+        "weight": 8
+      },
+      {
+        "charm": 0,
+        "curation": 0,
+        "demand": "000000000000f03f",
+        "id": "quiet_day",
+        "text": "Nothing out of the ordinary. The gallery opens, and it opens again.",
+        "theft": "000000000000f03f",
+        "title": "An Ordinary Day",
+        "weight": 22
+      }
+    ],
+    "expected_multipliers": {
+      "charm": "9a9999999999c93f",
+      "curation": "0000000000000000",
+      "demand": "000000000000f03f",
+      "theft": "000000000000f03f"
+    },
+    "neutral_event": {
+      "charm": 0,
+      "curation": 0,
+      "demand": "000000000000f03f",
+      "id": "neutral",
+      "text": "Nothing out of the ordinary.",
+      "theft": "000000000000f03f",
+      "title": "An Ordinary Day"
+    },
+    "rng_state_after_roll": [
+      "7917428666622326063",
+      "3201040183015255266",
+      "3280789790701978713",
+      "3572456651835698500",
+      "-5192768313200839789",
+      "1656955589670092918",
+      "871359000409334109",
+      "5780167941571003128",
+      "-1636205381691486153",
+      "919478825626461514",
+      "8123696025417516705",
+      "8792668566067121132",
+      "-160773069275025637",
+      "8751156180521856862",
+      "8972040075733170213",
+      "-5078577286052971488",
+      "1579749004937016383",
+      "1828778193944474290",
+      "-5990945893385930263",
+      "-4582892238614493292",
+      "4626583349684585379",
+      "-7455229119473564858",
+      "-2008988495342366739",
+      "5423635011626656328",
+      "-4850776979655327417",
+      "-320736635335805670",
+      "3510722508070714929",
+      "295902213769527356",
+      "2836750651065946411",
+      "2673529161503677486",
+      "-7423090590194349899",
+      "-3989417095981165200",
+      "6611201251803748175",
+      "1096836351555701890",
+      "752932882124911481",
+      "9045283661531977188",
+      "7293097674268276659",
+      "7731321819832474134",
+      "7003227148062868093",
+      "8829458373250790808",
+      "-1549883333811055017",
+      "7535425021901068522",
+      "-1067138764754437695",
+      "-1043367077687334772",
+      "3024855322751686459",
+      "3010108059026169086",
+      "742616441270934853",
+      "6501481313169957568",
+      "5447949521648950879",
+      "3796787165656087122",
+      "8361092422400880905",
+      "-1108069178766911436",
+      "1832322593069928387",
+      "-1533260480903019290",
+      "-2149101484451596019",
+      "3606000877738245352",
+      "-6058921250487513241",
+      "-3473588154092220230",
+      "-9219637052408841903",
+      "8129458850744059100",
+      "1625021102046396747",
+      "-7699717716279643698",
+      "97313440561853909",
+      "-220744740365900784",
+      "3600121832297498991",
+      "8145680024067390498",
+      "-493293178651118951",
+      "-6012835941273956732",
+      "-2871650261372564525",
+      "3954527286918431670",
+      "-6856554626370325603",
+      "1651494341579143224",
+      "-2627383559577146249",
+      "6122302044062719114",
+      "2497582805250342113",
+      "-7521727398260173524",
+      "1840304257601671003",
+      "2767823664883260062",
+      "820978096589918821",
+      "-8760007222060704",
+      "-59690676778133377",
+      "-4087445771131563534",
+      "-6125603084049582039",
+      "-5661971457904281388",
+      "-6728330883187741725",
+      "-4495571405451684218",
+      "1506816680857924141",
+      "-6424089157525084280",
+      "-6709076567993045625",
+      "-6782517863405683622",
+      "-409648743278345103",
+      "8656663649838979452",
+      "-1380083401932979861",
+      "-3764280615213951122",
+      "3262550409108468469",
+      "-2083369501589273936",
+      "6070991446214855567",
+      "1102691605283683266",
+      "7962477835982062009",
+      "-5416977602008721628",
+      "7976244426202984435",
+      "-8982686422488416938",
+      "194744948924527805",
+      "-6164927043287676200",
+      "-9052245660083449193",
+      "-1349544751130496982",
+      "7646635590665359361",
+      "8090801998500467148",
+      "5522217705022052219",
+      "4499328217506211902",
+      "-126319538670987387",
+      "4052123737900589056",
+      "-8727805916174703969",
+      "80972213317368210",
+      "-1512587963706454199",
+      "3085355204358154612",
+      "-3425552862832207869",
+      "6052097150883919910",
+      "-7678140815502116019",
+      "-1820494797620780504",
+      "5828980302072617895",
+      "-1014191964571420678",
+      "1452920540779110289",
+      "2194309962609540636",
+      "-398578087910780533",
+      "-6987842973241651954",
+      "4547774394976108565",
+      "5718952516387959120",
+      "-895412409035481681",
+      "-7583184658159006878",
+      "205841036181774553",
+      "6971144423941697476",
+      "-5546942981658778605",
+      "-3464197958873348362",
+      "-4568088135440742947",
+      "-3645596940628169352",
+      "3069279492842703031",
+      "-1982810934212357174",
+      "3442801485748679457",
+      "-6073912794442572180",
+      "3898884669349146523",
+      "-6069948002718202402",
+      "7113303129612348581",
+      "-4755079247547959648",
+      "-6267672299881153345",
+      "-2560430082315095758",
+      "-3969475861624736151",
+      "-6340417012768953836",
+      "4203980454449796131",
+      "-7275538304670619194",
+      "8786720890453333101",
+      "5921110081398713544",
+      "9001536220494502343",
+      "-8515354253192641638",
+      "3024599355640335025",
+      "7968240740405605052",
+      "9015106119107867051",
+      "-3742051417635466578",
+      "-7956590129518027467",
+      "-659537580608049168",
+      "8816546485533245391",
+      "3390362499549309698",
+      "3480080282968887289",
+      "7373974153801029732",
+      "5691094798410885171",
+      "-3381435515900338026",
+      "-5583994643915938051",
+      "-6799291027800449000",
+      "-7616047670957928745",
+      "-4433980791699814550",
+      "8658129579839891009",
+      "-4484691374297089268",
+      "4487460527952533435",
+      "5336978000884822910",
+      "-1725070264211549755",
+      "8744223090586787136",
+      "8968959016068343519",
+      "8828906366865684690",
+      "574128593925811593",
+      "-2985081847973905740",
+      "-4710455431709597629",
+      "1605404077105982310",
+      "-3735388153974112883",
+      "8029089874388273000",
+      "8999209227418675175",
+      "-8776840571828986054",
+      "552021591050667473",
+      "-5029063002884114596",
+      "6918295892911890891",
+      "4748115855085938766",
+      "602129755580844629",
+      "5712035217282809488",
+      "9175075200109048303",
+      "1963646982341794466",
+      "8472591907209613081",
+      "5559802213001335044",
+      "3392688273950702675",
+      "1858538459589085750",
+      "2800269388118693917",
+      "2439257886297531064"
+    ],
+    "rolls": [
+      "fair_day",
+      "fair_day",
+      "thief_moon",
+      "quiet_day",
+      "thief_moon",
+      "curator_holiday",
+      "extra_hands",
+      "extra_hands",
+      "fair_day",
+      "extra_hands",
+      "fair_day",
+      "quiet_day",
+      "quiet_day",
+      "thief_moon",
+      "quiet_day",
+      "museum_notice",
+      "rain",
+      "fair_day",
+      "quiet_day",
+      "quiet_day",
+      "extra_hands",
+      "thief_moon",
+      "museum_notice",
+      "quiet_day",
+      "warded_night",
+      "quiet_day",
+      "curator_holiday",
+      "curator_holiday",
+      "fair_day",
+      "fair_day",
+      "warded_night",
+      "extra_hands",
+      "rain",
+      "quiet_day",
+      "museum_notice",
+      "fair_day",
+      "warded_night",
+      "rain",
+      "quiet_day",
+      "rain",
+      "warded_night",
+      "quiet_day",
+      "extra_hands",
+      "quiet_day",
+      "quiet_day",
+      "thief_moon",
+      "warded_night",
+      "curator_holiday",
+      "rain",
+      "extra_hands",
+      "rain",
+      "curator_holiday",
+      "quiet_day",
+      "rain",
+      "quiet_day",
+      "fair_day",
+      "warded_night",
+      "quiet_day",
+      "rain",
+      "extra_hands",
+      "thief_moon",
+      "thief_moon",
+      "quiet_day",
+      "rain",
+      "thief_moon",
+      "fair_day",
+      "extra_hands",
+      "quiet_day",
+      "quiet_day",
+      "fair_day",
+      "thief_moon",
+      "rain",
+      "fair_day",
+      "rain",
+      "museum_notice",
+      "extra_hands",
+      "curator_holiday",
+      "museum_notice",
+      "extra_hands",
+      "fair_day",
+      "curator_holiday",
+      "extra_hands",
+      "fair_day",
+      "quiet_day",
+      "museum_notice",
+      "rain",
+      "thief_moon",
+      "extra_hands",
+      "fair_day",
+      "warded_night",
+      "rain",
+      "extra_hands",
+      "rain",
+      "quiet_day",
+      "rain",
+      "thief_moon",
+      "curator_holiday",
+      "rain",
+      "curator_holiday",
+      "quiet_day",
+      "quiet_day",
+      "quiet_day",
+      "museum_notice",
+      "fair_day",
+      "quiet_day",
+      "warded_night",
+      "extra_hands",
+      "warded_night",
+      "warded_night",
+      "warded_night",
+      "thief_moon",
+      "quiet_day",
+      "quiet_day",
+      "curator_holiday",
+      "quiet_day",
+      "extra_hands",
+      "museum_notice",
+      "quiet_day",
+      "warded_night",
+      "rain",
+      "rain",
+      "quiet_day",
+      "quiet_day",
+      "warded_night",
+      "rain",
+      "quiet_day",
+      "fair_day",
+      "quiet_day",
+      "rain",
+      "thief_moon",
+      "museum_notice",
+      "quiet_day",
+      "museum_notice",
+      "rain",
+      "quiet_day",
+      "thief_moon",
+      "warded_night",
+      "fair_day",
+      "curator_holiday",
+      "quiet_day",
+      "curator_holiday",
+      "rain",
+      "thief_moon",
+      "quiet_day",
+      "fair_day",
+      "curator_holiday",
+      "thief_moon",
+      "quiet_day",
+      "fair_day",
+      "curator_holiday",
+      "thief_moon",
+      "warded_night",
+      "curator_holiday",
+      "quiet_day",
+      "fair_day",
+      "curator_holiday",
+      "extra_hands",
+      "fair_day",
+      "extra_hands",
+      "fair_day",
+      "quiet_day",
+      "quiet_day",
+      "fair_day",
+      "quiet_day",
+      "quiet_day",
+      "rain",
+      "fair_day",
+      "quiet_day",
+      "quiet_day",
+      "thief_moon",
+      "rain",
+      "thief_moon",
+      "museum_notice",
+      "fair_day",
+      "extra_hands",
+      "warded_night",
+      "quiet_day",
+      "quiet_day",
+      "fair_day",
+      "thief_moon",
+      "warded_night",
+      "curator_holiday",
+      "rain",
+      "museum_notice",
+      "warded_night",
+      "extra_hands",
+      "warded_night",
+      "rain",
+      "thief_moon",
+      "fair_day",
+      "curator_holiday",
+      "museum_notice",
+      "extra_hands",
+      "rain",
+      "warded_night",
+      "fair_day",
+      "thief_moon",
+      "warded_night",
+      "extra_hands",
+      "warded_night"
+    ],
+    "total_weight": 80
+  },
+  "_float_encoding": "hex-le-f64",
+  "_luck_levels": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "_spins": 60
+}

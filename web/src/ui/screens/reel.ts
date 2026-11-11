@@ -107,7 +107,7 @@ export class ReelScreen implements Screen {
       const color = SYMBOL_COLOR[symbol] ?? PAL.N;
 
       drawText(g, SYMBOL_GLYPH[symbol] ?? '?', wx + winW / 2, winY + 16, {
-        font: '26px ui-monospace, Menlo, monospace',
+        font: { size: 26 },
         color,
         align: 'center',
       });
@@ -201,7 +201,7 @@ export class ReelScreen implements Screen {
 
       // The symbol.
       drawText(g, SYMBOL_GLYPH[def.id] ?? '?', oddsX + 20, oy, {
-        font: '16px ui-monospace, Menlo, monospace',
+        font: FONT.mid,
         color: SYMBOL_COLOR[def.id] ?? PAL.N,
       });
 

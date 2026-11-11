@@ -1,17 +1,30 @@
-use("pico8")
-pal({ G: "#e0b23c", H: "#f2d98a", D: "#a8762a", K: "#16120f" })
+include("../palette.px.js")
 
+// The crown: the museum's prize, so it must be the warmest thing on the
+// title screen. Gold G body, with the lit top-left edge of every point in
+// the brighter H, the shadowed inner-right of each point falling to the
+// ochre Y, and a rust T jewel set into the middle of the band. The bottom
+// lip of the band is Y, so the crown reads as a solid ring and not a flat
+// block. Three points, notched apart down to the band, so the silhouette
+// says "crown" at a glance. No private colours: every pixel here comes
+// from the shared palette, so the crown sits in the same world as the rest.
 sprite("artefact_crown", { w: 16, h: 16, outline: "K" },
-  // three points rising from the band
-  poly([2, 12, 4, 4, 6, 12], "G"),
-  poly([6, 12, 8, 2, 10, 12], "G"),
-  poly([10, 12, 12, 4, 14, 12], "G"),
-  // the band the points sit on
-  rect(1, 12, 14, 3, "G"),
-  // shaded lower lip of the band
-  rect(1, 14, 14, 1, "D"),
-  // shadow at the right end, so the band reads as a curve
-  rect(13, 12, 2, 2, "D"),
-  // centre jewel set into the band
-  rect(7, 13, 2, 2, "H")
+  `
+  ................
+  .......GG.......
+  ......HGGG......
+  ......HGGG......
+  ..HGG.HGGG.HGG..
+  ..HGG.HGGG.HGG..
+  ..HGG.HGGG.HGG..
+  ..HGY.HGGY.HGG..
+  ..HGY.HGGY.HGG..
+  ..HGY.HGGY.HGG..
+  ..HGY.HGGY.HGG..
+  .GGGGGGGGGGGGGG.
+  .GGGGGGTTGGGGGG.
+  .GGGGGGTTGGGGGG.
+  .YYYYYYYYYYYYYY.
+  ................
+  `
 )

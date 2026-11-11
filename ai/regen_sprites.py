@@ -51,187 +51,264 @@ NODE = "/Users/amre/.openclaw/tools/node-v24.21.0/bin/node"
 
 SOURCES = {}
 
-SOURCES["artefact_rubble"] = '''use("pico8")
-pal({ G: "#8a8378", L: "#b8b1a4", S: "#5f574f", D: "#16120f" })
+SOURCES["artefact_rubble"] = '''include("../palette.px.js")
 
-sprite("artefact_rubble", { w: 16, h: 16, outline: "D" },
-  // angular hewn stone, not a rounded blob
-  poly([3, 9, 4, 6, 7, 4, 9, 5, 12, 7, 12, 11, 8, 13, 5, 13, 3, 11], "G"),
-  // shaded lower-right facet
-  poly([12, 7, 12, 11, 8, 13, 6, 11], "S"),
-  // lit upper-left facet
-  poly([7, 4, 9, 5, 7, 8, 4, 9, 4, 6], "L"),
-  // a chipped corner
-  px(11, 5, "D"),
-  px(12, 6, "D")
+// The rubble: broken stone — three overlapping angular chunks, not one
+// rounded boulder and not a scatter of noise. The sunlit top planes are X,
+// the bodies of the stone are R, and the lower right of each chunk falls
+// into D. The heap stands on a band of ground shadow.
+sprite("artefact_rubble", { w: 16, h: 16, outline: "K" },
+  `
+  ................
+  ................
+  ................
+  ......XXXX......
+  .....XXXXXX.....
+  .....RRRRRRD....
+  ..XXXRRRRRRD....
+  .XXXXRRRRRRD....
+  .RRRRRRRRRRD....
+  RRRRRRRDRRRD....
+  RRRRRRRRD...XX..
+  RRRRRRRRD...RD..
+  .RRRRRR.....RD..
+  DDDDDDDDDDDDDD..
+  ................
+  ................
+  `
 )
 '''
 
-SOURCES["artefact_clay"] = '''use("pico8")
-pal({ C: "#b4794a", H: "#e0a878", S: "#7d4f2e", D: "#16120f" })
+SOURCES["artefact_clay"] = '''include("../palette.px.js")
 
-sprite("artefact_clay", { w: 16, h: 16, outline: "D" },
-  // flared rim at the top of the neck
-  rect(6, 3, 4, 1, "H"),
-  // the mouth, dark because it is a hole
-  rect(7, 4, 2, 1, "D"),
-  // narrow neck
-  rect(6, 5, 4, 2, "C"),
-  // belly, tapering to a narrow foot
-  poly([6, 7, 10, 7, 11, 10, 10, 13, 5, 13, 4, 10], "C"),
-  // lit edge on the left of the belly
-  hline(5, 9, 3, "H"),
-  px(5, 8, "H"),
-  // shadow on the right of the belly
-  hline(10, 9, 1, "S"),
-  px(10, 10, "S"),
-  // foot
-  rect(5, 13, 6, 1, "S")
+// The clay pot: a real pot shape, not a blob. A flared lip, the dark mouth
+// of the pot as a slot directly under the lip (D), a narrow neck, shoulders
+// that flare out into a round belly, and a foot standing in shadow. Light
+// comes from the top left, so Z runs down the lit left edge and S down the
+// shadowed right edge.
+sprite("artefact_clay", { w: 16, h: 16, outline: "K" },
+  `
+  ................
+  ................
+  .....ZAAAAS.....
+  .....ZDDDDS.....
+  ......ZAAS......
+  ......ZAAS......
+  .....ZAAAAS.....
+  ....ZAAAAAAS....
+  ...ZAAAAAAAAS...
+  ...ZAAAAAAAAS...
+  ...ZAAAAAAAAS...
+  ....ZAAAAAAS....
+  ....ZAAAAAAS....
+  .....ZAAAAS.....
+  ......DDDD......
+  ................
+  `
 )
 '''
 
-SOURCES["artefact_relic"] = '''use("pico8")
-pal({ G: "#8a8378", L: "#b8b1a4", S: "#5f574f", T: "#5f9e8f", D: "#16120f" })
+SOURCES["artefact_relic"] = '''include("../palette.px.js")
 
-sprite("artefact_relic", { w: 16, h: 16, outline: "D" },
-  // a standing carved stone, tapered toward the top
-  poly([5, 14, 4, 9, 5, 3, 8, 1, 11, 4, 11, 10, 10, 14], "G"),
-  // shaded right face
-  poly([11, 4, 11, 10, 10, 14, 8, 14], "S"),
-  // lit top-left face
-  poly([5, 3, 8, 1, 8, 3, 5, 5], "L"),
-  // carved groove, cut INTO the stone so it is darker than the surface
-  vline(7, 6, 5, "D"),
-  hline(6, 8, 3, "D"),
-  // a single rune still holding its glow
-  px(7, 8, "T")
+// The relic: a carved standing monolith, broken off on a diagonal at the top
+// so the silhouette never reads as a domed gravestone. The stone is L (relic
+// teal). Light comes from the top left, so a cream vein C runs down the lit
+// left edge, following the break, and the right side of the stone falls away
+// to D. A groove is cut into the face — recessed, so D — and a rune still
+// burning E runs down inside the cut, so the eye reads one vertical wound
+// rather than a face. The stone stands in a plinth of shadow.
+sprite("artefact_relic", { w: 16, h: 16, outline: "K" },
+  `
+  .......CLL......
+  ......CLLL......
+  .....CLLLL......
+  ....CLLDLD......
+  ....CLLELD......
+  ....CLLELD......
+  ....CLLELD......
+  ....CLLDLD......
+  ....CLLLLD......
+  ....CLLLLD......
+  ....CLLLLD......
+  ...CLLLLLLD.....
+  ...CLLLLLLD.....
+  ..DDDDDDDDD.....
+  ...DDDDDDD......
+  ................
+  `
 )
 '''
 
-SOURCES["dig_site"] = '''use("pico8")
-pal({ E: "#8a7d6b", L: "#a99a80", S: "#5f574f", G: "#7d9a52", D: "#16120f" })
+SOURCES["dig_site"] = '''include("../palette.px.js")
 
-sprite("dig_site", { w: 24, h: 24, outline: "D" },
-  // the patch of turned earth
-  ellipse(12, 13, 10, 7, "E"),
-  // the hole
-  ellipse(12, 14, 6, 4, "D"),
-  // far wall of the pit, catching a little light
-  ellipse(12, 12, 6, 3, "S"),
-  // spoil heaped at the near edge
-  ellipse(12, 19, 7, 3, "L"),
-  ellipse(12, 19, 5, 2, "E"),
-  // grass tufts at the edge of the dug patch
-  px(2, 9, "G"),
-  px(3, 8, "G"),
-  px(21, 10, "G"),
-  px(20, 9, "G"),
-  px(3, 18, "G")
+// The dig site, drawn as a cross-section: the ground is cut open, so the pit
+// is a real hole with depth instead of a flat disc on a flat field. The earth
+// in section is mid brown N, sunlit along the surface Z, with bands of S for
+// strata and A for stones buried in the cut. The pit is dug straight down
+// out of the surface; the far wall is lit A just under the lip, falls
+// through P and goes to the dark D of the shaft, and on the floor of the pit
+// something arcane is glimmering E. A wooden ladder S stands in the pit and
+// breaks the top edge of the ground — that is what tells the eye this is a
+// hole and not a flat panel. On the left, the spoil heap: turned earth N
+// heaped up above the ground line, sunlit Z on the upper left, shaded S down
+// the right, with clods A on it.
+sprite("dig_site", { w: 24, h: 24, outline: "K" },
+  `
+  ........................
+  ...........S..S.........
+  ..ZZNNN....S..S.........
+  .ZZNAANS...SSSS.........
+  ZNAANNSSS..S..S.........
+  NNNNNSSSS..S..S...MM.MM.
+  ZZZZZZZZZAASAASAZZZZZZZZ
+  NNNNNNNNNAASSSSANNNNNNNN
+  NNNNNNNNNPPSPPSPNNNNNNNN
+  NNNNNNNNNPPSPPSPNNNNNNNN
+  SSSSSSSSSDDSDDSDSSSSSSSS
+  NNNNNNNNNDDSSSSDNNNNNNNN
+  NNAANNNNNDDSDDSDNNNNNNNN
+  NNNNNNNNNDDSDDSDNNNAANNN
+  NNNNNNNNNDDSDDSDNNNNNNNN
+  SSSSSSSSSDDSSSSDSSSSSSSS
+  NNNNNNNNNDDDDDDDNNNNNNNN
+  NNNNNNNNNNNNEENNNNNNNNNN
+  NNNNNAANNNNNNNNNNAANNNNN
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  SSSSSSSSSNNNNNNNSSSSSSSS
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  `
 )
 '''
 
-SOURCES["artefact_crown"] = '''use("pico8")
-pal({ G: "#e0b23c", H: "#f2d98a", D: "#a8762a", K: "#16120f" })
+SOURCES["artefact_crown"] = '''include("../palette.px.js")
 
+// The crown: the museum's prize, so it must be the warmest thing on the
+// title screen. Gold G body, with the lit top-left edge of every point in
+// the brighter H, the shadowed inner-right of each point falling to the
+// ochre Y, and a rust T jewel set into the middle of the band. The bottom
+// lip of the band is Y, so the crown reads as a solid ring and not a flat
+// block. Three points, notched apart down to the band, so the silhouette
+// says "crown" at a glance. No private colours: every pixel here comes
+// from the shared palette, so the crown sits in the same world as the rest.
 sprite("artefact_crown", { w: 16, h: 16, outline: "K" },
-  // three points rising from the band
-  poly([2, 12, 4, 4, 6, 12], "G"),
-  poly([6, 12, 8, 2, 10, 12], "G"),
-  poly([10, 12, 12, 4, 14, 12], "G"),
-  // the band the points sit on
-  rect(1, 12, 14, 3, "G"),
-  // shaded lower lip of the band
-  rect(1, 14, 14, 1, "D"),
-  // shadow at the right end, so the band reads as a curve
-  rect(13, 12, 2, 2, "D"),
-  // centre jewel set into the band
-  rect(7, 13, 2, 2, "H")
+  `
+  ................
+  .......GG.......
+  ......HGGG......
+  ......HGGG......
+  ..HGG.HGGG.HGG..
+  ..HGG.HGGG.HGG..
+  ..HGG.HGGG.HGG..
+  ..HGY.HGGY.HGG..
+  ..HGY.HGGY.HGG..
+  ..HGY.HGGY.HGG..
+  ..HGY.HGGY.HGG..
+  .GGGGGGGGGGGGGG.
+  .GGGGGGTTGGGGGG.
+  .GGGGGGTTGGGGGG.
+  .YYYYYYYYYYYYYY.
+  ................
+  `
 )
 '''
 
-SOURCES["gallery_case"] = '''use("pico8")
-pal({ W: "#b4794a", G: "#8b99a6", L: "#d9a441", D: "#16120f", S: "#e8dcc4" })
+SOURCES["gallery_case"] = '''include("../palette.px.js")
 
-sprite("gallery_case", { w: 24, h: 24, outline: "D" },
+// The gallery case: a display vitrine, not a box. A brass L top rail, a
+// slate U frame with two corner posts and a cap, a cream C glint on the
+// glass, and a warm A pedestal with a brass L label plate. The shadow
+// under the table top is K, so the case reads as sitting on something
+// rather than floating. Every colour here comes from the shared palette.
+sprite("gallery_case", { w: 24, h: 24, outline: "K" },
   // pedestal foot
   rect(4, 20, 16, 2, "L"),
   // pedestal column
-  rect(8, 16, 8, 4, "W"),
+  rect(8, 16, 8, 4, "A"),
   // brass label plate on the column
   rect(10, 17, 4, 2, "L"),
   // display table top
-  rect(3, 13, 18, 3, "W"),
+  rect(3, 13, 18, 3, "A"),
   // shadow under the table top
-  rect(3, 15, 18, 1, "D"),
+  rect(3, 15, 18, 1, "K"),
   // glass vitrine: corner posts
-  rect(5, 4, 2, 9, "G"),
-  rect(17, 4, 2, 9, "G"),
+  rect(5, 4, 2, 9, "U"),
+  rect(17, 4, 2, 9, "U"),
   // vitrine cap
-  rect(4, 3, 16, 2, "G"),
+  rect(4, 3, 16, 2, "U"),
   // brass top rail
   rect(4, 2, 16, 1, "L"),
   // a glint on the glass
-  px(7, 6, "S"),
-  px(8, 7, "S")
+  px(7, 6, "C"),
+  px(8, 7, "C")
 )
 '''
 
-SOURCES["reel_wheel"] = '''use("pico8")
-pal({ C: "#e8dcc4", H: "#d9a441", R: "#8a7d6b", D: "#16120f" })
+SOURCES["reel_wheel"] = '''include("../palette.px.js")
 
-// A fortune wheel reads as a DISC with alternating segments, not as open
-// spokes. Open spokes leave transparent gaps between them, and the outline
-// op then traces every gap - the wheel came out as speckle. Filling the
-// disc first and cutting solid wedges over it keeps the silhouette one
-// connected shape.
-
-sprite("reel_wheel", { w: 24, h: 24, outline: "D" },
-  // the wheel face
-  circ(12, 12, 10, "C"),
-  // four bold segments. Eight thinner wedges read as noise at this size:
-  // the diagonal edges become 1px staircases and the wheel turns to mush.
-  poly([12, 12, 19, 5, 5, 5], "H"),
-  poly([12, 12, 19, 19, 19, 5], "C"),
-  poly([12, 12, 5, 19, 19, 19], "H"),
-  poly([12, 12, 5, 5, 5, 19], "C"),
-  // the rim, an even ring right around the face
-  ring(12, 12, 10, "R"),
-  // hub
-  circ(12, 12, 2, "R"),
-  px(12, 12, "C")
+// The reel wheel: a wheel, not a shield. A rim of slate U two pixels thick
+// all the way round, four wooden spokes N running from the hub out to the
+// rim, and open gaps between them — the gaps are what tell the eye this
+// thing turns. In the middle, the hub with an arcane jewel E set into it.
+sprite("reel_wheel", { w: 24, h: 24, outline: "K" },
+  `
+  ........................
+  ........................
+  .........UUUUUU.........
+  .......UUUUNNUUUU.......
+  .....UUU...NN...UUU.....
+  ....UUU....NN....UUU....
+  ....UU.....NN.....UU....
+  ...UU......NN......UU...
+  ...U.......NN.......U...
+  ..UU.......NN.......UU..
+  ..UU......NNNN......UU..
+  ..UNNNNNNNNEENNNNNNNNU..
+  ..UNNNNNNNNEENNNNNNNNU..
+  ..UU......NNNN......UU..
+  ..UU.......NN.......UU..
+  ...U.......NN.......U...
+  ...UU......NN......UU...
+  ....UU.....NN.....UU....
+  ....UUU....NN....UUU....
+  .....UUU...NN...UUU.....
+  .......UUUUNNUUUU.......
+  .........UUUUUU.........
+  ........................
+  ........................
+  `
 )
 '''
 
-SOURCES["curator"] = '''use("pico8")
-pal({ C: "#c05f3c", H: "#5f574f", S: "#e8dcc4", M: "#7d9a52", L: "#8b99a6", D: "#16120f" })
+SOURCES["curator"] = '''include("../palette.px.js")
 
-sprite("curator", { w: 16, h: 16, outline: "D" },
-  // flat cap
-  rect(6, 1, 4, 1, "H"),
-  rect(5, 2, 4, 1, "H"),
-  // head
-  rect(6, 3, 4, 3, "S"),
-  // eye
-  px(8, 4, "D"),
-  // coat
-  rect(5, 6, 6, 4, "C"),
-  // lapel
-  vline(7, 6, 3, "H"),
-  // arm reaching out to the lens
-  hline(10, 8, 2, "C"),
-  // magnifier: a small lens held clear of the head, not a lantern
-  ring(13, 4, 1, "M"),
-  px(13, 4, "L"),
-  // handle down to the hand
-  vline(13, 6, 2, "M"),
-  // hand
-  px(12, 7, "S"),
-  // legs
-  rect(6, 10, 1, 4, "H"),
-  rect(9, 10, 1, 4, "H"),
-  // shoes
-  rect(5, 14, 2, 1, "D"),
-  rect(8, 14, 2, 1, "D")
+// The curator: a person, so the head and the body must never blur into one
+// blob. A flat cap in N, a face in A (clay) with two D eyes, and a D neck
+// that separates the head from the shoulders. The coat is warm brown S with
+// a cream shirt C down the middle of it and a shadow down its right side,
+// and the sleeve N reaches out to the hand A. The magnifier is a small round
+// lens — a slate U rim with the corners cut away so it reads as a circle, a
+// bright W glass in the middle — held up at eye level on a wooden handle.
+sprite("curator", { w: 16, h: 16, outline: "K" },
+  `
+  ................
+  ......NNNN...UU.
+  .....NNNNNN.UWWU
+  ......AAAA..UWWU
+  ......ADAD...UU.
+  ......AAAA...N..
+  .......DD....N..
+  .....SSSSSD..N..
+  .....SSCCSDNNA..
+  .....SSCCSD.....
+  .....SSCCSD.....
+  .....SSSSSD.....
+  .....NN..NN.....
+  .....NN..NN.....
+  .....NN..NN.....
+  ....DDD..DDD....
+  `
 )
 '''
 

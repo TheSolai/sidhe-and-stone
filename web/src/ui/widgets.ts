@@ -11,8 +11,16 @@
  */
 
 import { PAL } from './palette.ts';
+import {
+  drawText,
+  FONT,
+  measureText,
+} from './font.ts';
 import { drawSprite, type SpriteSet } from './sprites.ts';
 import { strokeRect, type Rect } from './surface.ts';
+
+export { FONT, drawText, measureText } from './font.ts';
+export type { FontSpec } from './font.ts';
 
 export interface Button {
   rect: Rect;
@@ -29,55 +37,6 @@ export interface HitTarget {
   rect: Rect;
   onClick: () => void;
   enabled?: boolean;
-}
-
-/** Text baselines, sized for the 960x540 logical canvas. */
-export const FONT = {
-  tiny: '9px ui-monospace, Menlo, monospace',
-  small: '11px ui-monospace, Menlo, monospace',
-  body: '13px ui-monospace, Menlo, monospace',
-  mid: '16px ui-monospace, Menlo, monospace',
-  large: '22px ui-monospace, Menlo, monospace',
-  huge: '40px ui-monospace, Menlo, monospace',
-};
-
-/**
- * Draw text with a hard shadow, the way pixel games do.
- *
- * A one-pixel offset shadow in the ink colour keeps light text legible on
- * any background and reads as deliberate at 1x.
- */
-export function drawText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  options: {
-    font?: string;
-    color?: string;
-    shadow?: string | null;
-    align?: 'left' | 'center' | 'right';
-    maxWidth?: number;
-  } = {}
-): void {
-  const {
-    font = FONT.body,
-    color = PAL.K,
-    shadow = PAL.K,
-    align = 'left',
-    maxWidth,
-  } = options;
-
-  ctx.font = font;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'top';
-
-  if (shadow) {
-    ctx.fillStyle = shadow;
-    ctx.fillText(text, Math.round(x) + 1, Math.round(y) + 1, maxWidth);
-  }
-  ctx.fillStyle = color;
-  ctx.fillText(text, Math.round(x), Math.round(y), maxWidth);
 }
 
 /**
@@ -132,8 +91,11 @@ export function drawPanel(
 
   if (title) {
     drawText(ctx, title, x + 8, y + 6, { font: FONT.mid, color: PAL.D });
-    const tw = ctx.measureText(title).width;
+    const tw = Math.round(measureText(title, FONT.mid));
     ctx.fillStyle = PAL.P;
+    // The rule starts on a whole pixel. A fractional x would make the
+    // canvas anti-alias the edge of the rule, and that blended pixel is
+    // a colour that is not in the palette.
     ctx.fillRect(x + 12 + tw, y + 13, Math.max(0, w - 24 - tw), 1);
   }
 }
@@ -255,7 +217,7 @@ export function drawResource(
     font: FONT.mid,
     color,
   });
-  const width = ctx.measureText(value).width;
+  const width = measureText(value, FONT.mid);
   return Math.round(x + size + 4 + width);
 }
 
@@ -326,7 +288,7 @@ export function drawGradeChip(
     font: FONT.small,
     color: PAL.D,
   });
-  return Math.round(x + size + 4 + ctx.measureText(text).width);
+  return Math.round(x + size + 4 + measureText(text, FONT.small));
 }
 
 /**

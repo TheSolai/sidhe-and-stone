@@ -10,10 +10,12 @@
     "preview": "vite preview",
     "balance": "node --experimental-strip-types src/sim/run-sim.ts",
     "balance:player": "node --experimental-strip-types src/sim/run-player-balance.ts",
-    "test": "npm run test:rng && npm run test:parity && npm run test:player",
+    "test": "npm run test:rng && npm run test:parity && npm run test:reel && npm run test:player && npm run test:browser",
     "test:rng": "node --experimental-strip-types tests/rng_parity.ts",
     "test:parity": "node --experimental-strip-types tests/parity.ts",
-    "test:player": "node --experimental-strip-types tests/player_path_parity.ts"
+    "test:reel": "node --experimental-strip-types tests/reel_parity.ts",
+    "test:player": "node --experimental-strip-types tests/player_path_parity.ts",
+    "test:browser": "node tests/browser_check.mjs && node tests/canvas_check.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

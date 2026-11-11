@@ -13,7 +13,7 @@ import { PAL, GRADES, GRADE_SPRITE } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money } from '../screen.ts';
 import { drawSprite, drawSpriteCentred } from '../sprites.ts';
-import { drawPanel, drawText, FONT } from '../widgets.ts';
+import { drawPanel, drawText, FONT, measureText } from '../widgets.ts';
 
 export class GalleryScreen implements Screen {
   public readonly id = 'gallery';
@@ -231,8 +231,7 @@ export class GalleryScreen implements Screen {
     const cap = ctx.state.demand();
     if (shown > cap) {
       const text = `${shown - cap} exhibit${shown - cap === 1 ? '' : 's'} earning nothing`;
-      g.font = FONT.small;
-      const tw = g.measureText(text).width;
+      const tw = measureText(text, FONT.small);
       drawText(g, text, ctx.surface.canvas.width - 24 - tw, 68, {
         font: FONT.small,
         color: PAL.T,

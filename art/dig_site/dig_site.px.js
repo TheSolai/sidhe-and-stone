@@ -1,20 +1,41 @@
-use("pico8")
-pal({ E: "#8a7d6b", L: "#a99a80", S: "#5f574f", G: "#7d9a52", D: "#16120f" })
+include("../palette.px.js")
 
-sprite("dig_site", { w: 24, h: 24, outline: "D" },
-  // the patch of turned earth
-  ellipse(12, 13, 10, 7, "E"),
-  // the hole
-  ellipse(12, 14, 6, 4, "D"),
-  // far wall of the pit, catching a little light
-  ellipse(12, 12, 6, 3, "S"),
-  // spoil heaped at the near edge
-  ellipse(12, 19, 7, 3, "L"),
-  ellipse(12, 19, 5, 2, "E"),
-  // grass tufts at the edge of the dug patch
-  px(2, 9, "G"),
-  px(3, 8, "G"),
-  px(21, 10, "G"),
-  px(20, 9, "G"),
-  px(3, 18, "G")
+// The dig site, drawn as a cross-section: the ground is cut open, so the pit
+// is a real hole with depth instead of a flat disc on a flat field. The earth
+// in section is mid brown N, sunlit along the surface Z, with bands of S for
+// strata and A for stones buried in the cut. The pit is dug straight down
+// out of the surface; the far wall is lit A just under the lip, falls
+// through P and goes to the dark D of the shaft, and on the floor of the pit
+// something arcane is glimmering E. A wooden ladder S stands in the pit and
+// breaks the top edge of the ground — that is what tells the eye this is a
+// hole and not a flat panel. On the left, the spoil heap: turned earth N
+// heaped up above the ground line, sunlit Z on the upper left, shaded S down
+// the right, with clods A on it.
+sprite("dig_site", { w: 24, h: 24, outline: "K" },
+  `
+  ........................
+  ...........S..S.........
+  ..ZZNNN....S..S.........
+  .ZZNAANS...SSSS.........
+  ZNAANNSSS..S..S.........
+  NNNNNSSSS..S..S...MM.MM.
+  ZZZZZZZZZAASAASAZZZZZZZZ
+  NNNNNNNNNAASSSSANNNNNNNN
+  NNNNNNNNNPPSPPSPNNNNNNNN
+  NNNNNNNNNPPSPPSPNNNNNNNN
+  SSSSSSSSSDDSDDSDSSSSSSSS
+  NNNNNNNNNDDSSSSDNNNNNNNN
+  NNAANNNNNDDSDDSDNNNNNNNN
+  NNNNNNNNNDDSDDSDNNNAANNN
+  NNNNNNNNNDDSDDSDNNNNNNNN
+  SSSSSSSSSDDSSSSDSSSSSSSS
+  NNNNNNNNNDDDDDDDNNNNNNNN
+  NNNNNNNNNNNNEENNNNNNNNNN
+  NNNNNAANNNNNNNNNNAANNNNN
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  SSSSSSSSSNNNNNNNSSSSSSSS
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  NNNNNNNNNNNNNNNNNNNNNNNN
+  `
 )

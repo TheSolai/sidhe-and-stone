@@ -26,10 +26,13 @@ const { chromium } = loadPlaywright();
 /**
  * The palette, as hex strings.
  *
- * Text is drawn with the browser's anti-aliased fonts, so its edge pixels
- * are blends rather than exact palette entries. The check therefore
- * allows a small tolerance, and fails only when a whole surface has
- * drifted off-palette.
+ * Every rendered pixel is an exact palette entry. The text is a baked
+ * 1-bit bitmap font and the geometry is integer-aligned, so there are no
+ * anti-aliased glyph edges and no resampled surfaces left to blend into
+ * colours that are not in this list.
+ *
+ * That means the check below can demand a perfect result rather than
+ * tolerating the blends an anti-aliased system font used to produce.
  */
 const PALETTE = [
   '#16120f', '#2f251d', '#453729', '#6e624a', '#845537', '#b0895f',
@@ -40,19 +43,27 @@ const PALETTE = [
 
 const PALETTE_SET = new Set(PALETTE.map((h) => h.toLowerCase()));
 
-/** How much of a screen may be anti-aliased text edges. */
-const ANTIALIAS_TOLERANCE = 0.02;
+/**
+ * The most pixels a single off-palette colour may cover.
+ *
+ * Zero, deliberately. With the bitmap font and integer-aligned geometry
+ * there is no source of blends left, and every screen was measured at
+ * exactly zero off-palette pixels. The old limit of 500 existed to
+ * tolerate anti-aliased text edges; tolerating them any more would let a
+ * real drift — a smooth gradient or an alpha-blended shadow — creep back
+ * in unnoticed.
+ */
+const MAX_OFF_PALETTE_COLOUR = 0;
+
+/** How much of a screen may be off-palette in total, for any reason. */
+const MAX_OFF_PALETTE_SHARE = 0;
 
 /**
  * Check that a screen is drawn in the palette.
  *
- * Reports the off-palette share rather than the raw count: a few hundred
- * blended glyph edges are expected, a few thousand means a surface has
- * drifted.
- *
- * Returns a boolean so the caller owns the counters. Passing a counter in
- * and mutating it would silently fail to report -- a test harness that
- * cannot fail is worse than no harness at all.
+ * Returns a result rather than mutating a counter that was passed in.
+ * Mutating a by-value parameter would let the check print FAIL and still
+ * report zero failures, which is worse than no check at all.
  */
 function isOnPalette(label, counts) {
   const total = counts.reduce((a, [, n]) => a + n, 0);
@@ -60,17 +71,29 @@ function isOnPalette(label, counts) {
   const strayTotal = stray.reduce((a, [, n]) => a + n, 0);
   const share = strayTotal / total;
 
-  if (share > ANTIALIAS_TOLERANCE) {
+  const worst = stray[0];
+  if (worst && worst[1] > MAX_OFF_PALETTE_COLOUR) {
     return {
       ok: false,
       message:
-        `${label} is off-palette (${(share * 100).toFixed(2)}% of pixels, ` +
+        `${label} has an off-palette surface: ${worst[0]} covers ` +
+        `${worst[1]} pixels (${((worst[1] / total) * 100).toFixed(2)}% of the screen). ` +
+        'A real surface has drifted; text edges never cover this much.',
+    };
+  }
+
+  if (share > MAX_OFF_PALETTE_SHARE) {
+    return {
+      ok: false,
+      message:
+        `${label} is mostly off-palette (${(share * 100).toFixed(2)}% of pixels, ` +
         `worst: ${stray
           .slice(0, 4)
           .map(([h, n]) => `${h}x${n}`)
           .join(', ')})`,
     };
   }
+
   return { ok: true, message: '' };
 }
 
