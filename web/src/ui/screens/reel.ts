@@ -14,8 +14,9 @@
 import { PAL } from '../palette.ts';
 import { SYMBOLS, type SymbolDef } from '../../sim/reel-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
-import { drawSprite } from '../sprites.ts';
+import { drawSprite, drawSpriteRotated } from '../sprites.ts';
 import { drawPanel, drawText, drawWell, FONT } from '../widgets.ts';
+import { FOOTER_PANEL_HEIGHT, FOOTER_TOP } from '../bands.ts';
 
 /** The colour of each reel symbol. */
 const SYMBOL_COLOR: Record<string, string> = {
@@ -27,14 +28,21 @@ const SYMBOL_COLOR: Record<string, string> = {
   blight: PAL.T,
 };
 
-/** The glyph drawn for each symbol. Text glyphs, so no extra art needed. */
-const SYMBOL_GLYPH: Record<string, string> = {
-  clover: '☘',
-  honey: '⬤',
-  moon: '☾',
-  star: '★',
-  bog: '≈',
-  blight: '✖',
+/**
+ * The drawn sprite for each reel symbol.
+ *
+ * These are hand-drawn motifs, never font glyphs: a font glyph has no
+ * silhouette of its own, so the reel would read as a row of emoji rather
+ * than as objects on a wheel. Each symbol is a real 16x16 sprite in the
+ * shared palette, so it sits in the same world as the rest of the game.
+ */
+const SYMBOL_SPRITE: Record<string, string> = {
+  clover: 'symbol_clover',
+  honey: 'symbol_honey',
+  moon: 'symbol_moon',
+  star: 'symbol_star',
+  bog: 'symbol_bog',
+  blight: 'symbol_blight',
 };
 
 export class ReelScreen implements Screen {
@@ -80,12 +88,17 @@ export class ReelScreen implements Screen {
     const wheelX = panelX + 40;
     const wheelY = panelY + 60;
     if (wheel) {
-      g.save();
-      g.translate(wheelX + wheel.width / 2, wheelY + wheel.height / 2);
-      g.rotate(this.wheelAngle);
-      g.translate(-(wheelX + wheel.width / 2), -(wheelY + wheel.height / 2));
-      drawSprite(g, wheel, wheelX, wheelY, 2);
-      g.restore();
+      // Rotated by hand rather than with ctx.rotate(): a canvas rotation
+      // anti-aliases the edges of the rotated quad and bleeds off-palette
+      // pixels onto the screen every frame.
+      drawSpriteRotated(
+        g,
+        wheel,
+        wheelX + (wheel.width * 2) / 2,
+        wheelY + (wheel.height * 2) / 2,
+        this.wheelAngle,
+        2
+      );
     }
 
     // The three reel windows.
@@ -104,18 +117,26 @@ export class ReelScreen implements Screen {
 
       const symbol = reels[i];
       const def = SYMBOLS.find((s) => s.id === symbol);
-      const color = SYMBOL_COLOR[symbol] ?? PAL.N;
 
-      drawText(g, SYMBOL_GLYPH[symbol] ?? '?', wx + winW / 2, winY + 16, {
-        font: { size: 26 },
-        color,
-        align: 'center',
-      });
+      // The drawn motif, centred in the window above its multiplier.
+      const image = ctx.sprites.get(SYMBOL_SPRITE[symbol] ?? '');
+      if (image) {
+        const scale = 2;
+        const sw = image.width * scale;
+        drawSprite(g, image, wx + (winW - sw) / 2, winY + 8, scale);
+      } else {
+        // No sprite loaded: fall back to the label so the slot is never blank.
+        drawText(g, symbol.toUpperCase(), wx + winW / 2, winY + 16, {
+          font: FONT.small,
+          color: PAL.D,
+          align: 'center',
+        });
+      }
 
       if (def) {
         drawText(g, `×${def.mult.toFixed(2)}`, wx + winW / 2, winY + winH - 16, {
           font: FONT.tiny,
-          color: PAL.N,
+          color: PAL.P,
           align: 'center',
         });
       }
@@ -129,25 +150,27 @@ export class ReelScreen implements Screen {
 
     drawText(g, pendingText, winX, winY + winH + 20, {
       font: FONT.mid,
-      color: payout > 1 ? PAL.M : PAL.N,
+      color: payout > 1 ? PAL.D : PAL.P,
     });
 
-    // The explanation of the guarantee.
-    drawText(
-      g,
-      'A miss still pays ×1.00. The reel never takes money from you.',
-      winX,
-      winY + winH + 44,
-      { font: FONT.small, color: PAL.N, maxWidth: panelW - 220 }
-    );
-
+    // The cost of a spin, under the windows.
     drawText(
       g,
       `Cost: ${state.charmCost()} charms  ·  You have ${state.charms()}`,
       winX,
       winY + winH + 64,
-      { font: FONT.small, color: PAL.N }
+      { font: FONT.small, color: PAL.P }
     );
+
+    // The guarantee used to live here, in the content panel, and it did
+    // not fit: the sentence is 404 pixels wide and the space beside the
+    // reel windows is 250. It was being silently truncated to "A miss
+    // still pays ×1.00. The…", which is the one sentence in the game
+    // that the player most needs to read in full.
+    //
+    // It lives in the FOOTER band now, on the left, where there was
+    // empty space. The reel's own record sits on the right of the same
+    // band, so the two panels balance each other.
 
     // The spin button.
     const canSpin = state.canSpin() && !this.spinning;
@@ -199,25 +222,30 @@ export class ReelScreen implements Screen {
       const weight = weights.get(def.id) ?? def.weight;
       const chance = totalWeight > 0 ? weight / totalWeight : 0;
 
-      // The symbol.
-      drawText(g, SYMBOL_GLYPH[def.id] ?? '?', oddsX + 20, oy, {
-        font: FONT.mid,
-        color: SYMBOL_COLOR[def.id] ?? PAL.N,
-      });
+      // The drawn motif, so the odds table matches the reel itself.
+      const image = ctx.sprites.get(SYMBOL_SPRITE[def.id] ?? '');
+      if (image) {
+        drawSprite(g, image, oddsX + 18, oy - 2, 1);
+      } else {
+        drawText(g, def.id.slice(0, 2).toUpperCase(), oddsX + 20, oy, {
+          font: FONT.mid,
+          color: PAL.D,
+        });
+      }
 
       drawText(g, def.id, oddsX + 44, oy + 2, {
         font: FONT.body,
-        color: def.good ? PAL.D : PAL.N,
+        color: def.good ? PAL.D : PAL.P,
       });
 
       drawText(g, `×${def.mult.toFixed(2)}`, oddsX + 140, oy + 2, {
         font: FONT.small,
-        color: def.good ? PAL.M : PAL.T,
+        color: def.good ? PAL.D : PAL.P,
       });
 
       drawText(g, `${(chance * 100).toFixed(1)}%`, oddsX + oddsW - 24, oy + 2, {
         font: FONT.small,
-        color: PAL.N,
+        color: PAL.P,
         align: 'right',
       });
 
@@ -235,8 +263,34 @@ export class ReelScreen implements Screen {
 
     // The reel's own history.
     const reel = state.sim.reel;
-    const footY = panelY + panelH + 18;
-    drawPanel(g, { x: oddsX, y: footY, w: oddsW, h: 84 }, {
+    const footY = FOOTER_TOP;
+
+    // The guarantee, on the left of the footer band.
+    //
+    // This is the left half of the footer, which was empty. The
+    // sentence is the game's promise to the player -- a spin can never
+    // cost them money -- and it deserves more room than a line of
+    // content panel could give it.
+    drawPanel(g, { x: panelX, y: footY, w: panelW, h: FOOTER_PANEL_HEIGHT }, {
+      fill: PAL.C,
+      title: 'The reel’s promise',
+    });
+    drawText(
+      g,
+      'A miss still pays ×1.00. The reel never takes money from you.',
+      panelX + 20,
+      footY + 32,
+      { font: FONT.small, color: PAL.D, maxWidth: panelW - 40 }
+    );
+    drawText(
+      g,
+      'The multiplier only ever adds to what you have already earned.',
+      panelX + 20,
+      footY + 50,
+      { font: FONT.small, color: PAL.P, maxWidth: panelW - 40 }
+    );
+
+    drawPanel(g, { x: oddsX, y: footY, w: oddsW, h: FOOTER_PANEL_HEIGHT }, {
       fill: PAL.C,
       title: 'The reel’s record',
     });
@@ -245,15 +299,15 @@ export class ReelScreen implements Screen {
       g,
       `${reel.spins} spins   ·   ${reel.tripleHits} triples   ·   luck ${state.luck().toFixed(2)}`,
       oddsX + 20,
-      footY + 38,
-      { font: FONT.small, color: PAL.N }
+      footY + 32,
+      { font: FONT.small, color: PAL.P }
     );
     drawText(
       g,
       `Best ×${reel.biggestWin.toFixed(2)}   ·   charms ${state.charms()}`,
       oddsX + 20,
-      footY + 56,
-      { font: FONT.small, color: PAL.N }
+      footY + 50,
+      { font: FONT.small, color: PAL.P }
     );
 
     return regions;

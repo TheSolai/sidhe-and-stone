@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#16120f" />
+    <meta name="theme-color" content="#d6d4c8" />
     <!--
       An inline SVG favicon: a gold crown on dark ink. Inline means the
       browser never issues a request for /favicon.ico, so the page makes
@@ -11,7 +11,7 @@
     -->
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2316120f'/%3E%3Cpath d='M2 12 L3 4 L6 8 L8 3 L10 8 L13 4 L14 12 Z' fill='%23e0b23c'/%3E%3Crect x='2' y='13' width='12' height='2' fill='%23a8762a'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231e1a16'/%3E%3Cpath d='M2 12 L3 4 L6 8 L8 3 L10 8 L13 4 L14 12 Z' fill='%23e5b63d'/%3E%3Crect x='2' y='13' width='12' height='2' fill='%23b98053'/%3E%3C/svg%3E"
     />
     <meta
       name="description"
@@ -20,9 +20,10 @@
     <title>Sidhe &amp; Stone</title>
     <style>
       :root {
-        color-scheme: dark;
-        --ink: #16120f;
-        --paper: #e8dcc4;
+        color-scheme: light;
+        --ink: #1e1a16;
+        --paper: #e8dcc5;
+        --ground: #d6d4c8;
       }
 
       * {
@@ -35,7 +36,7 @@
         padding: 0;
         height: 100%;
         overflow: hidden;
-        background: #16120f;
+        background: #d6d4c8;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
@@ -43,10 +44,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        /* A warm vignette so the letterbox does not read as dead space. */
-        background:
-          radial-gradient(ellipse at 50% 40%, #2f251d 0%, #16120f 70%),
-          #16120f;
+        /* The page shell is flat palette colour on purpose.
+           A radial-gradient interpolates between two colours, so every
+           pixel between them is OFF-palette -- and the page shell is the
+           largest thing in the frame. A hard-edged dither would need a
+           repeating checkerboard, which fights the letterbox shape, so
+           the shell stays flat: X behind, and a W card behind the game.
+           The warmth comes from the game itself, which is all art. */
+        background: #d6d4c8;
       }
 
       #stage {
@@ -63,8 +68,13 @@
         image-rendering: crisp-edges;
         touch-action: none;
         cursor: pointer;
-        /* A soft drop shadow lifts the game off the vignette. */
-        filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55));
+        /* A HARD offset shadow, not a blurred one.
+           `filter: drop-shadow(0 8px 24px ...)` blurs, and a blur
+           interpolates every pixel into a colour that is not in the
+           palette. A solid offset copy of the canvas silhouette is
+           made of exact palette pixels instead, and it is more
+           KairoSoft anyway: hard shadows, no softness. */
+        box-shadow: 8px 8px 0 #716855;
       }
 
       /* Screen-reader-only live region: the canvas is opaque to assistive

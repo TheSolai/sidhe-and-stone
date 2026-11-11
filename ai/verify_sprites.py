@@ -16,7 +16,12 @@ sprite:
      - alpha is binary (0 or 255) — no semi-transparent edges
      - the opaque shape is a SINGLE 8-connected region, with no detached
        islands (an orphan speck is a lint failure waiting to happen)
-  4. DEPLOYMENT SYNC
+  4. ART DIRECTION (art/ART_DIRECTION.md)
+     - the canvas is 16x16 or 24x24, nothing else
+     - the sprite uses between three and seven distinct colours
+     - the sprite is lit from the top-left: the top-left quadrant of its
+       opaque pixels is brighter on average than the bottom-right quadrant
+  5. DEPLOYMENT SYNC
      - web/public/sprites/<name>.png is byte-identical to
        assets/sprites/<name>.png
      - atlas.json lists every sprite with its true dimensions
@@ -42,20 +47,48 @@ WEB_SPRITES = ROOT / "web" / "public" / "sprites"
 
 # The shared palette, mirrored from art/palette.px.js.
 PALETTE_HEX = {
-    "K": "#16120f", "D": "#2f251d", "P": "#453729",
-    "N": "#6e624a", "S": "#845537", "Z": "#b0895f",
-    "X": "#d6d4c8", "C": "#e8dcc4", "W": "#f7f2e3",
-    "A": "#b4794a", "Y": "#d9a441", "G": "#e0b23c", "H": "#f2d98a",
-    "T": "#c05f3c", "M": "#7d9a52", "L": "#5f9e8f",
-    "E": "#6dd3df", "I": "#a8e8ef", "U": "#8b99a6", "R": "#8a8378",
+    "K": "#1e1a16", "D": "#362a21", "P": "#46382a",
+    "N": "#716855", "S": "#c17c50", "Z": "#c69a6b",
+    "X": "#d6d4c8", "C": "#e8dcc5", "W": "#f7f2e3",
+    "A": "#b98053", "Y": "#dda742", "G": "#e5b63d", "H": "#efd788",
+    "T": "#c3613d", "M": "#82a156", "L": "#5f9f90",
+    "E": "#6fd8e4", "I": "#a8e8ef", "U": "#8896a3", "R": "#aca496",
 }
 LEGAL_KEYS = set(PALETTE_HEX)
 HEX_TO_KEY = {v.lower(): k for k, v in PALETTE_HEX.items()}
 
 SPRITES = [
-    "artefact_clay", "artefact_crown", "artefact_relic", "artefact_rubble",
+    "artefact_clay", "artefact_crown", "artefact_mask", "artefact_relic",
+    "artefact_rubble", "artefact_tablet",
     "curator", "dig_site", "gallery_case", "reel_wheel",
+    "icon_charm", "icon_coin", "icon_demand",
+    "symbol_blight", "symbol_bog", "symbol_clover", "symbol_honey",
+    "symbol_moon", "symbol_star",
+    "visitor_a", "visitor_b", "visitor_c",
+    # The one dig site, seen five ways.
+    "dig_test_pit", "dig_trench", "dig_cutting", "dig_shaft",
+    "dig_deepworks",
+    # One icon per upgrade in the shop.
+    "upgrade_site", "upgrade_curator", "upgrade_gallery", "upgrade_omen",
+    "upgrade_diggers", "upgrade_excavators", "upgrade_guides",
+    "upgrade_archivists", "upgrade_wards",
 ]
+
+# The only canvas sizes the art direction allows.
+ALLOWED_CANVASES = {(16, 16), (24, 24)}
+
+# A sprite must use at least three colours (a silhouette is not a drawing)
+# and at most seven (one shared palette means you cannot invent shades).
+MIN_COLOURS = 3
+MAX_COLOURS = 7
+
+
+def luminance(hexv: str) -> float:
+    """Relative luminance of a palette hex, 0.0 to 1.0."""
+    r = int(hexv[1:3], 16) / 255.0
+    g = int(hexv[3:5], 16) / 255.0
+    b = int(hexv[5:7], 16) / 255.0
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
 class Fail(Exception):
@@ -264,6 +297,75 @@ def check_pixels(name: str) -> list:
     return problems
 
 
+def check_style(name: str) -> list:
+    """The mechanical half of the art direction.
+
+    Three rules, all of them checkable:
+      - the canvas is one of the two allowed sizes
+      - the colour budget is respected
+      - the sprite is lit from the top-left
+    """
+    problems = []
+    _, w, h, grid, _ = parse_source(ART / name / f"{name}.px.js")
+
+    if (w, h) not in ALLOWED_CANVASES:
+        problems.append(
+            f"canvas is {w}x{h}; the art direction allows only 16x16 and 24x24"
+        )
+
+    width, height, rgba = read_png(ASSETS / f"{name}.png")
+
+    # Collect the opaque pixels, by colour key.
+    lum_by_key = {k: luminance(v) for k, v in PALETTE_HEX.items()}
+    colours = set()
+    tl = []
+    br = []
+    mid_x = width / 2.0
+    mid_y = height / 2.0
+
+    for y in range(height):
+        for x in range(width):
+            i = (y * width + x) * 4
+            if rgba[i + 3] == 0:
+                continue
+            hexv = "#%02x%02x%02x" % (rgba[i], rgba[i + 1], rgba[i + 2])
+            key = HEX_TO_KEY.get(hexv)
+            if key is None:
+                continue
+            colours.add(key)
+            lum = lum_by_key[key]
+            if x < mid_x and y < mid_y:
+                tl.append(lum)
+            elif x >= mid_x and y >= mid_y:
+                br.append(lum)
+
+    if len(colours) < MIN_COLOURS:
+        problems.append(
+            f"uses {len(colours)} colour(s); the art direction requires at "
+            f"least {MIN_COLOURS} — a silhouette is not a drawing"
+        )
+    if len(colours) > MAX_COLOURS:
+        problems.append(
+            f"uses {len(colours)} colours ({''.join(sorted(colours))}); the "
+            f"budget is {MAX_COLOURS} — one shared palette means no new shades"
+        )
+
+    # Light from the top-left. If either quadrant is empty there is nothing
+    # to compare, and a symmetric sprite (a wheel, a coin) has no direction
+    # to violate anyway.
+    if tl and br:
+        tl_mean = sum(tl) / len(tl)
+        br_mean = sum(br) / len(br)
+        if tl_mean <= br_mean:
+            problems.append(
+                f"is lit from the wrong side: top-left quadrant averages "
+                f"{tl_mean:.3f} luminance against {br_mean:.3f} for the "
+                f"bottom-right — the light comes from the top-left"
+            )
+
+    return problems
+
+
 def check_sync(name: str) -> list:
     problems = []
     a = ASSETS / f"{name}.png"
@@ -285,7 +387,8 @@ def main() -> int:
         atlas = json.loads(atlas_path.read_text())
 
     for name in SPRITES:
-        problems = (check_source(name) + check_pixels(name) + check_sync(name))
+        problems = (check_source(name) + check_pixels(name)
+                    + check_style(name) + check_sync(name))
 
         if name in atlas:
             checks += 1

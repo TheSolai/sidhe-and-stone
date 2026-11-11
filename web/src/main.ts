@@ -8,6 +8,7 @@
 import { App } from './app.ts';
 import { hasSave, loadSettings, saveSettings, type Settings } from './save.ts';
 import { SpriteSet, type SpriteAtlas } from './ui/sprites.ts';
+import { PAL } from './ui/palette.ts';
 
 async function boot(): Promise<void> {
   const canvas = document.getElementById('game') as HTMLCanvasElement | null;
@@ -31,7 +32,7 @@ async function boot(): Promise<void> {
   await sprites.load(`${import.meta.env.BASE_URL}sprites`);
 
   const { App: AppClass } = { App };
-  const app = new AppClass(canvas, settings, atlas as unknown as Record<string, unknown>);
+  const app = new AppClass(canvas, settings, sprites);
 
   // The title screen needs to know whether there is a save to continue.
   const title = app.screens.get('title');
@@ -76,13 +77,13 @@ function openSettings(settings: Settings): void {
   backdrop.setAttribute('aria-label', 'Settings');
   backdrop.style.cssText = `
     position: fixed; inset: 0; display: grid; place-items: center;
-    background: rgba(22,18,15,0.72); z-index: 20; font-family: ui-monospace, monospace;
+    background: ${PAL.K}; opacity: 0.86; z-index: 20; font-family: ui-monospace, monospace;
   `;
 
   const panel = document.createElement('div');
   panel.style.cssText = `
-    background: #e8dcc4; color: #16120f; border: 2px solid #16120f;
-    padding: 20px 24px; min-width: 320px; box-shadow: 6px 6px 0 rgba(0,0,0,0.35);
+    background: ${PAL.C}; color: ${PAL.K}; border: 2px solid ${PAL.K};
+    padding: 20px 24px; min-width: 320px; box-shadow: 6px 6px 0 ${PAL.P};
   `;
 
   const title = document.createElement('h2');
@@ -122,7 +123,7 @@ function openSettings(settings: Settings): void {
   close.textContent = 'Close';
   close.style.cssText = `
     margin-top: 16px; width: 100%; padding: 8px; font: inherit; cursor: pointer;
-    background: #d9a441; border: 2px solid #16120f; color: #16120f;
+    background: ${PAL.Y}; border: 2px solid ${PAL.K}; color: ${PAL.K};
   `;
   close.addEventListener('click', () => backdrop.remove());
   panel.appendChild(close);

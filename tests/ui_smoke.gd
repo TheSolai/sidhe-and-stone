@@ -62,8 +62,8 @@ func _run_tests() -> void:
 
 	# --- reel is visible without navigating to a tab
 	ui._select_tab(0)
-	check(ui._reel_labels.size() == 3, "reel has three windows")
-	check(ui._reel_labels[0].is_visible_in_tree(), "reel is visible on the gallery tab")
+	check(ui._reel_icons.size() == 3, "reel has three windows")
+	check(ui._reel_icons[0].is_visible_in_tree(), "reel is visible on the gallery tab")
 
 	# --- odds table toggles
 	var was: bool = ui._table_panel.visible
@@ -148,7 +148,7 @@ func _run_tests() -> void:
 		for i in state.sites():
 			state.assign_dig(i, "test_pit")
 		# Restock the gallery from the vault, best grades first.
-		for g2 in ["crown", "relic", "clay", "rubble"]:
+		for g2 in SimCore.GRADE_ORDER:
 			while state.vault_count() > 0 and state.slots_free() > 0:
 				if not state.display_one(g2):
 					break
@@ -255,7 +255,7 @@ func _test_new_systems(state: GameState, ui: GameUI) -> void:
 	# --- the demand split tells the player what actually earns
 	var split := state.paying_split()
 	var paid := 0
-	for g in ["crown", "relic", "clay", "rubble"]:
+	for g in SimCore.GRADE_ORDER:
 		paid += int(split.get(g, 0))
 	check(paid == mini(state.demand(), state.on_display()),
 		"the paying split totals the demand cap")
@@ -425,7 +425,7 @@ func _test_new_systems(state: GameState, ui: GameUI) -> void:
 ## than no ladder at all.
 func _test_goals(state: GameState) -> void:
 	# --- the ladder itself is well formed
-	check(Goals.GOALS.size() == 12, "the ladder has twelve goals")
+	check(Goals.GOALS.size() == 18, "the ladder has eighteen goals")
 	var tiers := {}
 	for g in Goals.GOALS:
 		tiers[str(g["tier"])] = true
@@ -470,7 +470,7 @@ func _test_goals(state: GameState) -> void:
 	check(not nxt.is_empty(), "there is a next goal to work toward")
 	check(float(nxt["progress"]) <= float(nxt["target"]),
 		"goal progress never exceeds its target")
-	check(fresh.goal_list().size() == 12, "the goals tab lists every goal")
+	check(fresh.goal_list().size() == 18, "the goals tab lists every goal")
 
 	# --- the ladder survives a save. A milestone that vanishes on reload is
 	# a milestone the player cannot trust, and money that does not come back

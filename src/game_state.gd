@@ -26,7 +26,7 @@ signal game_loaded
 
 ## The dig types a player may assign. Mirrors SimCore.DIGS; kept here so
 ## the action layer can reject nonsense without the UI having to know.
-const DIG_TYPES := ["test_pit", "trench", "shaft"]
+const DIG_TYPES := ["test_pit", "trench", "cutting", "shaft", "deepworks"]
 
 var sim: SimCore
 var tutorial := Tutorial.new()
@@ -100,6 +100,18 @@ func vault_count() -> int:
 
 func on_display() -> int:
 	return sim.on_display()
+
+## How many tablets are on the gallery floor right now.
+func tablets_displayed() -> int:
+	return sim.tablets_displayed()
+
+## How many masks are on the gallery floor right now.
+func masks_displayed() -> int:
+	return sim.masks_displayed()
+
+## How many digs have finished since the museum opened.
+func digs_completed() -> int:
+	return sim.digs_completed
 
 func last_event() -> String:
 	return sim.last_event
@@ -256,6 +268,9 @@ func goal_context() -> Dictionary:
 		"gallery_slots": sim.gallery_slots,
 		"clean_nights": clean_nights,
 		"crowns_displayed": int(sim.gallery.get("crown", 0)),
+		"tablets_displayed": int(sim.gallery.get("tablet", 0)),
+		"masks_displayed": int(sim.gallery.get("mask", 0)),
+		"digs_completed": sim.digs_completed,
 		"max_day_revenue": best_day,
 		"total_revenue": total_revenue,
 	}
@@ -462,7 +477,7 @@ func _day_narrative(s: Dictionary) -> void:
 	if stolen > 0:
 		var grades: Dictionary = s["stolen_grades"]
 		var named: Array[String] = []
-		for g in ["crown", "relic", "clay", "rubble"]:
+		for g in SimCore.GRADE_ORDER:
 			var n := int(grades.get(g, 0))
 			if n > 0:
 				named.append("%d %s" % [n, g])

@@ -17,7 +17,28 @@ import { DIGS } from '../../sim/sim-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawPanel, drawText, drawWell, FONT, measureText } from '../widgets.ts';
+import { drawPanel, drawText, drawWell, drawChip, FONT, measureText } from '../widgets.ts';
+import {
+  CONTENT_TOP,
+  FOOTER_PANEL_HEIGHT,
+  FOOTER_TOP,
+  MARGIN_X,
+  PANEL_WIDTH,
+} from '../bands.ts';
+
+/**
+ * The height of a site plot.
+ *
+ * 130 rather than 140, because the content band is 312 tall and the
+ * dig palette below it needs two rows of 70 plus a gap: 92 + 130 + 26
+ * + 154 = 402, which lands inside the band with two pixels to spare.
+ * At 140 the second row of palette cards ran to y=412, straight through
+ * the footer panel.
+ */
+const PLOT_H = 130;
+
+/** The height of a dig-type card. */
+const CARD_H = 70;
 
 export class DigSiteScreen implements Screen {
   public readonly id = 'dig';
@@ -35,10 +56,10 @@ export class DigSiteScreen implements Screen {
     const regions: Region[] = [];
     const w = ctx.surface.canvas.width;
 
-    const plotY = 92;
-    const plotH = 150;
+    const plotY = CONTENT_TOP;
+    const plotH = PLOT_H;
     const plotW = Math.floor((w - 40) / Math.max(1, state.sites())) - 10;
-    const startX = 20;
+    const startX = MARGIN_X;
 
     // The plots.
     for (let i = 0; i < state.sites(); i++) {
@@ -59,8 +80,12 @@ export class DigSiteScreen implements Screen {
       // The earth inside the plot.
       drawWell(g, { x: px + 6, y: plotY + 30, w: plotW - 12, h: plotH - 60 }, PAL.S);
 
-      // The dig site artwork.
-      const sprite = ctx.sprites.get('dig_site');
+      // The dig site artwork. A plot shows the picture of whatever is
+      // actually happening there -- a trench looks like a trench -- and
+      // falls back to the generic site while the plot is idle.
+      const digHere = inProgress ? inProgress.dig : pending;
+      const spriteName = digHere ? `dig_${digHere}` : 'dig_site';
+      const sprite = ctx.sprites.get(spriteName) ?? ctx.sprites.get('dig_site');
       if (sprite) {
         drawSprite(g, sprite, px + Math.round((plotW - sprite.width * 2) / 2), plotY + 44, 2);
       }
@@ -75,21 +100,44 @@ export class DigSiteScreen implements Screen {
       // The state of the plot.
       let statusText: string;
       let statusColor: string;
+      let statusChip: string | null = null;
       if (inProgress) {
         const left = Math.max(0, inProgress.ready_day - state.day());
         statusText = left === 0 ? 'Ready' : `${DIG_NAME[inProgress.dig]} · ${left}d`;
-        statusColor = left === 0 ? PAL.M : PAL.N;
+        // Panel edge ink, not the mid brown N. N on the cream plot is
+        // 4.06:1 -- under the floor for small text. P on cream is
+        // 8.32:1.
+        statusColor = left === 0 ? PAL.D : PAL.P;
+        // Moss means "finished and waiting" -- a chip, because moss on
+        // cream is only 2.15:1 as a glyph.
+        if (left === 0) statusChip = PAL.M;
       } else if (pending) {
         statusText = `${DIG_NAME[pending]} queued`;
-        statusColor = PAL.U;
+        statusColor = PAL.P;
+        statusChip = PAL.U;
       } else {
         statusText = 'Idle';
         statusColor = PAL.P;
       }
-      drawText(g, statusText, px + plotW / 2, plotY + plotH - 24, {
+      // The chip and the words are laid out as ONE group and centred
+      // together. Centring the text on its own and dropping a chip at a
+      // hand-computed offset put the chip on top of the glyphs -- the
+      // text is drawn with align 'center', so its x IS the midpoint and
+      // subtracting half the width twice shifts it a whole half-width
+      // to the left.
+      const stW = measureText(statusText, FONT.small);
+      const chipSize = 8;
+      const chipGap = 4;
+      const groupW = stW + (statusChip ? chipSize + chipGap : 0);
+      const groupX = px + plotW / 2 - groupW / 2;
+      if (statusChip) {
+        // Vertically centred on the 11px text row.
+        drawChip(g, groupX, plotY + plotH - 22, statusChip);
+      }
+      drawText(g, statusText, groupX + (statusChip ? chipSize + chipGap : 0), plotY + plotH - 24, {
         font: FONT.small,
         color: statusColor,
-        align: 'center',
+        align: 'left',
         maxWidth: plotW - 12,
       });
 
@@ -109,20 +157,32 @@ export class DigSiteScreen implements Screen {
     }
 
     // The dig palette.
-    const palY = plotY + plotH + 20;
-    drawText(g, 'Choose a dig', 24, palY - 20, { font: FONT.small, color: PAL.D });
+    //
+    // Five dig types, laid out on TWO rows of three. A single row of five
+    // 280px cards ran to x=1494 on a 960px canvas, so the two deepest digs
+    // were off-screen and could never be clicked. The cards stay the same
+    // width and the same height; they are simply wrapped onto a second
+    // row, and the instruction line takes the space the short row leaves.
+    const palY = plotY + plotH + 26;
+    drawText(g, 'Choose a dig', MARGIN_X + 4, palY - 18, { font: FONT.small, color: PAL.D });
 
-    const cardW = 280;
-    const cardH = 86;
+    const cardW = 294;
+    const cardH = CARD_H;
+    const cardGap = 14;
+    const perRow = 3;
+
     for (let i = 0; i < DIG_TYPES.length; i++) {
       const dig = DIG_TYPES[i];
       const def = DIGS.find((d) => d.id === dig);
-      const cx = 24 + i * (cardW + 14);
+      const row = Math.floor(i / perRow);
+      const col = i % perRow;
+      const cx = MARGIN_X + 4 + col * (cardW + cardGap);
+      const cy = palY + row * (cardH + cardGap);
       const isSelected = this.selected === dig;
 
       drawPanel(
         g,
-        { x: cx, y: palY, w: cardW, h: cardH },
+        { x: cx, y: cy, w: cardW, h: cardH },
         {
           fill: isSelected ? PAL.W : PAL.C,
         }
@@ -131,9 +191,16 @@ export class DigSiteScreen implements Screen {
       // A colour band identifies the dig, and the name is always written
       // out -- the colour never carries the meaning on its own.
       g.fillStyle = DIG_COLOR[dig] ?? PAL.U;
-      g.fillRect(cx + 1, palY + 1, 5, cardH - 2);
+      g.fillRect(cx + 1, cy + 1, 5, cardH - 2);
 
-      drawText(g, DIG_NAME[dig], cx + 16, palY + 10, {
+      // The dig's own picture, so the five dig types are told apart by
+      // their shape and not only by their label.
+      const digSprite = ctx.sprites.get(`dig_${dig}`);
+      if (digSprite) {
+        drawSprite(g, digSprite, cx + cardW - 30, cy + 8, 1);
+      }
+
+      drawText(g, DIG_NAME[dig], cx + 16, cy + 6, {
         font: FONT.mid,
         color: PAL.D,
       });
@@ -142,35 +209,35 @@ export class DigSiteScreen implements Screen {
       const cost = state.digCost(dig);
       const finds = def ? def.finds : 0;
 
-      drawText(g, `${days} day${days === 1 ? '' : 's'}   ·   ${money(cost)}`, cx + 16, palY + 34, {
+      drawText(g, `${days} day${days === 1 ? '' : 's'}   ·   ${money(cost)}`, cx + 16, cy + 26, {
         font: FONT.small,
-        color: PAL.N,
+        color: PAL.P,
       });
-      drawText(g, `~${finds} finds`, cx + 16, palY + 52, {
+      drawText(g, `~${finds} finds`, cx + 16, cy + 40, {
         font: FONT.small,
-        color: PAL.N,
+        color: PAL.P,
       });
 
-      // The grades it can bring.
+      // The grades it can bring, along the bottom of the card.
       if (def) {
-        let gx = cx + 130;
+        let gx = cx + 16;
         for (const grade of def.grades) {
           const spriteName = `artefact_${grade.id}`;
           const image = ctx.sprites.get(spriteName);
           if (image) {
-            drawSprite(g, image, gx, palY + 48, 1);
+            drawSprite(g, image, gx, cy + 50, 1);
           }
-          drawText(g, `${grade.weight}%`, gx + (image ? image.width + 2 : 0), palY + 52, {
+          drawText(g, `${grade.weight}%`, gx + (image ? image.width + 2 : 0), cy + 54, {
             font: FONT.tiny,
-            color: PAL.N,
+            color: PAL.P,
           });
-          gx += 62;
+          gx += 52;
         }
       }
 
       regions.push({
         x: cx,
-        y: palY,
+        y: cy,
         w: cardW,
         h: cardH,
         id: `dig:card:${dig}`,
@@ -180,20 +247,41 @@ export class DigSiteScreen implements Screen {
       });
     }
 
-    // The instruction line changes with what the player has selected, so
-    // the screen always says what to do next.
+    // The footer panel. It carries the instruction -- which changes with
+    // what the player has selected -- and the curation rate, so the
+    // player knows what a dig is worth before they commit to it.
+    //
+    // The instruction used to sit beside the last row of dig cards,
+    // which is short because five dig types do not divide into three
+    // even rows. That put it in the wrong place: on a five-card layout
+    // the last row holds two cards, so the line floated in the middle
+    // of the content band with nothing to anchor it. The footer band
+    // belongs to the screen and exists for exactly this.
+    drawPanel(g, { x: MARGIN_X, y: FOOTER_TOP, w: PANEL_WIDTH, h: FOOTER_PANEL_HEIGHT }, {
+      fill: PAL.C,
+      title: 'Next dig',
+    });
+
     const hint = this.selected
       ? `Click a site to send ${DIG_NAME[this.selected]} there.`
       : 'Pick a dig, then click the site it should go to.';
+    drawText(g, hint, MARGIN_X + 16, FOOTER_TOP + 24, {
+      font: FONT.mid,
+      color: PAL.D,
+      // The instruction is 462 pixels wide and the space is 560, so it
+      // fits. It used to be cut at 420 and the player saw "Pick a dig,
+      // then click the s…" -- an instruction that stops before the
+      // verb, which is worse than no instruction at all.
+      maxWidth: 560,
+    });
 
-    const hintX = 24 + DIG_TYPES.length * (cardW + 14);
-    if (hintX < w - 240) {
-      drawText(g, hint, hintX, palY + 24, {
-        font: FONT.small,
-        color: PAL.D,
-        maxWidth: w - hintX - 20,
-      });
-    }
+    // The curation rate, on the right of the footer.
+    const rate = `Curators can catalog ${state.dailyCuration()} finds a day.`;
+    drawText(g, rate, MARGIN_X + PANEL_WIDTH - 16, FOOTER_TOP + 44, {
+      font: FONT.small,
+      color: PAL.P,
+      align: 'right',
+    });
 
     return regions;
   }
@@ -209,20 +297,19 @@ export class DigSiteScreen implements Screen {
     if (omen && omen.title) {
       const text = `Omen: ${omen.title}`;
       const tw = measureText(text, FONT.small);
-      drawText(g, text, ctx.surface.canvas.width - 24 - tw, 68, {
+      const tx = ctx.surface.canvas.width - 24 - tw;
+      // Slate on cream is 2.23:1, so the omen is dark ink with a slate
+      // chip. The arcane reading of the day still comes through.
+      drawChip(g, tx - 14, 70, PAL.E);
+      drawText(g, text, tx, 68, {
         font: FONT.small,
-        color: PAL.U,
+        color: PAL.D,
       });
     }
 
-    // The site's remaining finds, so the player can see the dig is working.
-    drawText(
-      g,
-      `Curators can catalog ${state.dailyCuration()} finds a day.`,
-      24,
-      ctx.surface.canvas.height - 58,
-      { font: FONT.small, color: PAL.N }
-    );
+    // The site's remaining finds, so the player can see the dig is
+    // working. This lives in the footer band now, not in the hint band
+    // where the framework owns the line.
   }
 
   public onRegionClick(region: Region): void {
@@ -235,6 +322,6 @@ export class DigSiteScreen implements Screen {
   public hint(): string {
     return this.selected
       ? `Send ${DIG_NAME[this.selected]} to a site.`
-      : 'Dig types: Test Pit, Trench, Shaft.';
+      : 'Dig types: Test Pit, Trench, Cutting, Shaft, Deepworks.';
   }
 }

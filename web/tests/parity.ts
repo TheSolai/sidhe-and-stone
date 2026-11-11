@@ -218,7 +218,9 @@ check(Math.abs(ev.demand - 1.0) < 1e-9, `event EV demand ${ev.demand} != 1.0`);
 check(Math.abs(ev.theft - 1.0) < 1e-9, `event EV theft ${ev.theft} != 1.0`);
 check(Math.abs(ev.curation) < 1e-9, `event EV curation ${ev.curation} != 0`);
 check(ev.charm < 0.25, `event EV charm ${ev.charm} >= 0.25`);
-check(totalWeight() === 80, `deck weight ${totalWeight()} != 80`);
+// The deck's total weight, with the six market/crowd/fever events added.
+const DECK_WEIGHT = 114;
+check(totalWeight() === DECK_WEIGHT, `deck weight ${totalWeight()} != ${DECK_WEIGHT}`);
 
 // The reel must be a bounded amplifier, never the foundation.
 const reel = new ReelCore();

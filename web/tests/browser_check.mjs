@@ -92,7 +92,7 @@ await page.screenshot({ path: '/tmp/ss-03-dig.png' });
 
 // ---------------------------------------------------------------- navigation
 
-const navIds = ['dig', 'curator', 'vault', 'gallery', 'reel', 'ledger', 'goals'];
+const navIds = ['dig', 'curator', 'vault', 'gallery', 'reel', 'shop', 'ledger', 'goals'];
 
 let activeTab = 'dig';
 for (const id of navIds) {
@@ -108,6 +108,57 @@ for (const id of navIds) {
   await page.screenshot({ path: `/tmp/ss-04-${id}.png` });
 }
 
+// ---------------------------------------------------------------- the shop
+
+// The shop is the first screen in the web build that spends money, so it
+// gets a real test: buy an upgrade and prove that money went down, the
+// owned count went up, and the effect actually landed.
+//
+// A screen that merely renders is not a working shop. This is the check
+// that would have caught the nine upgrades being unreachable.
+await clickRegion(page, 'nav:shop');
+await page.waitForTimeout(300);
+
+const shopIds = await regionIds(page);
+const buyIds = shopIds.filter((id) => id.startsWith('shop:buy:'));
+check(buyIds.length > 0, `the shop offers something to buy (${buyIds.length} buttons)`);
+
+// A fresh game starts with 240, and a dig site costs 180, so the site
+// upgrade is affordable at the start.
+const before = await page.evaluate(() => {
+  const app = window.__sidhe;
+  return {
+    money: app.state.money(),
+    owned: app.state.upgradeCount('site'),
+    sites: app.state.sites(),
+    cost: app.state.upgradeCost('site'),
+  };
+});
+check(before.cost > 0, `a dig site has a price (${before.cost})`);
+check(before.money >= before.cost, `the player can afford one at the start (${before.money} >= ${before.cost})`);
+
+const bought = await clickRegion(page, 'shop:buy:site');
+check(bought !== null, 'the buy button is a clickable region');
+await page.waitForTimeout(300);
+
+const after = await page.evaluate(() => {
+  const app = window.__sidhe;
+  return {
+    money: app.state.money(),
+    owned: app.state.upgradeCount('site'),
+    sites: app.state.sites(),
+  };
+});
+check(after.money === before.money - before.cost, `buying cost money (${before.money} -> ${after.money})`);
+check(after.owned === before.owned + 1, `the owned count went up (${before.owned} -> ${after.owned})`);
+check(after.sites === before.sites + 1, `the extra dig site exists (${before.sites} -> ${after.sites})`);
+
+// The price must escalate, so the second one costs more than the first.
+const nextCost = await page.evaluate(() => window.__sidhe.state.upgradeCost('site'));
+check(nextCost > before.cost, `the next one costs more (${before.cost} -> ${nextCost})`);
+
+await page.screenshot({ path: '/tmp/ss-05-shop.png' });
+
 // ---------------------------------------------------------------- the dig loop
 
 // Back to the dig site. Assign a dig to the first site, then end the day.
@@ -116,7 +167,11 @@ await page.waitForTimeout(250);
 
 const digIds = await regionIds(page);
 const digCards = digIds.filter((id) => id.startsWith('dig:card:'));
-check(digCards.length === 3, `the dig site offers three dig types (${digCards.length})`);
+// Five dig types since the content expansion: test pit, trench, cutting,
+// shaft and deepworks. This assertion used to expect three, and it was
+// the only thing that caught the expansion -- a stale count is a test
+// that quietly stops testing.
+check(digCards.length === 5, `the dig site offers five dig types (${digCards.length})`);
 
 await clickRegion(page, 'dig:card:trench');
 await page.waitForTimeout(150);

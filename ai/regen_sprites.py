@@ -1,42 +1,29 @@
 #!/usr/bin/env python3
-"""Rewrite the eight slice sprites against the vision critique.
+"""Build every sprite in art/ and stage it into assets/sprites.
 
-The critique (view_image on the contact sheet) said:
-  - crown, gallery_case: good
-  - relic: flat slab, glyphs look like stickers
-  - rubble: blob, stray highlight pixels
-  - curator: unreadable, magnifier is a giant green square
-  - dig_site: L-shape, no hole, no depth
-  - reel_wheel: messy internals, uneven rim
-  - clay: blobby, no neck or rim
-  - set-wide: palette drift (saturated emerald, bright cream/orange) and
-    scale inconsistency
+This used to embed the eight sprite sources inside the script, which meant
+there were two copies of the art: the .px.js file on disk and the string in
+this file. They drifted, and then they drifted apart from each other, which
+is exactly how a sprite set ends up looking assembled rather than drawn.
 
-Fixes applied here:
-  - ONE palette shared by the whole set, taken from the game's own UI
-    colours (GRADE_COL / COL_* in src/main.gd) so the sprites cannot drift
-    from the interface.
-  - real silhouettes: a neck on the pot, a carved groove on the relic,
-    angular facets on the stone, a pit with a far wall and a spoil heap.
-  - the magnifier shrinks to a 3x3 lens with a handle.
+Now there is ONE source of truth: art/<name>/<name>.px.js. This script
+discovers every sprite in art/, builds it with pxl, and stages the PNG into
+assets/sprites/. Nothing is embedded here, so a source file is edited in
+place and never has to be copied anywhere.
 
-SNAPPING: pxl output is drawn ON the pixel grid. It is already grid-native,
-with binary alpha and a fixed palette, so there is no grid inconsistency for
-Sprite Fusion Pixel Snapper to fix. Measured on 2026-11-10: the snapper
-RESAMPLES pxl-native art rather than snapping it, shrinking an 18x18 sprite
-to 13x14 and altering opaque pixels even when handed the exact source
-palette. That destroys hand-placed detail (the relic's engraved cross, the
-clay pot's neck, the curator's magnifier).
-
-So the snapper is NOT applied to pxl-authored art. It belongs to the
+pxl build output is drawn ON the pixel grid: grid-native, binary alpha, and
+a fixed palette. So there is no grid inconsistency to fix, and no snapping
+or resampling is applied. Sprite Fusion Pixel Snapper resamples pxl-native
+art rather than snapping it — measured on 2026-11-10, it shrank an 18x18
+sprite to 13x14 and altered opaque pixels even when handed the exact source
+palette, which destroys hand-placed detail. The snapper belongs to the
 raster path in ai/art_pipeline.py, where a rendered image genuinely does
 need quantising and grid-fitting before it is traced back into pxl source.
-This script is the pxl-native path: pxl build output goes straight to
-assets/sprites.
 
 Run: python3 ai/regen_sprites.py [--build]
 """
 
+import json
 import shutil
 import subprocess
 import sys
@@ -46,278 +33,45 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 ART = ROOT / "art"
 ASSETS = ROOT / "assets" / "sprites"
+WEB_SPRITES = ROOT / "web" / "public" / "sprites"
 PXL_DIR = ROOT / "tools" / "pxl"
 NODE = "/Users/amre/.openclaw/tools/node-v24.21.0/bin/node"
 
-SOURCES = {}
 
-SOURCES["artefact_rubble"] = '''include("../palette.px.js")
+def discover() -> list:
+    """Every sprite source in art/, sorted."""
+    names = []
+    for src in sorted(ART.glob("*/*.px.js")):
+        # "artefact_clay.px.js" -> stem is "artefact_clay.px", so the ".px"
+        # suffix has to come off too before comparing with the directory.
+        stem = src.name[: -len(".px.js")]
+        if stem == src.parent.name:
+            names.append(stem)
+    return names
 
-// The rubble: broken stone — three overlapping angular chunks, not one
-// rounded boulder and not a scatter of noise. The sunlit top planes are X,
-// the bodies of the stone are R, and the lower right of each chunk falls
-// into D. The heap stands on a band of ground shadow.
-sprite("artefact_rubble", { w: 16, h: 16, outline: "K" },
-  `
-  ................
-  ................
-  ................
-  ......XXXX......
-  .....XXXXXX.....
-  .....RRRRRRD....
-  ..XXXRRRRRRD....
-  .XXXXRRRRRRD....
-  .RRRRRRRRRRD....
-  RRRRRRRDRRRD....
-  RRRRRRRRD...XX..
-  RRRRRRRRD...RD..
-  .RRRRRR.....RD..
-  DDDDDDDDDDDDDD..
-  ................
-  ................
-  `
-)
-'''
 
-SOURCES["artefact_clay"] = '''include("../palette.px.js")
+def png_size(path: Path) -> tuple:
+    """(w, h) of a PNG, read straight from the IHDR chunk.
 
-// The clay pot: a real pot shape, not a blob. A flared lip, the dark mouth
-// of the pot as a slot directly under the lip (D), a narrow neck, shoulders
-// that flare out into a round belly, and a foot standing in shadow. Light
-// comes from the top left, so Z runs down the lit left edge and S down the
-// shadowed right edge.
-sprite("artefact_clay", { w: 16, h: 16, outline: "K" },
-  `
-  ................
-  ................
-  .....ZAAAAS.....
-  .....ZDDDDS.....
-  ......ZAAS......
-  ......ZAAS......
-  .....ZAAAAS.....
-  ....ZAAAAAAS....
-  ...ZAAAAAAAAS...
-  ...ZAAAAAAAAS...
-  ...ZAAAAAAAAS...
-  ....ZAAAAAAS....
-  ....ZAAAAAAS....
-  .....ZAAAAS.....
-  ......DDDD......
-  ................
-  `
-)
-'''
-
-SOURCES["artefact_relic"] = '''include("../palette.px.js")
-
-// The relic: a carved standing monolith, broken off on a diagonal at the top
-// so the silhouette never reads as a domed gravestone. The stone is L (relic
-// teal). Light comes from the top left, so a cream vein C runs down the lit
-// left edge, following the break, and the right side of the stone falls away
-// to D. A groove is cut into the face — recessed, so D — and a rune still
-// burning E runs down inside the cut, so the eye reads one vertical wound
-// rather than a face. The stone stands in a plinth of shadow.
-sprite("artefact_relic", { w: 16, h: 16, outline: "K" },
-  `
-  .......CLL......
-  ......CLLL......
-  .....CLLLL......
-  ....CLLDLD......
-  ....CLLELD......
-  ....CLLELD......
-  ....CLLELD......
-  ....CLLDLD......
-  ....CLLLLD......
-  ....CLLLLD......
-  ....CLLLLD......
-  ...CLLLLLLD.....
-  ...CLLLLLLD.....
-  ..DDDDDDDDD.....
-  ...DDDDDDD......
-  ................
-  `
-)
-'''
-
-SOURCES["dig_site"] = '''include("../palette.px.js")
-
-// The dig site, drawn as a cross-section: the ground is cut open, so the pit
-// is a real hole with depth instead of a flat disc on a flat field. The earth
-// in section is mid brown N, sunlit along the surface Z, with bands of S for
-// strata and A for stones buried in the cut. The pit is dug straight down
-// out of the surface; the far wall is lit A just under the lip, falls
-// through P and goes to the dark D of the shaft, and on the floor of the pit
-// something arcane is glimmering E. A wooden ladder S stands in the pit and
-// breaks the top edge of the ground — that is what tells the eye this is a
-// hole and not a flat panel. On the left, the spoil heap: turned earth N
-// heaped up above the ground line, sunlit Z on the upper left, shaded S down
-// the right, with clods A on it.
-sprite("dig_site", { w: 24, h: 24, outline: "K" },
-  `
-  ........................
-  ...........S..S.........
-  ..ZZNNN....S..S.........
-  .ZZNAANS...SSSS.........
-  ZNAANNSSS..S..S.........
-  NNNNNSSSS..S..S...MM.MM.
-  ZZZZZZZZZAASAASAZZZZZZZZ
-  NNNNNNNNNAASSSSANNNNNNNN
-  NNNNNNNNNPPSPPSPNNNNNNNN
-  NNNNNNNNNPPSPPSPNNNNNNNN
-  SSSSSSSSSDDSDDSDSSSSSSSS
-  NNNNNNNNNDDSSSSDNNNNNNNN
-  NNAANNNNNDDSDDSDNNNNNNNN
-  NNNNNNNNNDDSDDSDNNNAANNN
-  NNNNNNNNNDDSDDSDNNNNNNNN
-  SSSSSSSSSDDSSSSDSSSSSSSS
-  NNNNNNNNNDDDDDDDNNNNNNNN
-  NNNNNNNNNNNNEENNNNNNNNNN
-  NNNNNAANNNNNNNNNNAANNNNN
-  NNNNNNNNNNNNNNNNNNNNNNNN
-  SSSSSSSSSNNNNNNNSSSSSSSS
-  NNNNNNNNNNNNNNNNNNNNNNNN
-  NNNNNNNNNNNNNNNNNNNNNNNN
-  NNNNNNNNNNNNNNNNNNNNNNNN
-  `
-)
-'''
-
-SOURCES["artefact_crown"] = '''include("../palette.px.js")
-
-// The crown: the museum's prize, so it must be the warmest thing on the
-// title screen. Gold G body, with the lit top-left edge of every point in
-// the brighter H, the shadowed inner-right of each point falling to the
-// ochre Y, and a rust T jewel set into the middle of the band. The bottom
-// lip of the band is Y, so the crown reads as a solid ring and not a flat
-// block. Three points, notched apart down to the band, so the silhouette
-// says "crown" at a glance. No private colours: every pixel here comes
-// from the shared palette, so the crown sits in the same world as the rest.
-sprite("artefact_crown", { w: 16, h: 16, outline: "K" },
-  `
-  ................
-  .......GG.......
-  ......HGGG......
-  ......HGGG......
-  ..HGG.HGGG.HGG..
-  ..HGG.HGGG.HGG..
-  ..HGG.HGGG.HGG..
-  ..HGY.HGGY.HGG..
-  ..HGY.HGGY.HGG..
-  ..HGY.HGGY.HGG..
-  ..HGY.HGGY.HGG..
-  .GGGGGGGGGGGGGG.
-  .GGGGGGTTGGGGGG.
-  .GGGGGGTTGGGGGG.
-  .YYYYYYYYYYYYYY.
-  ................
-  `
-)
-'''
-
-SOURCES["gallery_case"] = '''include("../palette.px.js")
-
-// The gallery case: a display vitrine, not a box. A brass L top rail, a
-// slate U frame with two corner posts and a cap, a cream C glint on the
-// glass, and a warm A pedestal with a brass L label plate. The shadow
-// under the table top is K, so the case reads as sitting on something
-// rather than floating. Every colour here comes from the shared palette.
-sprite("gallery_case", { w: 24, h: 24, outline: "K" },
-  // pedestal foot
-  rect(4, 20, 16, 2, "L"),
-  // pedestal column
-  rect(8, 16, 8, 4, "A"),
-  // brass label plate on the column
-  rect(10, 17, 4, 2, "L"),
-  // display table top
-  rect(3, 13, 18, 3, "A"),
-  // shadow under the table top
-  rect(3, 15, 18, 1, "K"),
-  // glass vitrine: corner posts
-  rect(5, 4, 2, 9, "U"),
-  rect(17, 4, 2, 9, "U"),
-  // vitrine cap
-  rect(4, 3, 16, 2, "U"),
-  // brass top rail
-  rect(4, 2, 16, 1, "L"),
-  // a glint on the glass
-  px(7, 6, "C"),
-  px(8, 7, "C")
-)
-'''
-
-SOURCES["reel_wheel"] = '''include("../palette.px.js")
-
-// The reel wheel: a wheel, not a shield. A rim of slate U two pixels thick
-// all the way round, four wooden spokes N running from the hub out to the
-// rim, and open gaps between them — the gaps are what tell the eye this
-// thing turns. In the middle, the hub with an arcane jewel E set into it.
-sprite("reel_wheel", { w: 24, h: 24, outline: "K" },
-  `
-  ........................
-  ........................
-  .........UUUUUU.........
-  .......UUUUNNUUUU.......
-  .....UUU...NN...UUU.....
-  ....UUU....NN....UUU....
-  ....UU.....NN.....UU....
-  ...UU......NN......UU...
-  ...U.......NN.......U...
-  ..UU.......NN.......UU..
-  ..UU......NNNN......UU..
-  ..UNNNNNNNNEENNNNNNNNU..
-  ..UNNNNNNNNEENNNNNNNNU..
-  ..UU......NNNN......UU..
-  ..UU.......NN.......UU..
-  ...U.......NN.......U...
-  ...UU......NN......UU...
-  ....UU.....NN.....UU....
-  ....UUU....NN....UUU....
-  .....UUU...NN...UUU.....
-  .......UUUUNNUUUU.......
-  .........UUUUUU.........
-  ........................
-  ........................
-  `
-)
-'''
-
-SOURCES["curator"] = '''include("../palette.px.js")
-
-// The curator: a person, so the head and the body must never blur into one
-// blob. A flat cap in N, a face in A (clay) with two D eyes, and a D neck
-// that separates the head from the shoulders. The coat is warm brown S with
-// a cream shirt C down the middle of it and a shadow down its right side,
-// and the sleeve N reaches out to the hand A. The magnifier is a small round
-// lens — a slate U rim with the corners cut away so it reads as a circle, a
-// bright W glass in the middle — held up at eye level on a wooden handle.
-sprite("curator", { w: 16, h: 16, outline: "K" },
-  `
-  ................
-  ......NNNN...UU.
-  .....NNNNNN.UWWU
-  ......AAAA..UWWU
-  ......ADAD...UU.
-  ......AAAA...N..
-  .......DD....N..
-  .....SSSSSD..N..
-  .....SSCCSDNNA..
-  .....SSCCSD.....
-  .....SSCCSD.....
-  .....SSSSSD.....
-  .....NN..NN.....
-  .....NN..NN.....
-  .....NN..NN.....
-  ....DDD..DDD....
-  `
-)
-'''
+    No Pillow: the sprite PNGs are palette-indexed, and reading the header
+    is a few lines of struct.
+    """
+    data = path.read_bytes()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError(f"{path} is not a PNG")
+    # IHDR is always the first chunk: length(4) type(4) w(4) h(4)
+    w = int.from_bytes(data[16:20], "big")
+    h = int.from_bytes(data[20:24], "big")
+    return w, h
 
 
 def build_and_stage(name: str) -> bool:
     """pxl build the source, then copy the sprite into assets/sprites.
 
-    pxl build writes art/<name>/out/sprites/<name>.png. That PNG is already
-    the pixel grid - no snapper, no resampling.
+    The web copy is made from the SAME bytes as the assets copy, so the
+    two are byte-identical by construction. That is what ai/verify_sprites.py
+    checks, and it is why the copy happens here rather than being left to
+    a separate manual step that can be forgotten.
     """
     src = ART / name / f"{name}.px.js"
     out_dir = ART / name / "out"
@@ -333,31 +87,57 @@ def build_and_stage(name: str) -> bool:
         print(f"  [build] no sprite produced for {name}")
         return False
     ASSETS.mkdir(parents=True, exist_ok=True)
+    WEB_SPRITES.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(built, ASSETS / f"{name}.png")
-    print(f"  [build] {name} -> assets/sprites")
+    shutil.copyfile(built, WEB_SPRITES / f"{name}.png")
+    print(f"  [build] {name} -> assets/sprites + web/public/sprites")
     return True
+
+
+def write_atlas(names: list) -> None:
+    """Regenerate web/public/sprites/atlas.json from the real PNGs.
+
+    The atlas is a manifest, so it is generated from the files that are
+    actually on disk rather than hand-maintained. A hand-maintained
+    manifest drifts the moment a sprite is resized, and then the web
+    build scales the wrong thing.
+    """
+    atlas = {}
+    for name in names:
+        png = ASSETS / f"{name}.png"
+        if not png.exists():
+            continue
+        w, h = png_size(png)
+        atlas[name] = {"file": f"{name}.png", "w": w, "h": h}
+    path = WEB_SPRITES / "atlas.json"
+    path.write_text(json.dumps(atlas, indent=2, sort_keys=True) + "\n")
+    print(f"\nwrote {path} ({len(atlas)} sprites)")
 
 
 def main() -> int:
     args = sys.argv[1:]
     build = "--build" in args or not args
+    names = discover()
 
-    for name, src in SOURCES.items():
-        d = ART / name
-        d.mkdir(parents=True, exist_ok=True)
-        (d / f"{name}.px.js").write_text(src)
-        print(f"wrote {name}")
+    if not names:
+        print("no sprite sources found in art/")
+        return 1
+
+    print(f"\n{len(names)} sprite sources in art/")
+    for name in names:
+        print(f"  {name}")
 
     if not build:
         print("\n(sources only; pass --build to render and stage)")
         return 0
 
     print("\nbuilding and staging")
-    failures = [n for n in SOURCES if not build_and_stage(n)]
+    failures = [n for n in names if not build_and_stage(n)]
     if failures:
         print(f"\nFAILED: {', '.join(failures)}")
         return 1
-    print(f"\nstaged {len(SOURCES)} sprites to assets/sprites")
+    write_atlas(names)
+    print(f"\nstaged {len(names)} sprites to assets/sprites + web/public/sprites")
     return 0
 
 

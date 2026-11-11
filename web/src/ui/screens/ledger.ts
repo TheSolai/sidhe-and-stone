@@ -15,7 +15,7 @@
 import { PAL } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money, signedMoney } from '../screen.ts';
-import { drawPanel, drawText, drawWell, FONT } from '../widgets.ts';
+import { drawPanel, drawText, drawWell, drawTintedValue, FONT } from '../widgets.ts';
 
 export class LedgerScreen implements Screen {
   public readonly id = 'ledger';
@@ -49,11 +49,14 @@ export class LedgerScreen implements Screen {
     const row = (label: string, value: string, color: string, strong = false) => {
       drawText(g, label, panelX + 20, y, {
         font: strong ? FONT.body : FONT.small,
-        color: strong ? PAL.D : PAL.N,
+        color: strong ? PAL.D : PAL.P,
       });
-      drawText(g, value, panelX + sumW - 20, y, {
+      // The value is dark ink with a tint chip, not a coloured glyph.
+      // Takings in clay is 2.47:1 on the cream panel -- the chip carries
+      // the tint, the ink carries the number.
+      drawTintedValue(g, value, panelX + sumW - 20, y, {
         font: strong ? FONT.body : FONT.small,
-        color,
+        tint: color,
         align: 'right',
       });
       y += strong ? 26 : 22;
@@ -75,7 +78,7 @@ export class LedgerScreen implements Screen {
     y += 6;
     drawText(g, 'Investment is separate:', panelX + 20, y, {
       font: FONT.small,
-      color: PAL.N,
+      color: PAL.P,
     });
     y += 16;
     row('Spent on growth', `-${money(sum(capex))}`, PAL.U);
@@ -85,7 +88,7 @@ export class LedgerScreen implements Screen {
     y += 10;
     drawText(g, `${days} day${days === 1 ? '' : 's'} recorded`, panelX + 20, y, {
       font: FONT.small,
-      color: PAL.N,
+      color: PAL.P,
     });
 
     // The chart of takings against upkeep.
@@ -125,9 +128,11 @@ export class LedgerScreen implements Screen {
           font: FONT.tiny,
           color: PAL.P,
         });
-        drawText(g, entry.text, wellX + 62, ey - 1, {
+        // The entry text sits on a W well, where every accent hue is
+        // under 4.5:1. Dark ink plus a chip keeps the kind readable.
+        drawTintedValue(g, entry.text, wellX + 62, ey - 1, {
           font: FONT.small,
-          color,
+          tint: color,
           maxWidth: wellW - 74,
         });
         ey += 18;

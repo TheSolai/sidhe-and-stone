@@ -17,8 +17,17 @@ question: does the shape still read at 18x18? Run --scale 1 for that, and
 trust it over the zoomed version when the two disagree.
 
 Usage:
-    python3 ai/contact_sheet.py --in art/sprites --out art/contact_sheet.png
+    python3 ai/contact_sheet.py
+    python3 ai/contact_sheet.py --in assets/sprites --out art/contact_sheet.png
     python3 ai/contact_sheet.py --in assets/sprites --out art/native.png --scale 1
+
+A bare invocation reads the GENERATED sprites (assets/sprites, the staging
+directory ai/regen_sprites.py writes) and emits BOTH sheets at once:
+
+    art/contact_sheet.png         zoomed, for reading pixels
+    art/contact_sheet_native.png  native, for judging what the player sees
+
+Passing --out explicitly writes only that one file, at --scale.
 
 Requires Pillow:  python3 -m venv .venv && .venv/bin/pip install Pillow
 """
@@ -47,17 +56,11 @@ def checker(size, a=(45, 38, 30), b=(32, 27, 22)):
     return img
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="indir", default="art/sprites")
-    ap.add_argument("--out", default="art/contact_sheet.png")
-    ap.add_argument("--scale", type=int, default=6)
-    args = ap.parse_args()
-
-    files = sorted(Path(args.indir).glob("*.png"))
+def build(indir, out, scale):
+    files = sorted(Path(indir).glob("*.png"))
     if not files:
-        print("no sprites found in %s" % args.indir)
-        return 1
+        print("no sprites found in %s" % indir)
+        return None
 
     cols = 4
     rows = (len(files) + cols - 1) // cols
@@ -82,7 +85,7 @@ def main() -> int:
             continue
 
         # Scale by integer factor so pixels stay hard-edged and square.
-        scale = max(1, min(args.scale,
+        scale = max(1, min(scale,
                            max(1, min(CELL // max(1, sp.width),
                                       CELL // max(1, sp.height)))))
         big = sp.resize((sp.width * scale, sp.height * scale), Image.NEAREST)
@@ -92,11 +95,31 @@ def main() -> int:
 
         draw.text((x + 2, y + CELL + 2), f.stem[:16], fill=(200, 180, 150))
 
-    out = Path(args.out)
+    out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out)
     print("wrote %s (%dx%d, %d sprites)" % (out, sheet.width, sheet.height, len(files)))
-    return 0
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--in", dest="indir", default="assets/sprites")
+    ap.add_argument("--out", default=None,
+                    help="write only this file (at --scale) instead of both sheets")
+    ap.add_argument("--scale", type=int, default=6)
+    ap.add_argument("--native-out", default="art/contact_sheet_native.png")
+    args = ap.parse_args()
+
+    if args.out:
+        if build(args.indir, args.out, args.scale) is None:
+            return 1
+        return 0
+
+    # Bare invocation: both sheets, zoomed and native.
+    zoomed = build(args.indir, "art/contact_sheet.png", args.scale)
+    native = build(args.indir, args.native_out, 1)
+    return 0 if zoomed and native else 1
 
 
 if __name__ == "__main__":

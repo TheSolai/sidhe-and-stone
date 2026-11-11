@@ -11,10 +11,34 @@ produced by an actual export, not assumed.
 
 | Target | Status | Output |
 |---|---|---|
+| macOS | ✅ builds, installs, launches | `build/macos/Sidhe & Stone.app` + `.dmg` |
 | Android | ✅ builds, debug-signed | `build/android/GameStewKit.apk` |
 | Web | ✅ builds | `build/web/` (index.html/wasm/pck) |
-| macOS | ✅ builds | `build/macos/GameStewKit.zip` |
 | iOS | ⛔ blocked on App Store Team ID | needs Apple Developer account ($99/yr) |
+
+## Building the Mac app
+
+```bash
+./tools/build_mac.sh                # export, verify, install to /Applications
+./tools/build_mac.sh --no-install   # export and verify only
+```
+
+One command, and it verifies rather than assumes: the bundle must be a
+universal binary with both `arm64` and `x86_64` slices, the `Info.plist`
+must parse, the app must be signed, and the app must actually launch and
+exit on its own. It leaves a `.app` in `build/macos/` and a `.dmg` beside it.
+
+Two traps are already handled, and both are worth knowing about:
+
+- **Godot writes an invalid `Info.plist` when the project name contains
+  `&`.** It escapes the name correctly in `CFBundleName` but writes it raw
+  in `CFBundleExecutable`, so the plist is not well-formed XML and macOS
+  refuses to launch the bundle. The build script repairs the XML before
+  loading it, then puts the real title back.
+- **Signing is ad-hoc.** There is no Apple Developer account on this
+  machine, so there is no certificate to sign with and nothing to
+  notarise against. It runs fine locally. Sharing it with someone else
+  would need a real Developer ID, which is a purchase, not a setting.
 
 ## Layout
 

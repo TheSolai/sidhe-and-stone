@@ -7,18 +7,20 @@
 import {
   launchBrowser,
   loadPlaywright,
+  loadPalette,
   clickRegion,
   startStaticServer,
 } from './browser_helpers.mjs';
 
 const { chromium } = loadPlaywright();
 
-const PALETTE = new Set([
-  '#16120f', '#2f251d', '#453729', '#6e624a', '#845537', '#b0895f',
-  '#d6d4c8', '#e8dcc4', '#f7f2e3', '#b4794a', '#d9a441', '#e0b23c',
-  '#f2d98a', '#c05f3c', '#7d9a52', '#5f9e8f', '#6dd3df', '#a8e8ef',
-  '#8b99a6', '#8a8378',
-]);
+/**
+ * The palette, read from art/palette.px.js.
+ *
+ * Parsed rather than copied, so this diagnostic always compares against
+ * the colours the game actually draws with.
+ */
+const PALETTE = new Set(loadPalette());
 
 const { server, url } = await startStaticServer();
 const browser = await launchBrowser(chromium);
@@ -34,7 +36,7 @@ await page.waitForTimeout(400);
 await clickRegion(page, 'tutorial:skip');
 await page.waitForTimeout(400);
 
-for (const id of ['curator', 'vault', 'gallery', 'reel', 'ledger', 'goals']) {
+for (const id of ['curator', 'vault', 'gallery', 'reel', 'shop', 'ledger', 'goals']) {
   await clickRegion(page, `nav:${id}`);
   await page.waitForTimeout(250);
 

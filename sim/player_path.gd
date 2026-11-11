@@ -21,10 +21,26 @@ extends RefCounted
 ## It is not optimal play. It is honest play, and honest play is what the
 ## balance numbers have to survive.
 
-## Digs in order of depth. The player prefers a rich find, but only once the
-## outfit can actually sell what it digs.
-const DIG_ORDER := ["shaft", "trench", "test_pit"]
-const UPGRADE_PRIORITY := ["site", "curator", "gallery", "omen", "archivists", "wards", "diggers"]
+## Every dig type, in ascending order of depth. This is the canonical list:
+## it is the order dig types are declared in everywhere else in the game.
+const DIG_ORDER := ["test_pit", "trench", "cutting", "shaft", "deepworks"]
+
+## The order the harness player actually digs in, RICHEST FIRST. A competent
+## player prefers a rich find, but only once the outfit can actually sell
+## what it digs.
+const DIG_PREFERENCE := ["deepworks", "shaft", "cutting", "trench", "test_pit"]
+
+## Digs that tie a site up for days rather than hours. No deep digs until
+## there is stock to sell.
+const DEEP_DIGS := ["cutting", "shaft", "deepworks"]
+
+## How much money the outfit must have in hand before it will open a
+## deepworks - a nine-day project. It is a gamble on the whole board, and
+## the harness player only takes it with money to spare.
+const DEEPWORKS_CASH := 500
+
+const UPGRADE_PRIORITY := ["site", "curator", "gallery", "guides", "excavators",
+	"omen", "archivists", "wards", "diggers"]
 
 ## How much cash the player keeps unspent as a buffer before buying an
 ## upgrade. Greedy players who spend to zero never recover from a bad night.
@@ -74,6 +90,10 @@ static func play(state: GameState, days: int) -> Dictionary:
 		"curators": state.curators(),
 		"gallery_upgrades": state.upgrade_count("gallery"),
 		"omens": state.upgrade_count("omen"),
+		"guides": state.upgrade_count("guides"),
+		"excavators": state.upgrade_count("excavators"),
+		"shaft_days": state.dig_days("shaft"),
+		"demand": state.demand(),
 	}
 
 
@@ -102,11 +122,13 @@ static func _assign_digs(state: GameState) -> void:
 		if not state.dig_in_progress(site).is_empty():
 			continue
 		var chosen := ""
-		for d in DIG_ORDER:
+		for d in DIG_PREFERENCE:
 			if state.dig_cost(d) > money:
 				continue
-			if not selling and d == "shaft":
+			if not selling and DEEP_DIGS.has(d):
 				continue  # no deep digs until there is stock to sell
+			if d == "deepworks" and money < DEEPWORKS_CASH:
+				continue  # too long a project to start on thin reserves
 			chosen = d
 			break
 		if chosen == "":
@@ -120,7 +142,7 @@ static func _assign_digs(state: GameState) -> void:
 static func _restock_gallery(state: GameState) -> void:
 	var wanted := int(ceil(float(state.demand()) * 1.3))
 	var vault := state.vault_counts()
-	for g in ["crown", "relic", "clay", "rubble"]:
+	for g in SimCore.GRADE_ORDER:
 		while int(vault.get(g, 0)) > 0 and state.on_display() < wanted:
 			if not state.display_one(g):
 				break

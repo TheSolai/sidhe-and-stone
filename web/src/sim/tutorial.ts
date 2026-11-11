@@ -43,7 +43,7 @@ export const BEATS: readonly TutorialBeat[] = [
     body:
       'Your fairies need to know where to dig. Open Dig Sites and ' +
       'assign a dig to a site. Test pits are quick and cheap but ' +
-      'shallow. Shafts take six days and can bring back a crown.',
+      'shallow. Shafts take days and days, and can bring back a crown.',
     done: 'dig_assigned',
   },
   {

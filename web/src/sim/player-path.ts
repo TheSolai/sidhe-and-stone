@@ -25,15 +25,50 @@
 
 import type { GameState } from './game-state.ts';
 import { rewardMoney } from './goals.ts';
+import { GRADE_ORDER } from './sim-core.ts';
 
-/** Digs in order of depth. */
-export const DIG_ORDER: readonly string[] = ['shaft', 'trench', 'test_pit'];
+/**
+ * Every dig type, in ascending order of depth. This is the canonical list:
+ * it is the order dig types are declared in everywhere else in the game.
+ */
+export const DIG_ORDER: readonly string[] = [
+  'test_pit',
+  'trench',
+  'cutting',
+  'shaft',
+  'deepworks',
+];
+
+/**
+ * The order the harness player actually digs in, RICHEST FIRST. A competent
+ * player prefers a rich find, but only once the outfit can actually sell
+ * what it digs.
+ */
+export const DIG_PREFERENCE: readonly string[] = [
+  'deepworks',
+  'shaft',
+  'cutting',
+  'trench',
+  'test_pit',
+];
+
+/** Digs that tie a site up for days rather than hours. */
+export const DEEP_DIGS: readonly string[] = ['cutting', 'shaft', 'deepworks'];
+
+/**
+ * How much money the outfit must have in hand before it will open a
+ * deepworks - a nine-day project. It is a gamble on the whole board, and
+ * the harness player only takes it with money to spare.
+ */
+export const DEEPWORKS_CASH = 500;
 
 /** Upgrade priority order. */
 export const UPGRADE_PRIORITY: readonly string[] = [
   'site',
   'curator',
   'gallery',
+  'guides',
+  'excavators',
   'omen',
   'archivists',
   'wards',
@@ -75,6 +110,10 @@ export interface PlayerPathReport {
   curators: number;
   gallery_upgrades: number;
   omens: number;
+  guides: number;
+  excavators: number;
+  shaft_days: number;
+  demand: number;
 }
 
 /** Play `days` days through `state`. Returns a report. */
@@ -127,6 +166,10 @@ export function play(state: GameState, days: number): PlayerPathReport {
     curators: state.curators(),
     gallery_upgrades: state.upgradeCount('gallery'),
     omens: state.upgradeCount('omen'),
+    guides: state.upgradeCount('guides'),
+    excavators: state.upgradeCount('excavators'),
+    shaft_days: state.digDays('shaft'),
+    demand: state.demand(),
   };
 }
 
@@ -155,9 +198,10 @@ function assignDigs(state: GameState): void {
   for (let site = 0; site < state.sites(); site++) {
     if (state.digInProgress(site)) continue;
     let chosen = '';
-    for (const d of DIG_ORDER) {
+    for (const d of DIG_PREFERENCE) {
       if (state.digCost(d) > money) continue;
-      if (!selling && d === 'shaft') continue; // no deep digs until there is stock
+      if (!selling && DEEP_DIGS.includes(d)) continue; // no deep digs until there is stock
+      if (d === 'deepworks' && money < DEEPWORKS_CASH) continue;
       chosen = d;
       break;
     }
@@ -174,7 +218,7 @@ function assignDigs(state: GameState): void {
 function restockGallery(state: GameState): void {
   const wanted = Math.ceil(state.demand() * 1.3);
   const vault = state.vaultCounts();
-  for (const g of ['crown', 'relic', 'clay', 'rubble']) {
+  for (const g of GRADE_ORDER) {
     while ((vault.get(g) ?? 0) > 0 && state.onDisplay() < wanted) {
       if (!state.displayOne(g)) break;
       vault.set(g, (vault.get(g) ?? 0) - 1);

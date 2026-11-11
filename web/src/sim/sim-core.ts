@@ -48,11 +48,34 @@ export interface FindDef {
 export const FINDS: readonly (FindDef & { readonly id: string })[] = [
   { id: 'rubble', value: 18, theft: 1.0 },
   { id: 'clay', value: 45, theft: 1.15 },
+  { id: 'tablet', value: 75, theft: 1.22 },
   { id: 'relic', value: 110, theft: 1.3 },
+  { id: 'mask', value: 190, theft: 1.45 },
   { id: 'crown', value: 300, theft: 1.6 },
 ];
 
-export const GRADE_ORDER: readonly string[] = ['crown', 'relic', 'clay', 'rubble'];
+/** Grades RICHEST FIRST. Load-bearing: visitors pay for the most valuable
+ *  exhibits up to the demand cap, and the curators catalogue the most
+ *  valuable finds first. */
+export const GRADE_ORDER: readonly string[] = [
+  'crown',
+  'mask',
+  'relic',
+  'tablet',
+  'clay',
+  'rubble',
+];
+
+/** Grades CHEAPEST FIRST. Used when something has to be given up - a dealer
+ *  sale in a pinch sells the least valuable thing on hand. */
+export const GRADE_ORDER_CHEAP: readonly string[] = [
+  'rubble',
+  'clay',
+  'tablet',
+  'relic',
+  'mask',
+  'crown',
+];
 
 // ---------------------------------------------------------------- excavation
 
@@ -65,7 +88,7 @@ export interface DigDef {
   readonly grades: readonly { readonly id: string; readonly weight: number }[];
 }
 
-/** Three excavation types. Deeper digs pay more but tie up a site longer. */
+/** Five excavation types. Deeper digs pay more but tie up a site longer. */
 export const DIGS: readonly DigDef[] = [
   {
     id: 'test_pit',
@@ -74,7 +97,8 @@ export const DIGS: readonly DigDef[] = [
     finds: 2,
     grades: [
       { id: 'rubble', weight: 70 },
-      { id: 'clay', weight: 30 },
+      { id: 'clay', weight: 28 },
+      { id: 'tablet', weight: 2 },
     ],
   },
   {
@@ -83,9 +107,22 @@ export const DIGS: readonly DigDef[] = [
     cost: 40,
     finds: 4,
     grades: [
-      { id: 'rubble', weight: 10 },
-      { id: 'clay', weight: 55 },
+      { id: 'rubble', weight: 25 },
+      { id: 'clay', weight: 45 },
+      { id: 'tablet', weight: 25 },
+      { id: 'relic', weight: 5 },
+    ],
+  },
+  {
+    id: 'cutting',
+    days: 4,
+    cost: 62,
+    finds: 5,
+    grades: [
+      { id: 'clay', weight: 20 },
+      { id: 'tablet', weight: 35 },
       { id: 'relic', weight: 35 },
+      { id: 'mask', weight: 10 },
     ],
   },
   {
@@ -94,9 +131,23 @@ export const DIGS: readonly DigDef[] = [
     cost: 95,
     finds: 3,
     grades: [
-      { id: 'clay', weight: 25 },
-      { id: 'relic', weight: 60 },
-      { id: 'crown', weight: 15 },
+      { id: 'clay', weight: 15 },
+      { id: 'tablet', weight: 25 },
+      { id: 'relic', weight: 40 },
+      { id: 'mask', weight: 15 },
+      { id: 'crown', weight: 5 },
+    ],
+  },
+  {
+    id: 'deepworks',
+    days: 9,
+    cost: 170,
+    finds: 4,
+    grades: [
+      { id: 'tablet', weight: 10 },
+      { id: 'relic', weight: 30 },
+      { id: 'mask', weight: 35 },
+      { id: 'crown', weight: 25 },
     ],
   },
 ];
@@ -121,6 +172,12 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: 'diggers', base: 240, escalate: 1.4, max: 6 },
   { id: 'archivists', base: 380, escalate: 1.45, max: 6 },
   { id: 'wards', base: 300, escalate: 1.4, max: 4 },
+  // Excavators shave a day off every dig, including digs already in the
+  // ground: the outfit simply works the dig faster.
+  { id: 'excavators', base: 340, escalate: 1.5, max: 6 },
+  // Guides talk the county into visiting, so every guide adds one paying
+  // visitor to the demand cap.
+  { id: 'guides', base: 300, escalate: 1.5, max: 6 },
 ];
 
 // ---------------------------------------------------------------- helpers
@@ -145,6 +202,8 @@ function gpow(base: number, exp: number): number {
 export interface DigInfo {
   dig: string;
   ready_day: number;
+  /** The day the dig was opened - kept so the excavators can re-time it. */
+  start_day?: number;
 }
 
 export interface SimSnapshot {
@@ -156,7 +215,8 @@ export interface SimSnapshot {
   raw: Record<string, number>;
   vault: Record<string, number>;
   gallery: Record<string, number>;
-  digging: Record<string, { dig: string; ready_day: number }>;
+  digging: Record<string, { dig: string; ready_day: number; start_day?: number }>;
+  digs_completed: number;
   pending_digs: Record<string, string>;
   upgrades_bought: Record<string, number>;
   reel: Record<string, unknown>;
@@ -278,6 +338,8 @@ export class SimCore {
   public reelRevenueToday = 0;
   public curatedToday = 0;
   public digsCompletedToday = 0;
+  /** How many digs have finished since the museum opened. Cumulative. */
+  public digsCompleted = 0;
   public payoutApplied = 1.0;
 
   // ---------------------------------------------------------------- player mode
@@ -502,9 +564,24 @@ export class SimCore {
     );
   }
 
-  /** How long a dig of this type takes, in days. */
+  /** How long a dig of this type takes, in days, WITH the excavators. */
   public digDays(dig: string): number {
+    return this.digDaysInternal(dig);
+  }
+
+  /** Base duration of a dig, before the excavators. */
+  public baseDigDays(dig: string): number {
     return digDef(dig).days;
+  }
+
+  /** How many tablets are on the gallery floor right now. */
+  public tabletsDisplayed(): number {
+    return this.gallery.get('tablet') ?? 0;
+  }
+
+  /** How many masks are on the gallery floor right now. */
+  public masksDisplayed(): number {
+    return this.gallery.get('mask') ?? 0;
   }
 
   /** Cost of a dig of this type. */
@@ -547,8 +624,40 @@ export class SimCore {
       case 'omen':
         this.reel.luck = Math.min(0.9, this.reel.luck + (upgradeDef('omen')?.luck ?? 0));
         break;
+      case 'excavators':
+        this.applyExcavators();
+        break;
       default:
         break;
+    }
+  }
+
+  /**
+   * The effective duration of a dig, with the excavators applied.
+   *
+   * Every excavator level takes a day off, but a dig can never be shorter
+   * than one day - there has to be a day on which it happens.
+   */
+  private digDaysInternal(dig: string): number {
+    return Math.max(1, this.baseDigDays(dig) - this.count('excavators'));
+  }
+
+  /**
+   * Re-time every dig already in the ground after the excavator outfit
+   * changes. A dig that is already under way is worked faster too.
+   */
+  private applyExcavators(): void {
+    for (const [p, info] of [...this.digging.entries()]) {
+      const base = this.baseDigDays(info.dig);
+      const start =
+        info.start_day !== undefined
+          ? info.start_day
+          : info.ready_day - base;
+      this.digging.set(p, {
+        dig: info.dig,
+        ready_day: start + Math.max(1, base - this.count('excavators')),
+        start_day: start,
+      });
     }
   }
 
@@ -620,7 +729,11 @@ export class SimCore {
       const def = digDef(dig);
       this.money -= def.cost;
       this.opexToday += def.cost;
-      this.digging.set(p, { dig, ready_day: this.day + def.days });
+      this.digging.set(p, {
+        dig,
+        ready_day: this.day + this.digDaysInternal(dig),
+        start_day: this.day,
+      });
       if (this.manual) this.pendingDigs.delete(p);
     }
   }
@@ -639,6 +752,7 @@ export class SimCore {
       }
       this.digging.delete(p);
       this.digsCompletedToday += 1;
+      this.digsCompleted += 1;
     }
   }
 
@@ -730,10 +844,13 @@ export class SimCore {
   private demand(): number {
     const mult = gpow(this.marketGain, this.count('gallery'));
     const timeMult = 1.0 + this.day / this.demandGrowth;
+    // Every guide talks one more paying visitor through the door, on top of
+    // the base crowd.
+    const crowd = this.visitorDemand + this.count('guides');
     return Math.max(
       1,
       godotInt(
-        godotRound(this.visitorDemand * mult * timeMult * this.eventDemandMult())
+        godotRound(crowd * mult * timeMult * this.eventDemandMult())
       )
     );
   }
@@ -790,7 +907,7 @@ export class SimCore {
       return;
     }
     if (this.money >= 60) return;
-    for (const g of ['rubble', 'clay', 'relic', 'crown']) {
+    for (const g of GRADE_ORDER_CHEAP) {
       if ((this.vault.get(g) ?? 0) > 0) {
         this.vault.set(g, (this.vault.get(g) as number) - 1);
         const cash = godotInt(godotRound(this.exhibitValueInternal(g) * this.dealerRate));
@@ -916,6 +1033,7 @@ export class SimCore {
         [...this.digging.entries()].map(([k, v]) => [String(k), { ...v }])
       ),
       pending_digs: Object.fromEntries(this.pendingDigs),
+      digs_completed: this.digsCompleted,
       upgrades_bought: mapToRecord(this.upgradesBought),
       reel: this.reel.toDict() as unknown as Record<string, unknown>,
       pending_payout: this.pendingPayout,
@@ -953,6 +1071,7 @@ export class SimCore {
     this.sites = Number(d.sites ?? 3);
     this.curators = Number(d.curators ?? 1);
     this.charms = Number(d.charms ?? 6);
+    this.digsCompleted = Number(d.digs_completed ?? 0);
     this.raw = recordToMap(d.raw);
     this.vault = recordToMap(d.vault);
     this.gallery = recordToMap(d.gallery);
@@ -968,7 +1087,9 @@ export class SimCore {
           typeof info === 'string'
             ? this.day + digDef(dig).days
             : Number(info.ready_day);
-        this.digging.set(site, { dig, ready_day: readyDay });
+        const startDay =
+          typeof info === 'string' ? this.day : Number(info.start_day ?? readyDay);
+        this.digging.set(site, { dig, ready_day: readyDay, start_day: startDay });
       }
     }
 

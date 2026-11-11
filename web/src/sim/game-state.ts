@@ -19,14 +19,20 @@
  * one object.
  */
 
-import { SimCore, type SimSnapshot } from './sim-core.ts';
+import { SimCore, GRADE_ORDER, type SimSnapshot } from './sim-core.ts';
 import { Goals, GOALS, rewardMoney, type GoalContext, type GoalDef } from './goals.ts';
 import { Tutorial } from './tutorial.ts';
 import type { SpinResult } from './reel-core.ts';
 import type { GameEvent } from './event-deck.ts';
 
 /** The dig types a player may assign. */
-export const DIG_TYPES: readonly string[] = ['test_pit', 'trench', 'shaft'];
+export const DIG_TYPES: readonly string[] = [
+  'test_pit',
+  'trench',
+  'cutting',
+  'shaft',
+  'deepworks',
+];
 
 export interface LedgerEntry {
   day: number;
@@ -142,6 +148,18 @@ export class GameState {
   }
   public onDisplay(): number {
     return this.sim.onDisplay();
+  }
+  /** How many tablets are on the gallery floor right now. */
+  public tabletsDisplayed(): number {
+    return this.sim.tabletsDisplayed();
+  }
+  /** How many masks are on the gallery floor right now. */
+  public masksDisplayed(): number {
+    return this.sim.masksDisplayed();
+  }
+  /** How many digs have finished since the museum opened. */
+  public digsCompleted(): number {
+    return this.sim.digsCompleted;
   }
   public lastEvent(): string {
     return this.sim.lastEvent;
@@ -296,6 +314,9 @@ export class GameState {
       gallery_slots: this.sim.gallerySlots,
       clean_nights: cleanNights,
       crowns_displayed: this.sim.gallery.get('crown') ?? 0,
+      tablets_displayed: this.sim.gallery.get('tablet') ?? 0,
+      masks_displayed: this.sim.gallery.get('mask') ?? 0,
+      digs_completed: this.sim.digsCompleted,
       max_day_revenue: bestDay,
       total_revenue: totalRevenue,
     };
@@ -487,7 +508,7 @@ export class GameState {
 
     if (s.stolen > 0) {
       const named: string[] = [];
-      for (const g of ['crown', 'relic', 'clay', 'rubble']) {
+      for (const g of GRADE_ORDER) {
         const n = s.stolen_grades[g] ?? 0;
         if (n > 0) named.push(`${n} ${g}`);
       }

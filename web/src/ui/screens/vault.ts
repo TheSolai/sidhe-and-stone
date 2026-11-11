@@ -13,7 +13,8 @@ import { PAL, GRADES, GRADE_SPRITE, GRADE_COLOR } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawPanel, drawText, FONT } from '../widgets.ts';
+import { drawChip, drawPanel, drawText, FONT } from '../widgets.ts';
+import { FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_WIDTH } from '../bands.ts';
 
 export class VaultScreen implements Screen {
   public readonly id = 'vault';
@@ -24,10 +25,10 @@ export class VaultScreen implements Screen {
     const { state } = ctx;
     const regions: Region[] = [];
 
-    const panelX = 20;
+    const panelX = MARGIN_X;
     const panelY = 92;
-    const panelW = ctx.surface.canvas.width - 40;
-    const panelH = 300;
+    const panelW = PANEL_WIDTH;
+    const panelH = 294;
 
     drawPanel(g, { x: panelX, y: panelY, w: panelW, h: panelH }, {
       fill: PAL.C,
@@ -37,7 +38,10 @@ export class VaultScreen implements Screen {
     const vaultCounts = state.vaultCounts();
     const galleryCounts = state.galleryCounts();
 
-    // The four grade columns.
+    // One column per grade. Six grades now, so each column is 146px wide
+    // rather than 220px -- every label in here is measured to fit that,
+    // because a label that runs into the next column makes two grades
+    // read as one.
     const colW = Math.floor((panelW - 40) / GRADES.length);
     let cx = panelX + 20;
 
@@ -66,23 +70,31 @@ export class VaultScreen implements Screen {
       const statsY = panelY + 130;
       drawText(g, `In vault: ${vaulted}`, cx + 8, statsY, {
         font: FONT.small,
-        color: vaulted > 0 ? PAL.K : PAL.P,
+        color: vaulted > 0 ? PAL.D : PAL.P,
+        maxWidth: colW - 16,
       });
       drawText(g, `On show: ${shown}`, cx + 8, statsY + 17, {
         font: FONT.small,
-        color: shown > 0 ? PAL.K : PAL.P,
+        color: shown > 0 ? PAL.D : PAL.P,
+        maxWidth: colW - 16,
       });
-      drawText(g, `Value: ${money(value)}/day`, cx + 8, statsY + 34, {
+      drawText(g, `${money(value)}/day`, cx + 8, statsY + 34, {
         font: FONT.small,
-        color: PAL.N,
+        color: PAL.D,
+        maxWidth: colW - 16,
       });
 
       // The theft risk, stated as a number and a word. A bare percentage
-      // would be meaningless to most players.
-      const riskColor = risk > 0.08 ? PAL.T : PAL.N;
-      drawText(g, `Stolen nightly: ${(risk * 100).toFixed(1)}%`, cx + 8, statsY + 51, {
+      // would be meaningless to most players. The label is short on
+      // purpose: at 146px a column has room for one word and a number.
+      // The theft risk is a number in dark ink with a chip beside it.
+      // Rust as text on cream is only 3.04:1, so the chip carries the
+      // warning and the ink carries the value.
+      drawChip(g, cx + 8, statsY + 53, risk > 0.08 ? PAL.T : PAL.M, 7);
+      drawText(g, `Theft ${(risk * 100).toFixed(1)}%`, cx + 20, statsY + 51, {
         font: FONT.small,
-        color: riskColor,
+        color: PAL.D,
+        maxWidth: colW - 28,
       });
 
       // The buttons: display one, vault one, sell one.
@@ -153,8 +165,8 @@ export class VaultScreen implements Screen {
     }
 
     // The slots summary along the bottom.
-    const footY = panelY + panelH + 18;
-    drawPanel(g, { x: panelX, y: footY, w: panelW, h: 84 }, {
+    const footY = FOOTER_TOP;
+    drawPanel(g, { x: panelX, y: footY, w: panelW, h: FOOTER_PANEL_HEIGHT }, {
       fill: PAL.C,
       title: 'The gallery floor',
     });
@@ -163,7 +175,7 @@ export class VaultScreen implements Screen {
       g,
       `${state.onDisplay()} of ${state.gallerySlots()} slots filled  ·  demand for ${state.demand()} today`,
       panelX + 20,
-      footY + 38,
+      footY + 32,
       { font: FONT.body, color: PAL.D }
     );
 
@@ -176,8 +188,8 @@ export class VaultScreen implements Screen {
         ? 'The floor is full. Anything beyond the cap earns nothing — but it can still be stolen.'
         : 'Exhibits past the demand cap earn nothing, but they are still exposed to theft.',
       panelX + 20,
-      footY + 58,
-      { font: FONT.small, color: PAL.N }
+      footY + 52,
+      { font: FONT.small, color: PAL.P }
     );
 
     return regions;

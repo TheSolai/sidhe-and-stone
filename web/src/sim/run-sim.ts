@@ -29,7 +29,7 @@ function parseArgs(argv: string[]): Options {
     days: 365,
     reelPolicy: 'always',
     reelCost: 2,
-    charmRate: 1.0,
+    charmRate: 0.15,
     reelSeed: 20261110,
   };
 

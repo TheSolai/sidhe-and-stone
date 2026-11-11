@@ -13,7 +13,8 @@ import { PAL, GRADES, GRADE_SPRITE } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { money } from '../screen.ts';
 import { drawSprite, drawSpriteCentred } from '../sprites.ts';
-import { drawPanel, drawText, FONT, measureText } from '../widgets.ts';
+import { drawPanel, drawText, drawChip, drawTintedValue, FONT, measureText } from '../widgets.ts';
+import { FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_WIDTH } from '../bands.ts';
 
 export class GalleryScreen implements Screen {
   public readonly id = 'gallery';
@@ -29,7 +30,7 @@ export class GalleryScreen implements Screen {
     const w = ctx.surface.canvas.width;
 
     const floorY = 92;
-    const floorH = 300;
+    const floorH = 294;
 
     drawPanel(g, { x: 20, y: floorY, w: w - 40, h: floorH }, {
       fill: PAL.C,
@@ -137,51 +138,67 @@ export class GalleryScreen implements Screen {
       }
     }
 
-    // The visitors. They are drawn as simple figures with a bob, so the
-    // room feels occupied rather than abandoned.
+    // The visitors. They are drawn with the visitor sprites, three variants
+    // in rotation, with a bob, so the room feels occupied rather than
+    // abandoned and every figure is a real drawing rather than a block.
     const visitorCount = Math.min(8, Math.max(2, Math.round(state.demand() / 2)));
-    const visitorTop = roomY + 12;
+    const visitorTop = roomY + 34;
     for (let i = 0; i < visitorCount; i++) {
       const vx = roomX + 30 + ((i * 97) % (roomW - 60));
       const bob = Math.sin(ctx.time * 1.6 + i * 1.3) > 0 ? 0 : 1;
-      this.drawVisitor(g, vx, visitorTop + bob, i);
+      this.drawVisitor(ctx, vx, visitorTop + bob, i);
     }
 
     // The takings panel.
-    const footY = floorY + floorH + 18;
-    drawPanel(g, { x: 20, y: footY, w: w - 40, h: 84 }, {
+    const footY = FOOTER_TOP;
+    drawPanel(g, { x: MARGIN_X, y: footY, w: PANEL_WIDTH, h: FOOTER_PANEL_HEIGHT }, {
       fill: PAL.C,
       title: 'Today’s takings',
     });
 
+    // The three readings, each with a tint.
+    //
+    // The VALUES used to be written in the accent colour itself -- clay
+    // money and relic teal straight onto the cream panel. Clay on cream
+    // is 2.47:1 and teal is 2.26:1, so those numbers were unreadable.
+    // Now the value is written in dark ink and a small chip carries the
+    // tint: the chip says "this is the money number" without asking the
+    // player to read a colour as a glyph.
     const lines: [string, string, string][] = [];
     lines.push([
       'Exhibits earning',
       `${Math.min(state.onDisplay(), state.demand())} of ${state.onDisplay()}`,
-      PAL.K,
+      PAL.U,
     ]);
     lines.push(['Daily takings', money(state.exhibitValue('crown') * 0 + this.dailyTakings(ctx)), PAL.A]);
     lines.push(['Demand today', `${state.demand()} visitors`, PAL.L]);
 
-    let ly = footY + 36;
-    let lx = 40;
-    for (const [label, value, color] of lines) {
-      drawText(g, label, lx, ly, { font: FONT.small, color: PAL.N });
-      drawText(g, value, lx, ly + 15, { font: FONT.body, color });
+    let ly = footY + 30;
+    let lx = MARGIN_X + 20;
+    for (const [label, value, tint] of lines) {
+      drawText(g, label, lx, ly, { font: FONT.small, color: PAL.P });
+      // The chip is drawn to the LEFT of the value, so the chips form a
+      // column under the labels and the numbers stay aligned.
+      drawTintedValue(g, value, lx + 12, ly + 15, {
+        font: FONT.body,
+        tint,
+        align: 'left',
+        maxWidth: 190,
+      });
       lx += 210;
     }
 
     // The revenue trend along the bottom of the panel.
     const revenue = state.revenueLog();
     if (revenue.length > 1) {
-      const sparkX = 40 + lines.length * 210 + 20;
-      const sparkW = w - sparkX - 60;
+      const sparkX = MARGIN_X + 20 + lines.length * 210 + 20;
+      const sparkW = PANEL_WIDTH - (sparkX - MARGIN_X) - 40;
       if (sparkW > 80) {
-        drawText(g, 'Recent takings', sparkX, footY + 36, {
+        drawText(g, 'Recent takings', sparkX, footY + 30, {
           font: FONT.small,
-          color: PAL.N,
+          color: PAL.P,
         });
-        drawSpark(g, revenue.slice(-60), sparkX, footY + 52, sparkW, 22, PAL.A);
+        drawSpark(g, revenue.slice(-60), sparkX, footY + 46, sparkW, 18, PAL.A);
       }
     }
 
@@ -199,21 +216,25 @@ export class GalleryScreen implements Screen {
     return total;
   }
 
-  /** A simple visitor figure. */
-  private drawVisitor(
-    g: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    seed: number
-  ): void {
+  /** A visitor figure, drawn from the visitor sprites. */
+  private drawVisitor(ctx: ScreenContext, x: number, y: number, seed: number): void {
+    const g = ctx.surface.ctx;
+    // Three visitor sprites, cycled. The sprite is 18x18 with the feet at
+    // the bottom, so it is drawn with its base on the floor line.
+    const names = ['visitor_a', 'visitor_b', 'visitor_c'];
+    const image = ctx.sprites.get(names[seed % names.length] as string);
+    if (image) {
+      drawSprite(g, image, x - image.width / 2, y - image.height, 1);
+      return;
+    }
+
+    // Fallback: a plain figure, so a missing sprite never leaves a gap.
     const coats = [PAL.U, PAL.T, PAL.M, PAL.L];
     const coat = coats[seed % coats.length];
-
     g.fillStyle = PAL.K;
     g.fillRect(x, y, 10, 14);
     g.fillStyle = coat;
     g.fillRect(x + 1, y + 1, 8, 12);
-    // The head.
     g.fillStyle = PAL.Z;
     g.fillRect(x + 2, y - 7, 6, 7);
     g.fillStyle = PAL.K;
@@ -232,9 +253,13 @@ export class GalleryScreen implements Screen {
     if (shown > cap) {
       const text = `${shown - cap} exhibit${shown - cap === 1 ? '' : 's'} earning nothing`;
       const tw = measureText(text, FONT.small);
-      drawText(g, text, ctx.surface.canvas.width - 24 - tw, 68, {
+      const tx = ctx.surface.canvas.width - 24 - tw;
+      // Rust on cream is 3.04:1, so the warning is dark ink with a rust
+      // chip beside it.
+      drawChip(g, tx - 14, 70, PAL.T);
+      drawText(g, text, tx, 68, {
         font: FONT.small,
-        color: PAL.T,
+        color: PAL.D,
       });
     }
   }

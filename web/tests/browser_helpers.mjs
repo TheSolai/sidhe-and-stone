@@ -17,6 +17,66 @@ const require = createRequire(import.meta.url);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const distDir = resolve(here, '..', 'dist');
+const paletteFile = resolve(here, '..', '..', 'art', 'palette.px.js');
+
+/**
+ * The shared palette, read from the ONE source of truth.
+ *
+ * art/palette.px.js is the file the sprites are drawn from. The checks
+ * used to carry their own hardcoded copy of the hex values, which is a
+ * promise waiting to be broken: the palette is re-solved when the art
+ * direction moves, and a stale list in a test file either fails for the
+ * wrong reason or, worse, quietly passes against the old colours.
+ *
+ * So the list is PARSED from the palette file itself. If the palette
+ * changes, the check follows it automatically.
+ *
+ * Returns the hex values, lowercased, in palette order.
+ */
+export function loadPalette() {
+  const source = readFileSync(paletteFile, 'utf8');
+  const hexes = [];
+  const pattern = /^\s*[A-Za-z]\s*:\s*"(#[0-9a-fA-F]{6})"/gm;
+  let match;
+  while ((match = pattern.exec(source)) !== null) {
+    hexes.push(match[1].toLowerCase());
+  }
+  if (hexes.length < 8) {
+    throw new Error(
+      `Palette parse failed: only found ${hexes.length} colours in ${paletteFile}. ` +
+        'The palette file format must have changed.'
+    );
+  }
+  return hexes;
+}
+
+/**
+ * The shared palette, keyed by its palette letter.
+ *
+ * Same source and same parser as `loadPalette`, but the result is a map
+ * from the letter the sprites use ("C" for cream) to the hex value. A
+ * check that wants to measure "the cream of the HUD" should say `PAL.C`
+ * and not a hex it typed out by hand: if the palette is re-solved, the
+ * letter keeps its meaning and the hex follows.
+ *
+ * Returns a plain object of lowercased hex values.
+ */
+export function loadPaletteByKey() {
+  const source = readFileSync(paletteFile, 'utf8');
+  const byKey = {};
+  const pattern = /^\s*([A-Za-z])\s*:\s*"(#[0-9a-fA-F]{6})"/gm;
+  let match;
+  while ((match = pattern.exec(source)) !== null) {
+    byKey[match[1]] = match[2].toLowerCase();
+  }
+  if (Object.keys(byKey).length < 8) {
+    throw new Error(
+      `Palette parse failed: only found ${Object.keys(byKey).length} colours in ${paletteFile}. ` +
+        'The palette file format must have changed.'
+    );
+  }
+  return byKey;
+}
 
 /** Load Playwright from the project, or from an npx cache. */
 export function loadPlaywright() {

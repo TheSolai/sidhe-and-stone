@@ -4,7 +4,7 @@
  * A literal transcription of `src/goals.gd`.
  *
  * A management game needs to show the player where they are going, not just
- * where they are. The ladder is deliberately shallow -- three tiers, twelve
+ * where they are. The ladder is deliberately shallow -- three tiers, eighteen
  * goals -- and every goal is a thing the player has ALREADY been doing, just
  * noticed. Nothing here asks for a new verb. "Catalogue 10 finds" is what a
  * curator does.
@@ -69,6 +69,15 @@ export const GOALS: readonly GoalDef[] = [
     reward: { money: 250 },
   },
   {
+    id: 'first_payday',
+    tier: 'Opening',
+    title: 'A First Payday',
+    body: 'Take £50 at the door in a single day.',
+    metric: 'max_day_revenue',
+    target: 50,
+    reward: { money: 150 },
+  },
+  {
     id: 'apprentice',
     tier: 'Opening',
     title: "Curator's Apprentice",
@@ -84,6 +93,15 @@ export const GOALS: readonly GoalDef[] = [
     body: 'Go 7 nights without losing a thing to thieves.',
     metric: 'clean_nights',
     target: 7,
+    reward: { charms: 3, luck: 0.05 },
+  },
+  {
+    id: 'tablet_case',
+    tier: 'Opening',
+    title: 'The Tablet Case',
+    body: 'Put a tablet on the gallery floor.',
+    metric: 'tablets_displayed',
+    target: 1,
     reward: { charms: 3, luck: 0.05 },
   },
   {
@@ -111,7 +129,34 @@ export const GOALS: readonly GoalDef[] = [
     body: 'Earn £300 in a single day.',
     metric: 'max_day_revenue',
     target: 300,
-    reward: { money: 250 },
+    reward: { money: 350 },
+  },
+  {
+    id: 'real_collection',
+    tier: 'Steady Trade',
+    title: 'A Real Collection',
+    body: 'Keep 25 pieces in the vault.',
+    metric: 'vault_count',
+    target: 25,
+    reward: { money: 1200 },
+  },
+  {
+    id: 'steady_hands',
+    tier: 'Steady Trade',
+    title: 'Steady Hands',
+    body: 'Go 21 nights without losing a thing to thieves.',
+    metric: 'clean_nights',
+    target: 21,
+    reward: { money: 7900 },
+  },
+  {
+    id: 'long_shift',
+    tier: 'Steady Trade',
+    title: 'The Long Shift',
+    body: 'Finish 25 digs.',
+    metric: 'digs_completed',
+    target: 25,
+    reward: { money: 4250 },
   },
   {
     id: 'grander_gallery',
@@ -129,7 +174,7 @@ export const GOALS: readonly GoalDef[] = [
     body: 'Trade for 30 days.',
     metric: 'days',
     target: 30,
-    reward: { money: 12500 },
+    reward: { money: 9600 },
   },
   {
     id: 'strongbox',
@@ -139,6 +184,15 @@ export const GOALS: readonly GoalDef[] = [
     metric: 'total_revenue',
     target: 5000,
     reward: { money: 2500 },
+  },
+  {
+    id: 'mask_comes',
+    tier: 'Renown',
+    title: 'The Mask Comes',
+    body: 'Display a mask.',
+    metric: 'masks_displayed',
+    target: 1,
+    reward: { money: 4000 },
   },
   {
     id: 'renowned',
@@ -161,6 +215,9 @@ export interface GoalContext {
   gallery_slots: number;
   clean_nights: number;
   crowns_displayed: number;
+  tablets_displayed: number;
+  masks_displayed: number;
+  digs_completed: number;
   max_day_revenue: number;
   total_revenue: number;
 }
@@ -203,6 +260,12 @@ export class Goals {
         return ctx.clean_nights;
       case 'crowns_displayed':
         return ctx.crowns_displayed;
+      case 'tablets_displayed':
+        return ctx.tablets_displayed;
+      case 'masks_displayed':
+        return ctx.masks_displayed;
+      case 'digs_completed':
+        return ctx.digs_completed;
       case 'max_day_revenue':
         return ctx.max_day_revenue;
       case 'total_revenue':

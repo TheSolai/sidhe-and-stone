@@ -14,7 +14,16 @@ import { GameState } from './sim/game-state.ts';
 import type { DaySummary } from './sim/game-state.ts';
 import { loadGame, saveGame, type Settings } from './save.ts';
 import { Audio } from './ui/audio.ts';
-import { drawHud, drawNav, HUD_HEIGHT, navLayout, type NavButton } from './ui/hud.ts';
+import { drawHud, drawNav, navLayout, type NavButton } from './ui/hud.ts';
+import { HINT_TEXT_Y, HUD_HEIGHT, NAV_TOP, SHADOW_OFFSET } from './ui/bands.ts';
+import { drawWithOrderedFade } from './ui/fade.ts';
+import {
+  audit,
+  beginAudit,
+  endAudit,
+  textDraws,
+  truncations,
+} from './ui/audit.ts';
 import { PAL } from './ui/palette.ts';
 import {
   regionHit,
@@ -25,7 +34,15 @@ import {
 } from './ui/screen.ts';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH, Surface } from './ui/surface.ts';
 import { SpriteSet } from './ui/sprites.ts';
-import { drawPanel, drawText, FONT, measureText } from './ui/widgets.ts';
+import {
+  drawChip,
+  drawPanel,
+  drawText,
+  drawVeil,
+  drawTintedValue,
+  FONT,
+  measureText,
+} from './ui/widgets.ts';
 
 import { TitleScreen } from './ui/screens/title.ts';
 import { DigSiteScreen } from './ui/screens/dig-site.ts';
@@ -33,6 +50,7 @@ import { CuratorScreen } from './ui/screens/curator.ts';
 import { VaultScreen } from './ui/screens/vault.ts';
 import { GalleryScreen } from './ui/screens/gallery.ts';
 import { ReelScreen } from './ui/screens/reel.ts';
+import { ShopScreen } from './ui/screens/shop.ts';
 import { LedgerScreen } from './ui/screens/ledger.ts';
 import { GoalsScreen } from './ui/screens/goals.ts';
 
@@ -65,6 +83,33 @@ export class App {
   public get interactiveRegions(): Region[] {
     return [...this.overlayRegions, ...this.regions];
   }
+
+  /**
+   * What the last frame's screen actually drew.
+   *
+   * The bounding box of everything the active screen painted, and the
+   * strings it had to cut to fit. The browser checks use this to assert
+   * that a screen stays inside the bands it owns and that no text is
+   * being silently truncated.
+   */
+  public get layoutAudit(): {
+    bounds: { minX: number; minY: number; maxX: number; maxY: number; calls: number } | null;
+    truncations: string[];
+  } {
+    return { bounds: audit.bounds, truncations: [...truncations] };
+  }
+
+  /**
+   * Every piece of text the last frame drew, with its ink and its surface.
+   *
+   * The contrast check computes the real ratio from these, so "can this
+   * be read?" is answered by arithmetic rather than by somebody's eye.
+   */
+  public get contrastAudit(): {
+    texts: { text: string; ink: string; surface: string | null; x: number; y: number; size: number }[];
+  } {
+    return { texts: textDraws.map((t) => ({ ...t })) };
+  }
   private navButtons: NavButton[] = [];
 
   private pointer: { x: number; y: number } | null = null;
@@ -82,9 +127,17 @@ export class App {
 
   private settings: Settings;
 
-  constructor(canvas: HTMLCanvasElement, settings: Settings, atlas: Record<string, unknown>) {
+  /**
+   * @param sprites The ALREADY LOADED sprite set. The App does not load
+   *   sprites itself: it has no base path and cannot know where the built
+   *   assets live. It used to take the raw atlas and build its own empty
+   *   SpriteSet, which was never load()ed, so every sprite lookup returned
+   *   undefined and the whole web build silently rendered no sprite art at
+   *   all. The caller loads them once and hands over the loaded set.
+   */
+  constructor(canvas: HTMLCanvasElement, settings: Settings, sprites: SpriteSet) {
     this.surface = new Surface(canvas);
-    this.sprites = new SpriteSet(atlas as never);
+    this.sprites = sprites;
     this.audio = new Audio(settings);
     this.settings = settings;
 
@@ -101,6 +154,7 @@ export class App {
     add(new VaultScreen());
     add(new GalleryScreen());
     add(new ReelScreen());
+    add(new ShopScreen());
     add(new LedgerScreen());
     add(new GoalsScreen());
   }
@@ -222,8 +276,8 @@ export class App {
   private onKey(e: KeyboardEvent): void {
     // Number keys pick a screen; Escape backs out of an overlay.
     const index = Number(e.key);
-    if (index >= 1 && index <= 7) {
-      const ids = ['dig', 'curator', 'vault', 'gallery', 'reel', 'ledger', 'goals'];
+    if (index >= 1 && index <= 8) {
+      const ids = ['dig', 'curator', 'vault', 'gallery', 'reel', 'shop', 'ledger', 'goals'];
       this.goTo(ids[index - 1]);
       return;
     }
@@ -346,6 +400,29 @@ export class App {
     const g = this.surface.ctx;
     const ctx = this.context();
 
+    // The audit spans the WHOLE frame, not just the screen's own
+    // drawing.
+    //
+    // The BOUNDS belong to the screen alone -- a screen that reaches
+    // past its band is the defect the band check looks for. But the
+    // CONTRAST belongs to every word on the screen, and the framework
+    // draws words too: the HUD's numerals, the nav labels, the hint
+    // line. The HUD's charm counter was once drawn in a colour that
+    // measured 2.23:1 against the cream bar behind it, and nobody
+    // noticed, because the only checks that existed asked whether a
+    // control was present and whether its pixels were in the palette.
+    //
+    // So the audit is on for the frame, and the bounds are gated on
+    // `inScreen` instead.
+    beginAudit(g);
+    try {
+      this.renderFrame(g, ctx);
+    } finally {
+      endAudit(g);
+    }
+  }
+
+  private renderFrame(g: CanvasRenderingContext2D, ctx: ScreenContext): void {
     // The page behind the panels is the darker parchment, so the cream
     // panels read as raised surfaces rather than dissolving into the
     // background.
@@ -385,30 +462,54 @@ export class App {
     }
 
     // The screen's own content, inset below the HUD and above the nav.
+    //
+    // The bands own the edges: the HUD is the framework's, the nav strip
+    // is the framework's, and the hint band below the nav is the
+    // framework's too. A screen draws between the HUD and the nav strip
+    // and nowhere else, and the band contract says which slice of that
+    // space belongs to the title, the content and the footer.
     const contentTop = isTitle ? 0 : HUD_HEIGHT;
-    const contentBottom = isTitle ? LOGICAL_HEIGHT : LOGICAL_HEIGHT - 34;
+    const contentBottom = isTitle ? LOGICAL_HEIGHT : NAV_TOP;
 
     const screenCtx: ScreenContext = {
       ...ctx,
       surface: this.surface,
     };
 
-    // Ask the screen for its regions first, so a click in the same frame as
-    // a layout change still lands on the right thing.
-    const own = screen.layout({
-      ...screenCtx,
-      time: this.elapsed,
-    });
-    this.regions.push(...own);
-
     // Clip the screen's drawing to its band, so a screen cannot paint over
     // the HUD.
+    //
+    // The clip has to wrap the LAYOUT as well as the draw. The screens
+    // draw their panels inside layout() -- that is where the panel
+    // rectangles, the wells and the bars are actually painted -- so
+    // clipping only the draw left the panels free to paint over the HUD
+    // and the nav strip with nothing to stop them.
+    //
+    // The audit wraps the same region, so the browser check can measure
+    // exactly what the screen painted and assert that it stayed inside
+    // the bands the contract gives it.
     g.save();
     g.beginPath();
     g.rect(0, contentTop, LOGICAL_WIDTH, contentBottom - contentTop);
     g.clip();
-    screen.draw(screenCtx);
+
+    // The screen's own drawing, and only that, counts towards the bounds.
+    audit.inScreen = true;
+    let own: Region[];
+    try {
+      // Ask the screen for its regions first, so a click in the same frame
+      // as a layout change still lands on the right thing.
+      own = screen.layout({
+        ...screenCtx,
+        time: this.elapsed,
+      });
+      screen.draw(screenCtx);
+    } finally {
+      audit.inScreen = false;
+    }
     g.restore();
+
+    this.regions.push(...own);
 
     if (!isTitle) {
       drawNav(ctx, this.activeId, this.navButtons);
@@ -424,17 +525,29 @@ export class App {
   private drawToasts(g: CanvasRenderingContext2D): void {
     for (const t of this.toasts.toasts) {
       const alpha = Math.min(1, t.life / 0.6);
-      g.globalAlpha = alpha;
-      const w = Math.min(420, 20 + t.text.length * 7);
-      const x = LOGICAL_WIDTH / 2 - w / 2;
-      drawPanel(g, { x, y: t.y, w, h: 30 }, { fill: PAL.D, shadow: true, raised: false });
-      drawText(g, t.text, LOGICAL_WIDTH / 2, t.y + 9, {
-        font: FONT.small,
-        color: t.color,
-        align: 'center',
-        maxWidth: w - 16,
+      // The panel is wide enough for the chip AND the words, so the
+      // accent never has to be spelled by the glyph.
+      const w = Math.min(440, 46 + t.text.length * 7);
+      const x = Math.round(LOGICAL_WIDTH / 2 - w / 2);
+      const y = Math.round(t.y);
+      const h = 30;
+      // The fade region has to cover the panel AND its offset shadow, or
+      // the shadow would hang around at full strength while the panel
+      // dissolved.
+      drawWithOrderedFade(g, { x, y, w: w + SHADOW_OFFSET, h: h + SHADOW_OFFSET }, alpha, (c) => {
+        drawPanel(c, { x, y, w, h }, { fill: PAL.D, shadow: true, raised: false });
+        // The toast panel is DARK, so the text is paper white (12.43:1 on
+        // D) rather than the accent hue. Rust on the dark panel is only
+        // 3.38:1, and a coloured GLYPH that faint is a legibility bug.
+        // The accent survives as a CHIP beside the words, so "rust" still
+        // means "theft", and the words say it anyway.
+        drawChip(c, x + 8, y + 11, t.color);
+        drawText(c, t.text, x + 22, y + 9, {
+          font: FONT.small,
+          color: PAL.W,
+          maxWidth: w - 30,
+        });
       });
-      g.globalAlpha = 1;
     }
   }
 
@@ -443,8 +556,7 @@ export class App {
     const s = this.summary;
     if (!s) return;
 
-    g.fillStyle = 'rgba(22, 18, 15, 0.72)';
-    g.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    drawVeil(g, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PAL.K, PAL.P);
 
     const w = 460;
     const h = 330;
@@ -454,11 +566,16 @@ export class App {
     drawPanel(g, { x, y, w, h }, { fill: PAL.C, title: `Day ${s.day} closes` });
 
     let ly = y + 46;
-    const line = (label: string, value: string, color: string = PAL.K) => {
-      drawText(g, label, x + 24, ly, { font: FONT.body, color: PAL.N });
-      drawText(g, value, x + w - 24, ly, {
+    const line = (label: string, value: string, tint: string = PAL.K) => {
+      // The label is panel-edge ink, not the mid brown N. N on the cream
+      // summary panel is 4.06:1 -- under the floor for body text. P on
+      // cream is 8.32:1 and still reads a step lighter than the D value.
+      drawText(g, label, x + 24, ly, { font: FONT.body, color: PAL.P });
+      // Dark ink for the value, a chip for the tint. Clay money on cream
+      // is 2.47:1 and arcane teal is 1.23:1 -- unreadable as glyphs.
+      drawTintedValue(g, value, x + w - 24, ly, {
         font: FONT.body,
-        color,
+        tint,
         align: 'right',
       });
       ly += 22;
@@ -477,13 +594,11 @@ export class App {
 
     const deltaColor = s.delta >= 0 ? PAL.M : PAL.T;
     drawText(g, 'Change', x + 24, ly, { font: FONT.mid, color: PAL.D });
-    drawText(
-      g,
-      `${s.delta >= 0 ? '+' : ''}£${Math.round(s.delta)}`,
-      x + w - 24,
-      ly,
-      { font: FONT.mid, color: deltaColor, align: 'right' }
-    );
+    drawTintedValue(g, `${s.delta >= 0 ? '+' : ''}£${Math.round(s.delta)}`, x + w - 24, ly, {
+      font: FONT.mid,
+      tint: deltaColor,
+      align: 'right',
+    });
     ly += 26;
 
     drawText(g, `In the till: £${Math.round(s.money)}`, x + 24, ly, {
@@ -493,9 +608,9 @@ export class App {
     ly += 26;
 
     if (s.day_event && s.day_event.title) {
-      drawText(g, `Omen: ${s.day_event.title}`, x + 24, ly, {
+      drawTintedValue(g, `Omen: ${s.day_event.title}`, x + 24, ly, {
         font: FONT.small,
-        color: PAL.U,
+        tint: PAL.U,
       });
       ly += 18;
     }
@@ -535,8 +650,7 @@ export class App {
       return;
     }
 
-    g.fillStyle = 'rgba(22, 18, 15, 0.68)';
-    g.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    drawVeil(g, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PAL.K, PAL.P);
 
     const w = 520;
     const h = 210;
@@ -589,9 +703,9 @@ export class App {
     });
 
     // The skip link.
-    drawText(g, 'Skip tutorial', x + 28, btnY + 9, {
+    drawTintedValue(g, 'Skip tutorial', x + 28, btnY + 9, {
       font: FONT.small,
-      color: PAL.U,
+      tint: PAL.U,
     });
 
     this.overlayRegions.push({
@@ -627,9 +741,17 @@ export class App {
 
     const hint = screen.hint?.(this.context());
     if (!hint) return;
-    drawText(g, hint, 16, LOGICAL_HEIGHT - 56, {
+    // The hint runs along the bottom of the content area, over the
+    // parchment background. Panel-edge ink, not N: P on the parchment
+    // X is 7.59:1, N on X is only 3.70:1.
+    //
+    // It lives in the HINT band, which the framework owns outright. A
+    // screen that wants to say something to the player uses the FOOTER
+    // band, which is its own -- so the two can never land on top of
+    // each other.
+    drawText(g, hint, 16, HINT_TEXT_Y, {
       font: FONT.small,
-      color: PAL.N,
+      color: PAL.P,
       maxWidth: LOGICAL_WIDTH - 32,
     });
   }

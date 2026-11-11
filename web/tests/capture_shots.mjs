@@ -29,9 +29,16 @@ const { server, url } = await startStaticServer();
 console.log(`serving ${url}`);
 
 const browser = await launchBrowser(chromium);
+// The viewport must be wide enough to show the WHOLE 960x540 game.
+//
+// The game scales by an integer factor, so at 1920x1200 it renders at
+// exactly 2x and the entire canvas is visible. An earlier harness used a
+// 720px-wide phone viewport, which is narrower than the 960px canvas --
+// so every screenshot was CROPPED by 240px, and a layout bug that pushed
+// two dig cards off the right edge was invisible in the pictures.
 const page = await browser.newPage({
-  viewport: { width: 720, height: 1280 },
-  deviceScaleFactor: 2,
+  viewport: { width: 1920, height: 1200 },
+  deviceScaleFactor: 1,
 });
 
 const errors = [];
@@ -81,20 +88,29 @@ for (let i = 0; i < 6; i += 1) {
 }
 await shot('03-gameplay');
 
-// Play a little: dig at the site so the dig screen shows real finds.
-if (await tryClick('nav:dig')) {
-  await shot('04-dig');
-  const ids = await regionIds(page);
-  console.log(`  dig regions: ${ids.join(', ')}`);
-  for (const id of ids.filter((x) => x.startsWith('dig:')).slice(0, 3)) {
-    await tryClick(id);
-    await page.waitForTimeout(600);
-  }
-  await shot('05-dig-result');
-}
+// The dig screen, with a dig actually ASSIGNED.
+//
+// The game opens ON the dig screen, so "nav:dig" is a no-op and a
+// screenshot taken right after it is byte-identical to the gameplay
+// shot -- which put the same frame in the contact sheet twice, under
+// two different labels, and made the sheet look like it covered more
+// ground than it did.
+//
+// So this frame is made genuinely different: a dig type is chosen and
+// assigned to the first plot, which changes what the plot shows.
+await tryClick('dig:card:trench');
+await tryClick('dig:plot:0');
+await shot('04-dig');
+
+// End the day, so the dig resolves and the finds are shown.
+await tryClick('hud:endday');
+await page.waitForTimeout(600);
+await shot('05-dig-result');
+await tryClick('summary:close');
+await page.waitForTimeout(400);
 
 // Walk every nav screen that exists.
-for (const nav of ['gallery', 'vault', 'curator', 'reel', 'ledger', 'goals']) {
+for (const nav of ['gallery', 'vault', 'curator', 'reel', 'shop', 'ledger', 'goals']) {
   if (await tryClick(`nav:${nav}`)) {
     await shot(`06-${nav}`);
   }

@@ -84,6 +84,8 @@ func _init() -> void:
 	print("owned: sites=%d curators=%d gallery=%d omens=%d charms=%d" % [
 		result["sites"], result["curators"], result["gallery_upgrades"],
 		result["omens"], result["charms"]])
+	print("outfit: guides=%d excavators=%d | a shaft now takes %d day(s) | demand cap=%d" % [
+		result["guides"], result["excavators"], result["shaft_days"], result["demand"]])
 	print("ECONOMY VERDICT: %s (%s)" % [report["verdict"], report["detail"]])
 
 	# --- the milestone ladder, measured

@@ -70,8 +70,8 @@ func _capture() -> void:
 	# misses the whole point of the stagger, which is what happens BETWEEN
 	# the reels.
 	var rect := Rect2()
-	for l in ui._reel_labels:
-		var lr: Rect2 = l.get_global_rect()
+	for icon in ui._reel_icons:
+		var lr: Rect2 = icon.get_global_rect()
 		rect = rect.merge(lr) if rect.size != Vector2.ZERO else lr
 	var cx := maxi(0, int(rect.position.x) - 30)
 	var cy := maxi(0, int(rect.position.y) - 26)
@@ -80,13 +80,13 @@ func _capture() -> void:
 	print("[reel] reel strip union rect=", rect, " crop=", cx, ",", cy, " ", cw, "x", ch)
 
 	spin.pressed.emit()
-	print("[reel] spin pressed; glyphs now: ", _glyphs())
+	print("[reel] spin pressed; symbols now: ", _symbols())
 
 	# sample glyph text DURING the spin to prove it cycles
 	var seen := {}
 	for i in 14:
 		await create_timer(0.07).timeout
-		var g := _glyphs()
+		var g := _symbols()
 		seen[g] = true
 		if i == 9:
 			# t ~ 0.63s: reel 0 has landed (stop 0.55) while reels 1 and 2
@@ -96,8 +96,8 @@ func _capture() -> void:
 			await process_frame
 			_shot("reel_staggered", cx, cy, cw, ch)
 			_shot_full("reel_staggered_full")
-			print("[reel] staggered frame glyphs: ", _glyphs())
-	print("[reel] distinct glyph states during spin: ", seen.size())
+			print("[reel] staggered frame symbols: ", _symbols())
+	print("[reel] distinct symbol states during spin: ", seen.size())
 	for g in seen.keys():
 		print("[reel]   state: ", g)
 
@@ -107,16 +107,34 @@ func _capture() -> void:
 	_shot("reel_settled", cx, cy, cw, ch)
 	_shot_full("reel_settled_full")
 	_shot("reel_midspin", cx, cy, cw, ch)
-	print("[reel] settled glyphs: ", _glyphs())
+	print("[reel] settled symbols: ", _symbols())
 	print("[reel] status: '", ui._lbl_status.text, "'")
 	_done = true
 	quit()
 
-func _glyphs() -> String:
+## The identity of what is in each reel window.
+##
+## The reel symbols are DRAWN MOTIFS, not font glyphs: each window holds a
+## TextureRect whose texture is the symbol's sprite. So the name comes from
+## the texture that is in the window - "symbol_clover.png" reads back as
+## "clover" - and a window with no texture yet reads as "-".
+func _symbols() -> String:
 	var parts: Array[String] = []
-	for l in ui._reel_labels:
-		parts.append(l.text)
+	for icon in ui._reel_icons:
+		parts.append(_symbol_of(icon))
 	return "|".join(parts)
+
+
+func _symbol_of(icon: TextureRect) -> String:
+	var tex := icon.texture
+	if tex == null:
+		return "-"
+	var file := tex.resource_path.get_file()
+	if file.ends_with(".png"):
+		file = file.substr(0, file.length() - 4)
+	if file.begins_with("symbol_"):
+		file = file.substr("symbol_".length())
+	return file
 
 func _shot(nm: String, cx: int, cy: int, cw: int, ch: int) -> void:
 	# `force_draw()` renders into the viewport texture whether or not the

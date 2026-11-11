@@ -42,7 +42,7 @@ function parseArgs(argv: string[]): Options {
     days: 180,
     reelPolicy: 'always',
     reelCost: 2,
-    charmRate: 1.0,
+    charmRate: 0.15,
     reelSeed: 20261110,
   };
 
@@ -89,6 +89,10 @@ console.log(`  sites:           ${result.sites}`);
 console.log(`  curators:        ${result.curators}`);
 console.log(`  gallery:         ${result.gallery_upgrades}`);
 console.log(`  omens:           ${result.omens}`);
+console.log(
+  `  outfit:          guides=${result.guides} excavators=${result.excavators}` +
+    ` | a shaft now takes ${result.shaft_days} day(s) | demand cap=${result.demand}`
+);
 console.log(`  charms:          ${result.charms}`);
 console.log(`  luck:            ${result.luck.toFixed(2)}`);
 console.log(`  reel spins:      ${result.spins}`);

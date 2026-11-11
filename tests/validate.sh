@@ -92,17 +92,17 @@ if [ "$VISUAL" = "1" ]; then
 		echo "  ok"
 	fi
 
-	step "Reel capture (the stagger, asserted on glyphs)"
+	step "Reel capture (the stagger, asserted on symbols)"
 	REEL_OUT="${OUT_DIR:-/tmp/gsk_validate}_reel"; rm -rf "$REEL_OUT"; mkdir -p "$REEL_OUT"
 	REEL_LOG="$REEL_OUT/reel.log"
 	caffeinate -dimsu "$GODOT" --path . --script res://tests/reel_spin_capture.gd -- --out="$REEL_OUT" 2>&1 \
 		| tee "$REEL_LOG" | grep -E "reel\]" || true
 	# The reel must land on three DIFFERENT symbols, and the windows must
-	# stop in sequence rather than in lockstep. This is asserted on GLYPHS,
-	# not on pixels: a vision model describes a crop unreliably, but a glyph
-	# string is exact.
-	SETTLED=$(grep -E "settled glyphs:" "$REEL_LOG" | tail -1 | sed 's/.*settled glyphs: //')
-	STAGGER=$(grep -E "staggered frame glyphs:" "$REEL_LOG" | tail -1 | sed 's/.*staggered frame glyphs: //')
+	# stop in sequence rather than in lockstep. This is asserted on SYMBOL
+	# NAMES, not on pixels: a vision model describes a crop unreliably, but
+	# a name read straight off the sprite in the window is exact.
+	SETTLED=$(grep -E "settled symbols:" "$REEL_LOG" | tail -1 | sed 's/.*settled symbols: //')
+	STAGGER=$(grep -E "staggered frame symbols:" "$REEL_LOG" | tail -1 | sed 's/.*staggered frame symbols: //')
 	if [ -n "$SETTLED" ]; then
 		# three symbols, and all three different
 		A=$(echo "$SETTLED" | cut -d'|' -f1)
@@ -119,7 +119,7 @@ if [ "$VISUAL" = "1" ]; then
 			fail "the reel did not stagger (staggered == settled)"
 		fi
 	else
-		fail "the reel capture produced no glyph output"
+		fail "the reel capture produced no symbol output"
 	fi
 fi
 

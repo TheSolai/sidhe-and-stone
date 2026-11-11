@@ -11,10 +11,12 @@
  */
 
 import { PAL } from './palette.ts';
+import { SHADOW_OFFSET } from './bands.ts';
 import {
   drawText,
   FONT,
   measureText,
+  type FontSpec,
 } from './font.ts';
 import { drawSprite, type SpriteSet } from './sprites.ts';
 import { strokeRect, type Rect } from './surface.ts';
@@ -74,8 +76,13 @@ export function drawPanel(
     // colours that are not in it -- which quietly breaks the promise that
     // every pixel on screen comes from the shared palette. KairoSoft's
     // panels have exactly this kind of crisp drop shadow anyway.
+    //
+    // The offset comes from the band contract rather than being written
+    // here, because the shadow is part of the layout: a panel at the
+    // bottom of its band pushes its shadow past the band, and the
+    // framework's hint line lives there.
     ctx.fillStyle = PAL.P;
-    ctx.fillRect(x + 3, y + 3, w, h);
+    ctx.fillRect(x + SHADOW_OFFSET, y + SHADOW_OFFSET, w, h);
   }
 
   ctx.fillStyle = fill;
@@ -127,6 +134,70 @@ export function drawWell(
  * The bevel is two pixels, and the pressed state inverts it, so the button
  * reads as physical without needing a separate pressed sprite.
  */
+/**
+ * A small solid colour chip.
+ *
+ * This is how an accent hue survives on a cream panel. Measured against
+ * the shared palette, gold is 1.40:1 on cream, moss 2.15:1 and rust
+ * 3.04:1 -- all below the 4.5:1 floor for body text. So a coloured GLYPH
+ * on paper is a legibility bug, but a coloured CHIP is not: it is a
+ * graphic, and it reads as "rust means danger" at a glance.
+ *
+ * Every chip still has a shape, so the meaning never rests on colour
+ * alone.
+ */
+export function drawChip(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  color: string,
+  size = 8
+): void {
+  const cx = Math.round(x);
+  const cy = Math.round(y);
+  ctx.fillStyle = color;
+  ctx.fillRect(cx, cy, size, size);
+  // A dark top-left edge, so the chip reads as a solid object rather
+  // than a smear of colour.
+  ctx.fillStyle = PAL.K;
+  ctx.fillRect(cx, cy, size, 1);
+  ctx.fillRect(cx, cy, 1, size);
+}
+
+/**
+ * A coloured value, written in dark ink with a tint chip beside it.
+ *
+ * The ledger and the day summary both want to say "this number is good
+ * news" or "this number is bad news" with a colour. Written as a glyph
+ * that colour is unreadable -- moss on cream is 2.15:1, rust 3.04:1,
+ * teal 1.23:1. So the ink carries the value and a small chip carries the
+ * tint. Same information, legible.
+ */
+export function drawTintedValue(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  options: {
+    font: FontSpec;
+    tint: string;
+    align?: 'left' | 'right' | 'center';
+    maxWidth?: number;
+    chip?: boolean;
+  }
+): void {
+  const { font, tint, align = 'left', maxWidth, chip = true } = options;
+  const tw = measureText(text, font);
+  const gap = chip ? 12 : 0;
+  let tx = x;
+  if (align === 'right') tx = x - tw;
+  else if (align === 'center') tx = x - tw / 2;
+  if (chip) {
+    drawChip(ctx, tx - gap, y + Math.round((font.size - 8) / 2), tint);
+  }
+  drawText(ctx, text, tx, y, { font, color: PAL.D, align, maxWidth });
+}
+
 export function drawButton(
   ctx: CanvasRenderingContext2D,
   button: Button,
@@ -292,6 +363,50 @@ export function drawGradeChip(
 }
 
 /**
+ * Dim the screen behind a modal panel, using only palette colours.
+ *
+ * An alpha-blended black rectangle puts blended colours on screen that
+ * are not in the shared palette, which breaks the promise that every pixel
+ * comes from the palette. A pixel game dims with a dither instead: two
+ * palette colours interleaved in a checkerboard read as a veil at 1x, and
+ * every individual pixel is exactly one of the two.
+ *
+ * `dark` is the colour of the veil's squares, `light` the colour showing
+ * through. Two palettes of square size 2 keep the pattern from shimmering
+ * when the canvas is upscaled.
+ */
+export function drawVeil(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  dark: string,
+  light: string,
+  density = 2
+): void {
+  const x0 = Math.round(x);
+  const y0 = Math.round(y);
+  const width = Math.round(w);
+  const height = Math.round(h);
+  const step = Math.max(1, Math.round(density));
+
+  ctx.fillStyle = light;
+  ctx.fillRect(x0, y0, width, height);
+
+  ctx.fillStyle = dark;
+  for (let py = 0; py < height; py += step) {
+    for (let px = 0; px < width; px += step) {
+      // The checkerboard: only the squares on one diagonal take the dark
+      // colour, so half the veil is covered.
+      if (((px / step) + (py / step)) % 2 === 0) {
+        ctx.fillRect(x0 + px, y0 + py, step, step);
+      }
+    }
+  }
+}
+
+/**
  * A dithered gradient between two palette colours.
  *
  * A smooth canvas gradient interpolates to colours that are not in the
@@ -387,5 +502,5 @@ export function drawHint(
   y: number,
   w: number
 ): void {
-  drawText(ctx, text, x, y, { font: FONT.small, color: PAL.N, maxWidth: w });
+  drawText(ctx, text, x, y, { font: FONT.small, color: PAL.P, maxWidth: w });
 }

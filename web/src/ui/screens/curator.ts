@@ -11,7 +11,15 @@ import { PAL } from '../palette.ts';
 import { GRADES, GRADE_SPRITE } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawPanel, drawText, FONT } from '../widgets.ts';
+import { drawPanel, drawText, drawChip, FONT, measureText } from '../widgets.ts';
+import {
+  CONTENT_TOP,
+  FOOTER_PANEL_HEIGHT,
+  FOOTER_TOP,
+  MARGIN_X,
+  PANEL_HEIGHT,
+  PANEL_WIDTH,
+} from '../bands.ts';
 
 export class CuratorScreen implements Screen {
   public readonly id = 'curator';
@@ -21,13 +29,12 @@ export class CuratorScreen implements Screen {
     const g = ctx.surface.ctx;
     const { state } = ctx;
     const regions: Region[] = [];
-    const w = ctx.surface.canvas.width;
 
     // The raw pile, on the left.
-    const rawX = 20;
-    const rawY = 92;
+    const rawX = MARGIN_X;
+    const rawY = CONTENT_TOP;
     const rawW = 300;
-    const rawH = 260;
+    const rawH = PANEL_HEIGHT;
 
     drawPanel(g, { x: rawX, y: rawY, w: rawW, h: rawH }, {
       fill: PAL.C,
@@ -41,7 +48,10 @@ export class CuratorScreen implements Screen {
     if (totalRaw === 0) {
       drawText(g, 'The storeroom is empty.', rawX + 18, rawY + 52, {
         font: FONT.body,
-        color: PAL.N,
+        // Panel EDGE ink, not the mid brown N. N on the cream panel is
+        // 4.06:1 -- under the floor for body text. P on cream is 8.32:1
+        // and still reads a step lighter than the D body ink.
+        color: PAL.P,
       });
       drawText(g, 'Send some fairies digging.', rawX + 18, rawY + 74, {
         font: FONT.small,
@@ -63,7 +73,7 @@ export class CuratorScreen implements Screen {
       if (totalRaw > shown) {
         drawText(g, `+${totalRaw - shown} more`, rawX + 16, rawY + 44 + 3 * 22 + 8, {
           font: FONT.small,
-          color: PAL.N,
+          color: PAL.P,
         });
       }
 
@@ -88,7 +98,7 @@ export class CuratorScreen implements Screen {
     // The grading table, on the right: what is waiting to be catalogued,
     // by grade. This is what the curator will turn into display pieces.
     const tableX = rawX + rawW + 20;
-    const tableW = w - tableX - 20;
+    const tableW = PANEL_WIDTH - rawW - 20;
 
     drawPanel(g, { x: tableX, y: rawY, w: tableW, h: rawH }, {
       fill: PAL.C,
@@ -107,7 +117,7 @@ export class CuratorScreen implements Screen {
     if (rows.length === 0) {
       drawText(g, 'Nothing waiting.', tableX + 20, ry, {
         font: FONT.body,
-        color: PAL.N,
+        color: PAL.P,
       });
     } else {
       for (const row of rows) {
@@ -128,29 +138,67 @@ export class CuratorScreen implements Screen {
     }
 
     // The curators themselves, with what they can handle.
-    const crewY = rawY + rawH + 22;
-    drawPanel(g, { x: tableX, y: crewY, w: tableW, h: 96 }, {
+    //
+    // This is a FOOTER panel, not a third content panel. It used to sit
+    // at rawY + rawH + 22, which was y=374 with a height of 96 -- so it
+    // straddled the content and footer bands and its bottom edge landed
+    // at 470, hard against the framework hint.
+    const crewY = FOOTER_TOP;
+    drawPanel(g, { x: MARGIN_X, y: crewY, w: PANEL_WIDTH, h: FOOTER_PANEL_HEIGHT }, {
       fill: PAL.C,
       title: 'Your crew',
     });
 
     const curatorSprite = ctx.sprites.get('curator');
     if (curatorSprite) {
-      drawSprite(g, curatorSprite, tableX + 20, crewY + 34, 2);
+      drawSprite(g, curatorSprite, MARGIN_X + 20, crewY + 26, 2);
     }
 
-    drawText(g, `${state.curators()} curator${state.curators() === 1 ? '' : 's'}`, tableX + 70, crewY + 40, {
+    // The three rows of crew readings.
+    //
+    // They used to sit at +30, +48 and +62. The last row's glyphs
+    // bottomed out at y=480 -- two pixels past the footer band, which
+    // the framework owns. The band check found it; the rows are pulled
+    // up so the last one lands at +56 and ends at y=472, inside the
+    // panel's own bottom edge.
+    const crewX = MARGIN_X + 70;
+    drawText(g, `${state.curators()} curator${state.curators() === 1 ? '' : 's'}`, crewX, crewY + 26, {
       font: FONT.body,
       color: PAL.D,
     });
-    drawText(g, `${state.curatorCapacity()} find${state.curatorCapacity() === 1 ? '' : 's'} each per day`, tableX + 70, crewY + 58, {
+    drawText(g, `${state.curatorCapacity()} find${state.curatorCapacity() === 1 ? '' : 's'} each per day`, crewX, crewY + 42, {
       font: FONT.small,
-      color: PAL.N,
+      color: PAL.P,
     });
-    drawText(g, `Capacity: ${state.dailyCuration()} per day`, tableX + 70, crewY + 74, {
+    drawText(g, `Capacity: ${state.dailyCuration()} per day`, crewX, crewY + 56, {
       font: FONT.small,
-      color: PAL.N,
+      color: PAL.P,
     });
+
+    // On the right of the crew panel: the backlog, stated as a number.
+    // Curators are the bottleneck in this game, so the backlog is given
+    // its own reading rather than only being a pile of sprites.
+    const backlog = state.rawCount();
+    const crewCapacity = Math.max(1, state.dailyCuration());
+    const daysToClear = backlog / crewCapacity;
+
+    drawText(g, 'Backlog', MARGIN_X + 360, crewY + 26, {
+      font: FONT.small,
+      color: PAL.P,
+    });
+    drawText(g, `${backlog} waiting`, MARGIN_X + 360, crewY + 42, {
+      font: FONT.body,
+      color: PAL.D,
+    });
+    drawText(
+      g,
+      backlog === 0
+        ? 'Nothing waiting — the storeroom is clear.'
+        : `About ${daysToClear.toFixed(1)} days of work to clear.`,
+      MARGIN_X + 360,
+      crewY + 56,
+      { font: FONT.small, color: PAL.P }
+    );
 
     return regions;
   }
@@ -167,9 +215,15 @@ export class CuratorScreen implements Screen {
     const capacity = state.dailyCuration();
     if (raw > capacity * 2 && capacity > 0) {
       const text = `The pile is outgrowing the curators — ${raw} waiting, ${capacity} a day.`;
-      drawText(g, text, ctx.surface.canvas.width - 24 - 420, 68, {
+      // Rust on cream is 3.04:1, so the warning is written in dark ink
+      // with a rust chip beside it. The chip is the alarm; the words are
+      // the information.
+      const tw = measureText(text, FONT.small);
+      const tx = ctx.surface.canvas.width - 24 - tw;
+      drawChip(g, tx - 14, 70, PAL.T);
+      drawText(g, text, tx, 68, {
         font: FONT.small,
-        color: PAL.T,
+        color: PAL.D,
         maxWidth: 420,
       });
     }

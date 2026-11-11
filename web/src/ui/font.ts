@@ -17,6 +17,9 @@
  * the interface uses.
  */
 
+import { PAL } from './palette';
+import { recordTextDraw, recordTruncation } from './audit';
+
 /** The face every size is cut from. */
 const FAMILY = 'ui-monospace, Menlo, monospace';
 
@@ -106,6 +109,9 @@ function cutGlyph(size: number, ch: string): Glyph {
   ctx.clearRect(0, 0, width, height);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+  // Pure white on a SCRATCH canvas. This is the mask buffer, not the game
+  // surface: only the alpha channel is read back, and the glyph is later
+  // blitted in its real ink colour. Nothing here reaches the screen.
   ctx.fillStyle = '#ffffff';
   ctx.fillText(ch, pad, baseline);
 
@@ -288,8 +294,8 @@ export function drawText(
 ): void {
   const {
     font = FONT.body,
-    color = '#16120f',
-    shadow = '#16120f',
+    color = PAL.K,
+    shadow = PAL.K,
     align = 'left',
     maxWidth,
   } = options;
@@ -297,12 +303,22 @@ export function drawText(
   const shown = maxWidth === undefined ? text : truncate(text, maxWidth, font);
   if (!shown) return;
 
+  // A string that had to be cut is recorded, so the browser check can
+  // assert that the text which is SUPPOSED to fit is not being quietly
+  // truncated. A cut string loses its meaning without saying so.
+  if (shown !== text) recordTruncation(text);
+
   const width = measureText(shown, font);
   let pen = Math.round(x);
   if (align === 'center') pen = Math.round(x - width / 2);
   else if (align === 'right') pen = Math.round(x - width);
 
   const top = Math.round(y);
+
+  // The ink and the surface it lands on, so the contrast can be measured
+  // rather than judged by eye. A 13-pixel grey letter on a cream panel
+  // looks fine until someone tries to read it.
+  recordTextDraw(shown, color, pen, top, font.size);
 
   if (shadow) {
     drawRun(ctx, shown, pen + 1, top + 1, font, shadow);

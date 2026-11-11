@@ -1,11 +1,11 @@
 ; Engine configuration file.
-; GameStewKit — mobile-first Godot 4.7 starter for Kairosoft-style sims.
+; Sidhe & Stone — a cozy management sim, mobile-first, Godot 4.7.
 config_version=5
 
 [application]
 
-config/name="GameStewKit"
-config/description="Mobile-ready Godot starter with a headless economy simulator."
+config/name="Sidhe & Stone"
+config/description="A cozy excavation-and-museum management sim, with a headless economy simulator."
 run/main_scene="res://src/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -14,6 +14,12 @@ config/icon="res://icon.svg"
 
 window/size/viewport_width=720
 window/size/viewport_height=1280
+; The desktop window opens scaled down from the 720x1280 logical canvas so a
+; portrait phone-shaped game still fits on a laptop screen. The aspect ratio
+; is identical, so the scale is a clean 0.75 and nothing is letterboxed.
+window/size/window_width_override=540
+window/size/window_height_override=960
+window/size/resizable=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1

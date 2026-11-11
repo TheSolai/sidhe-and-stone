@@ -41,9 +41,20 @@ extends RefCounted
 const FINDS := {
 	"rubble": {"value": 18, "theft": 1.00},
 	"clay":   {"value": 45, "theft": 1.15},
+	"tablet": {"value": 75, "theft": 1.22},
 	"relic":  {"value": 110, "theft": 1.30},
+	"mask":   {"value": 190, "theft": 1.45},
 	"crown":  {"value": 300, "theft": 1.60},
 }
+
+## Grades RICHEST FIRST. This order is load-bearing: visitors pay for the
+## most valuable exhibits up to the demand cap, and the curators catalogue
+## the most valuable finds first, so this list decides what actually earns.
+const GRADE_ORDER := ["crown", "mask", "relic", "tablet", "clay", "rubble"]
+
+## Grades CHEAPEST FIRST. Used when something has to be given up - a dealer
+## sale in a pinch sells the least valuable thing on hand.
+const GRADE_ORDER_CHEAP := ["rubble", "clay", "tablet", "relic", "mask", "crown"]
 
 # ---------------------------------------------------------------- excavation
 
@@ -52,11 +63,15 @@ const FINDS := {
 ## rarer, more theft-prone finds.
 const DIGS := {
 	"test_pit": {"days": 1, "cost": 12, "finds": 2,
-		"grades": {"rubble": 70, "clay": 30}},
+		"grades": {"rubble": 70, "clay": 28, "tablet": 2}},
 	"trench": {"days": 3, "cost": 40, "finds": 4,
-		"grades": {"rubble": 10, "clay": 55, "relic": 35}},
+		"grades": {"rubble": 25, "clay": 45, "tablet": 25, "relic": 5}},
+	"cutting": {"days": 4, "cost": 62, "finds": 5,
+		"grades": {"clay": 20, "tablet": 35, "relic": 35, "mask": 10}},
 	"shaft": {"days": 6, "cost": 95, "finds": 3,
-		"grades": {"clay": 25, "relic": 60, "crown": 15}},
+		"grades": {"clay": 15, "tablet": 25, "relic": 40, "mask": 15, "crown": 5}},
+	"deepworks": {"days": 9, "cost": 170, "finds": 4,
+		"grades": {"tablet": 10, "relic": 30, "mask": 35, "crown": 25}},
 }
 
 # ---------------------------------------------------------------- upgrades
@@ -72,6 +87,12 @@ const UPGRADES := {
 	"diggers":   {"base": 240, "escalate": 1.40, "max": 6},
 	"archivists":{"base": 380, "escalate": 1.45, "max": 6},
 	"wards":     {"base": 300, "escalate": 1.40, "max": 4},
+	# Excavators shave a day off every dig, including digs already in the
+	# ground: the outfit simply works the dig faster.
+	"excavators":{"base": 340, "escalate": 1.50, "max": 6},
+	# Guides talk the county into visiting, so every guide adds one paying
+	# visitor to the demand cap.
+	"guides":    {"base": 300, "escalate": 1.50, "max": 6},
 }
 
 # ---------------------------------------------------------------- demand
@@ -148,9 +169,13 @@ var gallery: Dictionary = {}
 ## Digs in progress, site index -> {dig, ready_day}.
 var digging: Dictionary = {}
 
+## Every upgrade the player can own, at zero. The keys are in the SAME
+## order as the UPGRADES catalogue above, because this dictionary's
+## insertion order is what the save file and the parity fixtures expose.
 var upgrades_bought: Dictionary = {
 	"site": 0, "curator": 0, "gallery": 0, "omen": 0,
 	"diggers": 0, "archivists": 0, "wards": 0,
+	"excavators": 0, "guides": 0,
 }
 
 ## The luck mechanic.
@@ -216,6 +241,10 @@ var reel_revenue_today: int = 0
 var curated_today: int = 0
 ## How many digs finished today.
 var digs_completed_today: int = 0
+## How many digs have finished since the museum opened. Cumulative, and
+## counted every time a dig is completed - this is the number behind the
+## "The Long Shift" milestone.
+var digs_completed: int = 0
 ## The multiplier actually applied to today's takings (1.0 if no spin).
 var payout_applied: float = 1.0
 
@@ -319,7 +348,7 @@ func paying_split() -> Dictionary:
 	var out := {}
 	var cap := _demand()
 	var paid := 0
-	for g in ["crown", "relic", "clay", "rubble"]:
+	for g in GRADE_ORDER:
 		var n := int(gallery.get(g, 0))
 		var earning := clampi(cap - paid, 0, n)
 		out[g] = earning
@@ -358,6 +387,8 @@ func buy_upgrade(kind: String) -> bool:
 			gallery_slots += gallery_slot_gain
 		"omen":
 			reel.luck = minf(0.9, reel.luck + float(UPGRADES["omen"]["luck"]))
+		"excavators":
+			_apply_excavators()
 	last_event = "Bought %s" % kind
 	return true
 
@@ -426,9 +457,23 @@ func daily_upkeep() -> int:
 	return sites * upkeep_per_site + curators * upkeep_per_curator \
 		+ _count("wards") * upkeep_per_ward
 
-## How long a dig of this type takes, in days.
+## How long a dig of this type takes, in days, WITH the excavator outfit
+## taken into account. Every excavator level shaves a day off, floored at
+## a single day.
 func dig_days(dig: String) -> int:
+	return _dig_days(dig)
+
+## Base duration of a dig, before the excavators.
+func _base_dig_days(dig: String) -> int:
 	return int(DIGS.get(dig, DIGS["test_pit"])["days"])
+
+## How many tablets are on the gallery floor right now.
+func tablets_displayed() -> int:
+	return int(gallery.get("tablet", 0))
+
+## How many masks are on the gallery floor right now.
+func masks_displayed() -> int:
+	return int(gallery.get("mask", 0))
 
 ## Cost of a dig of this type.
 func dig_cost(dig: String) -> int:
@@ -502,6 +547,26 @@ func _try_buy_upgrades() -> void:
 					gallery_slots += gallery_slot_gain
 				"omen":
 					reel.luck = minf(0.9, reel.luck + float(UPGRADES["omen"]["luck"]))
+				"excavators":
+					_apply_excavators()
+
+## The effective duration of a dig, with the excavators applied.
+##
+## Every excavator level takes a day off, but a dig can never be shorter
+## than one day - there has to be a day on which it happens.
+func _dig_days(dig: String) -> int:
+	return maxi(1, _base_dig_days(dig) - _count("excavators"))
+
+## Re-time every dig already in the ground after the excavator outfit
+## changes. A dig that is already under way is worked faster too: the
+## outfit simply gets on with it.
+func _apply_excavators() -> void:
+	for p in digging.keys():
+		var info: Dictionary = digging[p]
+		var base := _base_dig_days(str(info["dig"]))
+		var start := int(info.get("start_day", int(info["ready_day"]) - base))
+		info["ready_day"] = start + maxi(1, base - _count("excavators"))
+		digging[p] = info
 
 # ---------------------------------------------------------------- stages
 
@@ -524,7 +589,7 @@ func _open_digs() -> void:
 		var cost := int(DIGS[dig]["cost"])
 		money -= cost
 		opex_today += cost
-		digging[p] = {"dig": dig, "ready_day": day + int(DIGS[dig]["days"])}
+		digging[p] = {"dig": dig, "ready_day": day + _dig_days(dig), "start_day": day}
 		if manual:
 			pending_digs.erase(p)
 
@@ -540,13 +605,14 @@ func _finish_digs() -> void:
 			_add(raw, _pick_grade(def["grades"]), 1)
 		digging.erase(p)
 		digs_completed_today += 1
+		digs_completed += 1
 
 ## Catalogue raw finds into curated exhibits. Curators are the throughput
 ## bottleneck: more finds without more curators just piles up in the storeroom.
 func _curate() -> void:
 	var bonus := 1.0 + archivist_bonus * float(_count("archivists"))
 	var capacity := maxi(0, curators * curator_capacity + event_curation_delta())
-	var grades := ["crown", "relic", "clay", "rubble"]
+	var grades := GRADE_ORDER
 	for _i in capacity:
 		var moved := false
 		for g in grades:
@@ -578,7 +644,7 @@ func _restock_gallery() -> void:
 	var space := maxi(0, wanted - on_display)
 	if space <= 0:
 		return
-	var grades := ["crown", "relic", "clay", "rubble"]
+	var grades := GRADE_ORDER
 	for _i in space:
 		var moved := false
 		for g in grades:
@@ -613,7 +679,10 @@ func _theft() -> int:
 func _demand() -> int:
 	var mult := pow(market_gain, float(_count("gallery")))
 	var time_mult := 1.0 + float(day) / demand_growth
-	return maxi(1, int(round(float(visitor_demand) * mult * time_mult * event_demand_mult())))
+	# Every guide talks one more paying visitor through the door, on top of
+	# the base crowd.
+	var crowd := float(visitor_demand + _count("guides"))
+	return maxi(1, int(round(crowd * mult * time_mult * event_demand_mult())))
 
 ## Spin the Fate Reel if policy allows and charms suffice.
 ## Returns the payout multiplier (1.0 if no spin).
@@ -637,7 +706,7 @@ func _spin_reel() -> float:
 ## Collect the day's takings, multiplied by the reel.
 func _collect_takings(multiplier: float) -> void:
 	var cap := _demand()
-	var grades := ["crown", "relic", "clay", "rubble"]
+	var grades := GRADE_ORDER
 	var paid := 0
 	for g in grades:
 		if paid >= cap:
@@ -677,7 +746,7 @@ func _dealer_sale() -> void:
 		return
 	if money >= 60:
 		return
-	for g in ["rubble", "clay", "relic", "crown"]:
+	for g in GRADE_ORDER_CHEAP:
 		if int(vault.get(g, 0)) > 0:
 			vault[g] = int(vault[g]) - 1
 			var cash := int(round(float(_exhibit_value(g)) * dealer_rate))
@@ -921,6 +990,7 @@ func to_dict() -> Dictionary:
 		"reel_revenue_log": reel_revenue_log.duplicate(),
 		"stolen_log": stolen_log.duplicate(),
 		"curated_log": curated_log.duplicate(),
+		"digs_completed": digs_completed,
 		"manual": manual,
 	}
 
@@ -967,6 +1037,7 @@ func from_dict(d: Dictionary) -> void:
 	reel_revenue_log = _int_array(d.get("reel_revenue_log", []))
 	stolen_log = _int_array(d.get("stolen_log", []))
 	curated_log = _int_array(d.get("curated_log", []))
+	digs_completed = int(d.get("digs_completed", 0))
 	var st := str(d.get("rng_state", ""))
 	if st.is_valid_int():
 		rng.state = int(st)

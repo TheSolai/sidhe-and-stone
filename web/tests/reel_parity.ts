@@ -329,7 +329,12 @@ checkExact(ev.theft, 1.0, 'the deck must be theft-neutral');
 checkExact(ev.curation, 0.0, 'the deck must be curation-neutral');
 check(ev.charm < 0.25, `the deck's charm windfall must stay under 0.25 (got ${ev.charm})`);
 check(ev.charm > 0, 'the deck should pay a small charm windfall');
-check(totalWeight() === 80, `the deck's total weight must be 80 (got ${totalWeight()})`);
+// The deck's total weight, with the six market/crowd/fever events added.
+const DECK_WEIGHT = 114;
+check(
+  totalWeight() === DECK_WEIGHT,
+  `the deck's total weight must be ${DECK_WEIGHT} (got ${totalWeight()})`
+);
 
 // The reel must stay a bounded marginal amplifier: a player who never
 // spins must still earn a fair, steady income.

@@ -8,7 +8,7 @@
 
 import { PAL } from '../palette.ts';
 import type { Screen, ScreenContext } from '../screen.ts';
-import { drawPanel, drawText, drawDitherGradient, FONT } from '../widgets.ts';
+import { drawPanel, drawText, drawDitherGradient, FONT, measureText } from '../widgets.ts';
 import { drawSprite } from '../sprites.ts';
 
 export class TitleScreen implements Screen {
@@ -174,16 +174,38 @@ export class TitleScreen implements Screen {
     }
 
     // A caption at the bottom.
-    drawText(g, 'Dig  ·  Catalogue  ·  Display  ·  Take the takings', w / 2, h - 62, {
+    //
+    // This sits on the MOSS band, and white on moss is only 2.61:1 --
+    // unreadable. It is written on a dark ink plate instead, which is
+    // both legible and more in keeping with the rest of the interface.
+    const capW = 420;
+    const capX = Math.round((w - capW) / 2);
+    const capY = h - 66;
+    g.fillStyle = PAL.K;
+    g.fillRect(capX - 10, capY - 6, capW + 20, 24);
+    drawText(g, 'Dig  ·  Catalogue  ·  Display  ·  Take the takings', w / 2, capY, {
       font: FONT.small,
       color: PAL.W,
       align: 'center',
     });
 
     // The version and a hint, small and unobtrusive.
-    drawText(g, 'Web port — economy verified identical to the Godot build', 14, h - 24, {
+    //
+    // This one was written in N on the N band at the very bottom, which
+    // is a contrast ratio of 1.0 -- it was invisible. It is now on a dark
+    // plate as well.
+    const verText = 'Web port — economy verified identical to the Godot build';
+    const verW = measureText(verText, FONT.tiny);
+    const verX = 10;
+    // The plate's width is rounded to a whole pixel. A fractional
+    // fillRect antialiases its right edge, and the blended column that
+    // produces is off-palette -- 72 pixels of it, in the one frame that
+    // the audit cares about most.
+    g.fillStyle = PAL.K;
+    g.fillRect(verX, h - 30, Math.round(verW) + 14, 18);
+    drawText(g, verText, verX + 7, h - 26, {
       font: FONT.tiny,
-      color: PAL.N,
+      color: PAL.W,
     });
   }
 }

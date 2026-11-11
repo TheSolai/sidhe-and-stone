@@ -7,9 +7,10 @@ extends RefCounted
 ## the same decision with a bigger number on it, and the player has no way
 ## to tell "I am making progress" from "I am spinning the wheels".
 ##
-## The ladder is deliberately shallow - three tiers, twelve goals - and every
-## goal is a thing the player has ALREADY been doing, just noticed. Nothing
-## here asks for a new verb. "Catalogue 10 finds" is what a curator does.
+## The ladder is deliberately shallow - three tiers, eighteen goals - and
+## every goal is a thing the player has ALREADY been doing, just noticed.
+## Nothing here asks for a new verb. "Catalogue 10 finds" is what a curator
+## does.
 ##
 ## Rewards are granted automatically the moment a goal completes, and the
 ## completion is written into the ledger, so the ladder also doubles as the
@@ -72,6 +73,15 @@ const GOALS := [
 		"reward": {"money": 250},
 	},
 	{
+		"id": "first_payday",
+		"tier": "Opening",
+		"title": "A First Payday",
+		"body": "Take £50 at the door in a single day.",
+		"metric": "max_day_revenue",
+		"target": 50,
+		"reward": {"money": 150},
+	},
+	{
 		"id": "apprentice",
 		"tier": "Opening",
 		"title": "Curator's Apprentice",
@@ -87,6 +97,15 @@ const GOALS := [
 		"body": "Go 7 nights without losing a thing to thieves.",
 		"metric": "clean_nights",
 		"target": 7,
+		"reward": {"charms": 3, "luck": 0.05},
+	},
+	{
+		"id": "tablet_case",
+		"tier": "Opening",
+		"title": "The Tablet Case",
+		"body": "Put a tablet on the gallery floor.",
+		"metric": "tablets_displayed",
+		"target": 1,
 		"reward": {"charms": 3, "luck": 0.05},
 	},
 	{
@@ -114,7 +133,34 @@ const GOALS := [
 		"body": "Earn £300 in a single day.",
 		"metric": "max_day_revenue",
 		"target": 300,
-		"reward": {"money": 250},
+		"reward": {"money": 350},
+	},
+	{
+		"id": "real_collection",
+		"tier": "Steady Trade",
+		"title": "A Real Collection",
+		"body": "Keep 25 pieces in the vault.",
+		"metric": "vault_count",
+		"target": 25,
+		"reward": {"money": 1200},
+	},
+	{
+		"id": "steady_hands",
+		"tier": "Steady Trade",
+		"title": "Steady Hands",
+		"body": "Go 21 nights without losing a thing to thieves.",
+		"metric": "clean_nights",
+		"target": 21,
+		"reward": {"money": 7900},
+	},
+	{
+		"id": "long_shift",
+		"tier": "Steady Trade",
+		"title": "The Long Shift",
+		"body": "Finish 25 digs.",
+		"metric": "digs_completed",
+		"target": 25,
+		"reward": {"money": 4250},
 	},
 	{
 		"id": "grander_gallery",
@@ -132,7 +178,7 @@ const GOALS := [
 		"body": "Trade for 30 days.",
 		"metric": "days",
 		"target": 30,
-		"reward": {"money": 12500},
+		"reward": {"money": 9600},
 	},
 	{
 		"id": "strongbox",
@@ -142,6 +188,15 @@ const GOALS := [
 		"metric": "total_revenue",
 		"target": 5000,
 		"reward": {"money": 2500},
+	},
+	{
+		"id": "mask_comes",
+		"tier": "Renown",
+		"title": "The Mask Comes",
+		"body": "Display a mask.",
+		"metric": "masks_displayed",
+		"target": 1,
+		"reward": {"money": 4000},
 	},
 	{
 		"id": "renowned",
@@ -197,6 +252,12 @@ func progress_for(goal: Dictionary, ctx: Dictionary) -> float:
 			return float(ctx.get("clean_nights", 0))
 		"crowns_displayed":
 			return float(ctx.get("crowns_displayed", 0))
+		"tablets_displayed":
+			return float(ctx.get("tablets_displayed", 0))
+		"masks_displayed":
+			return float(ctx.get("masks_displayed", 0))
+		"digs_completed":
+			return float(ctx.get("digs_completed", 0))
 		"max_day_revenue":
 			return float(ctx.get("max_day_revenue", 0))
 		"total_revenue":
@@ -211,7 +272,7 @@ func reward_text(goal: Dictionary) -> String:
 	if r.has("money"):
 		bits.append("£%d" % int(r["money"]))
 	if r.has("charms"):
-		bits.append("%d☘" % int(r["charms"]))
+		bits.append("%d charm(s)" % int(r["charms"]))
 	if r.has("luck"):
 		bits.append("+%.2f luck" % float(r["luck"]))
 	return " · ".join(bits)

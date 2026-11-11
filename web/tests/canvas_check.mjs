@@ -15,6 +15,8 @@
 import {
   launchBrowser,
   loadPlaywright,
+  loadPalette,
+  loadPaletteByKey,
   readCanvas,
   countColour,
   clickRegion,
@@ -24,7 +26,7 @@ import {
 const { chromium } = loadPlaywright();
 
 /**
- * The palette, as hex strings.
+ * The palette, read from art/palette.px.js.
  *
  * Every rendered pixel is an exact palette entry. The text is a baked
  * 1-bit bitmap font and the geometry is integer-aligned, so there are no
@@ -33,15 +35,26 @@ const { chromium } = loadPlaywright();
  *
  * That means the check below can demand a perfect result rather than
  * tolerating the blends an anti-aliased system font used to produce.
+ *
+ * The list is PARSED from the palette file, not copied into this test.
+ * A copy goes stale the moment the palette is re-solved, and a stale
+ * list fails for the wrong reason - or worse, passes against colours
+ * the game no longer draws.
  */
-const PALETTE = [
-  '#16120f', '#2f251d', '#453729', '#6e624a', '#845537', '#b0895f',
-  '#d6d4c8', '#e8dcc4', '#f7f2e3', '#b4794a', '#d9a441', '#e0b23c',
-  '#f2d98a', '#c05f3c', '#7d9a52', '#5f9e8f', '#6dd3df', '#a8e8ef',
-  '#8b99a6', '#8a8378',
-];
+const PALETTE = loadPalette();
 
 const PALETTE_SET = new Set(PALETTE.map((h) => h.toLowerCase()));
+
+/**
+ * The palette by letter.
+ *
+ * The checks below measure named roles -- "the cream of the HUD", "the
+ * gold rule", "the dark nav band" -- so they ask for the palette LETTER
+ * rather than a hex. If the palette is re-solved, the letter keeps its
+ * meaning and the measured colour follows it automatically. A hardcoded
+ * hex here would quietly measure the wrong thing, or measure nothing.
+ */
+const PAL = loadPaletteByKey();
 
 /**
  * The most pixels a single off-palette colour may cover.
@@ -130,7 +143,7 @@ const titlePalette = isOnPalette('the title screen', title.counts);
 check(titlePalette.ok, titlePalette.message);
 
 // The title banner: gold pixels near the top.
-const goldOnTitle = await countColour(page, '#e0b23c', 200, 100, 560, 80);
+const goldOnTitle = await countColour(page, PAL.G, 200, 100, 560, 80);
 check(goldOnTitle > 200, `the title is drawn in gold (${goldOnTitle} px)`);
 
 // ---------------------------------------------------------------- the dig site
@@ -148,22 +161,22 @@ const dig = await readCanvas(page);
 check(dig.counts.length > 8, `the dig screen uses many colours (${dig.counts.length})`);
 
 // The HUD strip: cream across the top, with a gold rule under it.
-const hudCream = await countColour(page, '#e8dcc4', 0, 0, 960, 55);
+const hudCream = await countColour(page, PAL.C, 0, 0, 960, 55);
 check(hudCream > 20000, `the HUD is a cream bar (${hudCream} px)`);
 
-const hudGold = await countColour(page, '#d9a441', 0, 55, 960, 3);
+const hudGold = await countColour(page, PAL.Y, 0, 55, 960, 3);
 check(hudGold > 900, `the HUD has its gold rule (${hudGold} px)`);
 
 // The nav strip: a dark band along the bottom, with cream chips on it.
-const navDark = await countColour(page, '#2f251d', 0, 502, 960, 34);
+const navDark = await countColour(page, PAL.D, 0, 502, 960, 34);
 check(navDark > 10000, `the nav strip is a dark band (${navDark} px)`);
 
-const navCream = await countColour(page, '#e8dcc4', 0, 502, 960, 34);
+const navCream = await countColour(page, PAL.C, 0, 502, 960, 34);
 check(navCream > 1000, `the nav buttons are cream chips (${navCream} px)`);
 
 // ---------------------------------------------------------------- each screen
 
-const navIds = ['dig', 'curator', 'vault', 'gallery', 'reel', 'ledger', 'goals'];
+const navIds = ['dig', 'curator', 'vault', 'gallery', 'reel', 'shop', 'ledger', 'goals'];
 
 for (const id of navIds) {
   await clickRegion(page, `nav:${id}`);
@@ -172,10 +185,10 @@ for (const id of navIds) {
   const screen = await readCanvas(page);
 
   // Every screen keeps the HUD and the nav strip.
-  const hud = await countColour(page, '#e8dcc4', 0, 0, 960, 55);
+  const hud = await countColour(page, PAL.C, 0, 0, 960, 55);
   check(hud > 20000, `the ${id} screen keeps its HUD (${hud} px)`);
 
-  const nav = await countColour(page, '#2f251d', 0, 502, 960, 34);
+  const nav = await countColour(page, PAL.D, 0, 502, 960, 34);
   check(nav > 10000, `the ${id} screen keeps its nav strip (${nav} px)`);
 
   // Every screen is drawn in the palette.
