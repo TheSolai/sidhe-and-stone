@@ -110,7 +110,12 @@ export function drawPanel(
   const h = Math.round(rect.h);
 
   if (shadow) {
-    ctx.fillStyle = 'rgba(22, 18, 15, 0.28)';
+    // A hard, pixel-aligned offset shadow rather than a soft alpha blur.
+    // The palette is a closed set, and an alpha fill would blend into
+    // colours that are not in it -- which quietly breaks the promise that
+    // every pixel on screen comes from the shared palette. KairoSoft's
+    // panels have exactly this kind of crisp drop shadow anyway.
+    ctx.fillStyle = PAL.P;
     ctx.fillRect(x + 3, y + 3, w, h);
   }
 
@@ -278,7 +283,8 @@ export function drawBar(
     ctx.fillStyle = color;
     ctx.fillRect(x, y, fill, h);
     // A lighter band along the top of the fill, so the bar has depth.
-    ctx.fillStyle = 'rgba(247, 242, 227, 0.35)';
+    // A solid palette colour, not an alpha wash: the palette is closed.
+    ctx.fillStyle = PAL.W;
     ctx.fillRect(x, y, fill, 1);
   }
 
@@ -321,6 +327,72 @@ export function drawGradeChip(
     color: PAL.D,
   });
   return Math.round(x + size + 4 + ctx.measureText(text).width);
+}
+
+/**
+ * A dithered gradient between two palette colours.
+ *
+ * A smooth canvas gradient interpolates to colours that are not in the
+ * palette, which quietly breaks the promise that every pixel on screen
+ * comes from the shared set. A pixel game dithers instead: the two
+ * colours are interleaved in a checkerboard, and the density of each one
+ * changes from band to band, so the eye reads a gradient while every
+ * individual pixel is exactly one of the two.
+ *
+ * The dither is a 2x2 ordered pattern, which is the smallest pattern that
+ * reads as a blend at 1x without shimmering.
+ */
+export function drawDitherGradient(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  top: string,
+  bottom: string,
+  bands = 16
+): void {
+  const x0 = Math.round(x);
+  const y0 = Math.round(y);
+  const width = Math.round(w);
+  const height = Math.round(h);
+
+  // The band height: how tall each step of the gradient is.
+  const bandH = Math.max(1, Math.ceil(height / bands));
+
+  for (let band = 0; band < bands; band++) {
+    const bandY = y0 + band * bandH;
+    const bandHeight = Math.min(bandH, y0 + height - bandY);
+    if (bandHeight <= 0) break;
+
+    // How far through the gradient this band sits: 0 at the top, 1 at the
+    // bottom.
+    const t = bands === 1 ? 0 : band / (bands - 1);
+
+    // The number of rows in this band that are the BOTTOM colour. The
+    // dither fills that fraction of the band's rows.
+    const bottomRows = Math.round(bandHeight * t);
+
+    for (let row = 0; row < bandHeight; row++) {
+      const useBottom = row >= bandHeight - bottomRows;
+
+      ctx.fillStyle = useBottom ? bottom : top;
+      ctx.fillRect(x0, bandY + row, width, 1);
+
+      // The transition row: interleave both colours in a checkerboard.
+      if (
+        useBottom &&
+        bottomRows > 0 &&
+        bottomRows < bandHeight &&
+        row === bandHeight - bottomRows - 1
+      ) {
+        ctx.fillStyle = bottom;
+        for (let i = 0; i < width; i += 2) {
+          ctx.fillRect(x0 + i, bandY + row, 1, 1);
+        }
+      }
+    }
+  }
 }
 
 /** A row of tiny dots showing a probability or a share. */

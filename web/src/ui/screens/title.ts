@@ -8,7 +8,7 @@
 
 import { PAL } from '../palette.ts';
 import type { Screen, ScreenContext } from '../screen.ts';
-import { drawPanel, drawText, FONT } from '../widgets.ts';
+import { drawPanel, drawText, drawDitherGradient, FONT } from '../widgets.ts';
 import { drawSprite } from '../sprites.ts';
 
 export class TitleScreen implements Screen {
@@ -118,17 +118,14 @@ export class TitleScreen implements Screen {
     const h = ctx.surface.canvas.height;
 
     // A warm sky behind the title, so the screen is not a flat panel.
-    const grad = g.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#f2e6cc');
-    grad.addColorStop(0.55, PAL.C);
-    grad.addColorStop(1, '#d9c8a8');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, w, h);
+    // Dithered rather than a smooth gradient: a smooth one would
+    // interpolate to colours outside the shared palette.
+    drawDitherGradient(g, 0, 0, w, h, PAL.W, PAL.C, 18);
 
     // Rolling ground along the bottom.
     g.fillStyle = PAL.M;
     g.fillRect(0, h - 84, w, 40);
-    g.fillStyle = '#688345';
+    g.fillStyle = PAL.A;
     g.fillRect(0, h - 84, w, 6);
     g.fillStyle = PAL.N;
     g.fillRect(0, h - 44, w, 44);

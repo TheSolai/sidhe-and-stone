@@ -69,7 +69,7 @@ const state = new GameState();
 const core = state.sim;
 core.reelPolicy = opts.reelPolicy;
 core.reelCharmCost = opts.reelCost;
-core.reel.charmRate = opts.charmRate;
+core.charmPerUnit = opts.charmRate;
 core.reel.reseed(opts.reelSeed);
 
 const result = play(state, opts.days);

@@ -49,7 +49,7 @@ const opts = parseArgs(process.argv.slice(2));
 const core = new SimCore();
 core.reelPolicy = opts.reelPolicy;
 core.reelCharmCost = opts.reelCost;
-core.reel.charmRate = opts.charmRate;
+core.charmPerUnit = opts.charmRate;
 core.reel.reseed(opts.reelSeed);
 
 const result = core.run(opts.days);

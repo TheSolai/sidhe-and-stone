@@ -52,6 +52,19 @@ export class App {
   private activeId = 'title';
 
   private regions: Region[] = [];
+  /** Modal overlay regions. These take priority over the screen's own. */
+  private overlayRegions: Region[] = [];
+
+  /**
+   * Every interactive region currently on screen.
+   *
+   * Exposed so the browser checks can click a control by its id rather
+   * than by a hardcoded pixel position, which breaks the moment a layout
+   * changes by a few pixels.
+   */
+  public get interactiveRegions(): Region[] {
+    return [...this.overlayRegions, ...this.regions];
+  }
   private navButtons: NavButton[] = [];
 
   private pointer: { x: number; y: number } | null = null;
@@ -164,8 +177,16 @@ export class App {
 
       // Find the region under the pointer and remember it, so the click is
       // resolved on pointerup even if the pointer drifts a pixel.
+      //
+      // Overlay regions are searched FIRST. A modal dialog covers the whole
+      // screen, so without this the screen's own buttons would still take
+      // clicks through the dimming.
       this.pressedRegion =
-        this.regions.find((r) => r.enabled !== false && regionHit(r, p.x, p.y)) ?? null;
+        this.overlayRegions.find(
+          (r) => r.enabled !== false && regionHit(r, p.x, p.y)
+        ) ??
+        this.regions.find((r) => r.enabled !== false && regionHit(r, p.x, p.y)) ??
+        null;
 
       canvas.setPointerCapture(e.pointerId);
     });
@@ -183,18 +204,11 @@ export class App {
       if (!pressed) return;
       if (!regionHit(pressed, p.x, p.y)) return;
 
-      // Navigation buttons are handled here rather than by a screen,
-      // because the strip is chrome that sits above every screen.
-      if (pressed.id?.startsWith('nav:')) {
-        const id = pressed.id.slice(4);
-        this.goTo(id);
-        return;
-      }
-      if (pressed.id === 'hud:endday') {
-        this.endDay();
-        return;
-      }
+      // The region's own action. Every region carries one, including the
+      // chrome (nav tabs, the End Day button) and the modal overlays.
+      pressed.onClick();
 
+      // The screen also gets told, so it can update hover state.
       const screen = this.screens.get(this.activeId);
       screen?.onRegionClick?.(pressed, this.context());
     });
@@ -332,7 +346,10 @@ export class App {
     const g = this.surface.ctx;
     const ctx = this.context();
 
-    this.surface.begin(PAL.C);
+    // The page behind the panels is the darker parchment, so the cream
+    // panels read as raised surfaces rather than dissolving into the
+    // background.
+    this.surface.begin(PAL.X);
 
     const screen = this.screens.get(this.activeId);
     if (!screen) return;
@@ -342,14 +359,15 @@ export class App {
     const isTitle = this.activeId === 'title';
 
     this.regions = [];
+    this.overlayRegions = [];
 
     if (!isTitle) {
       const hud = drawHud(ctx);
-      this.navButtons = navLayout(LOGICAL_WIDTH);
+      this.navButtons = navLayout(LOGICAL_WIDTH, LOGICAL_HEIGHT);
       for (const b of this.navButtons) {
         this.regions.push({
           x: b.x,
-          y: LOGICAL_HEIGHT - 34,
+          y: b.y,
           w: b.w,
           h: b.h,
           id: `nav:${b.id}`,
@@ -498,7 +516,7 @@ export class App {
       align: 'center',
     });
 
-    this.regions.push({
+    this.overlayRegions.push({
       x: btnX,
       y: btnY,
       w: btnW,
@@ -577,7 +595,7 @@ export class App {
       color: PAL.U,
     });
 
-    this.regions.push({
+    this.overlayRegions.push({
       x: btnX,
       y: btnY,
       w: btnW,
@@ -590,7 +608,7 @@ export class App {
       },
     });
 
-    this.regions.push({
+    this.overlayRegions.push({
       x: x + 28,
       y: btnY,
       w: 110,

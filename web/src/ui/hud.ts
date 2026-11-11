@@ -177,7 +177,7 @@ export function drawNav(
 }
 
 /** The nav button geometry, laid out left to right. */
-export function navLayout(canvasWidth: number): NavButton[] {
+export function navLayout(canvasWidth: number, canvasHeight: number): NavButton[] {
   const labels: Record<NavId, string> = {
     dig: 'Dig Site',
     curator: 'Storeroom',
@@ -188,8 +188,11 @@ export function navLayout(canvasWidth: number): NavButton[] {
     goals: 'Goals',
   };
 
-  const y = canvasWidth > 0 ? 0 : 0;
+  // The chips sit inside the dark band along the bottom edge. The band is
+  // drawn 38px tall from the bottom, so the chips sit flush with its lower
+  // edge -- the same place the clickable regions live.
   const h = 30;
+  const y = canvasHeight - h;
   const gap = 4;
   const total = NAV_IDS.length;
   const w = 118;

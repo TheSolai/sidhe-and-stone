@@ -55,6 +55,11 @@ async function boot(): Promise<void> {
 
   if (bootEl) bootEl.classList.add('hidden');
 
+  // A test seam. The browser checks drive the real game through this, so
+  // they can find a control by its id instead of by a hardcoded pixel
+  // position that breaks the moment a layout shifts.
+  (window as unknown as { __sidhe?: unknown }).__sidhe = app;
+
   app.start();
 }
 

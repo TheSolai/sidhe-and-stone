@@ -27,3 +27,6 @@ art/*/report.json
 # Web build output (regenerate with: npm run build)
 web/dist/
 web/public/sprites/
+
+# Dependencies (regenerate with: npm ci in web/)
+web/node_modules/
