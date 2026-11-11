@@ -8,10 +8,17 @@
  */
 
 import { PAL } from '../palette.ts';
-import { GRADES, GRADE_SPRITE } from '../palette.ts';
+import { GRADES, GRADE_COLOR, GRADE_SPRITE } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawPanel, drawText, drawChip, FONT, measureText } from '../widgets.ts';
+import {
+  drawPanel,
+  drawSpeechBubble,
+  drawText,
+  drawChip,
+  FONT,
+  measureText,
+} from '../widgets.ts';
 import {
   CONTENT_TOP,
   FOOTER_PANEL_HEIGHT,
@@ -113,28 +120,42 @@ export class CuratorScreen implements Screen {
       if (count > 0) rows.push({ grade, count });
     }
 
-    let ry = rawY + 48;
+    let ry = rawY + 44;
     if (rows.length === 0) {
       drawText(g, 'Nothing waiting.', tableX + 20, ry, {
         font: FONT.body,
         color: PAL.P,
       });
     } else {
-      for (const row of rows) {
+      // RULE 10.1: inset rows with a thin coloured block at the leading
+      // edge, and the grade's own picture beside it.
+      // RULE 10.2: the table is wide, so the rows alternate.
+      // RULE 10.5: the count is right-aligned, so the column of numbers
+      // lines up.
+      const rowH = 30;
+      rows.forEach((row, i) => {
+        const rowY = ry + i * rowH;
+        g.fillStyle = i % 2 === 0 ? PAL.W : PAL.C;
+        g.fillRect(tableX + 12, rowY, tableW - 24, rowH - 4);
+
+        g.fillStyle = GRADE_COLOR[row.grade] ?? PAL.R;
+        g.fillRect(tableX + 12, rowY, 5, rowH - 4);
+
         const image = ctx.sprites.get(GRADE_SPRITE[row.grade]);
         if (image) {
-          drawSprite(g, image, tableX + 20, ry - 2, 1);
+          drawSprite(g, image, tableX + 24, rowY + 3, 1);
         }
-        drawText(g, row.grade, tableX + 44, ry + 3, {
+        drawText(g, row.grade, tableX + 48, rowY + 6, {
           font: FONT.body,
           color: PAL.D,
         });
-        drawText(g, `×${row.count}`, tableX + 160, ry + 3, {
+        drawText(g, `${row.count}`, tableX + tableW - 24, rowY + 6, {
           font: FONT.body,
           color: PAL.K,
+          align: 'right',
         });
-        ry += 30;
-      }
+      });
+      ry += rows.length * rowH;
     }
 
     // The curators themselves, with what they can handle.
@@ -151,8 +172,34 @@ export class CuratorScreen implements Screen {
 
     const curatorSprite = ctx.sprites.get('curator');
     if (curatorSprite) {
-      drawSprite(g, curatorSprite, MARGIN_X + 20, crewY + 26, 2);
+      drawSprite(g, curatorSprite, MARGIN_X + 14, crewY + 28, 2);
     }
+
+    // RULE 5.6: the curator's own words go in a speech bubble -- a white
+    // bubble with a thin outline and a tail pointing at the speaker. A
+    // SYSTEM message never goes in a bubble: the standing warning at the
+    // top of the screen is written as plain text with a chip, because it
+    // is information about the museum, not something anyone said.
+    const backlog = state.rawCount();
+    const crewCapacity = Math.max(1, state.dailyCuration());
+    const daysToClear = backlog / crewCapacity;
+    const speech =
+      backlog === 0
+        ? 'The storeroom is clear.'
+        : backlog > crewCapacity * 2
+          ? 'The pile is outgrowing us!'
+          : 'We will get to them.';
+
+    // The tail points LEFT, at the curator: the bubble sits beside the
+    // speaker, so a downward tail would have pointed at the floor. The
+    // tail's Y is the middle of the curator sprite.
+    drawSpeechBubble(
+      g,
+      { x: MARGIN_X + 62, y: crewY + 26, w: 210, h: 34 },
+      speech,
+      crewY + 28 + 18,
+      'left'
+    );
 
     // The three rows of crew readings.
     //
@@ -161,10 +208,19 @@ export class CuratorScreen implements Screen {
     // the framework owns. The band check found it; the rows are pulled
     // up so the last one lands at +56 and ends at y=472, inside the
     // panel's own bottom edge.
-    const crewX = MARGIN_X + 70;
-    drawText(g, `${state.curators()} curator${state.curators() === 1 ? '' : 's'}`, crewX, crewY + 26, {
+    //
+    // RULE 1.2: the crew count is a picture and a number, not a bare
+    // word.
+    const crewX = MARGIN_X + 290;
+    const crewIcon = ctx.sprites.get('upgrade_curator');
+    if (crewIcon) drawSprite(g, crewIcon, crewX, crewY + 24, 1);
+    drawText(g, `${state.curators()}`, crewX + 22, crewY + 26, {
       font: FONT.body,
       color: PAL.D,
+    });
+    drawText(g, `curator${state.curators() === 1 ? '' : 's'}`, crewX + 22 + 18, crewY + 27, {
+      font: FONT.small,
+      color: PAL.P,
     });
     drawText(g, `${state.curatorCapacity()} find${state.curatorCapacity() === 1 ? '' : 's'} each per day`, crewX, crewY + 42, {
       font: FONT.small,
@@ -178,15 +234,11 @@ export class CuratorScreen implements Screen {
     // On the right of the crew panel: the backlog, stated as a number.
     // Curators are the bottleneck in this game, so the backlog is given
     // its own reading rather than only being a pile of sprites.
-    const backlog = state.rawCount();
-    const crewCapacity = Math.max(1, state.dailyCuration());
-    const daysToClear = backlog / crewCapacity;
-
-    drawText(g, 'Backlog', MARGIN_X + 360, crewY + 26, {
+    drawText(g, 'Backlog', MARGIN_X + 600, crewY + 26, {
       font: FONT.small,
       color: PAL.P,
     });
-    drawText(g, `${backlog} waiting`, MARGIN_X + 360, crewY + 42, {
+    drawText(g, `${backlog} waiting`, MARGIN_X + 600, crewY + 42, {
       font: FONT.body,
       color: PAL.D,
     });
@@ -195,7 +247,7 @@ export class CuratorScreen implements Screen {
       backlog === 0
         ? 'Nothing waiting — the storeroom is clear.'
         : `About ${daysToClear.toFixed(1)} days of work to clear.`,
-      MARGIN_X + 360,
+      MARGIN_X + 600,
       crewY + 56,
       { font: FONT.small, color: PAL.P }
     );

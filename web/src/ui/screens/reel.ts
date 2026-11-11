@@ -14,8 +14,9 @@
 import { PAL } from '../palette.ts';
 import { SYMBOLS, type SymbolDef } from '../../sim/reel-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
+import { multiplier } from '../screen.ts';
 import { drawSprite, drawSpriteRotated } from '../sprites.ts';
-import { drawPanel, drawText, drawWell, FONT } from '../widgets.ts';
+import { drawBevelButton, drawPanel, drawText, drawWell, FONT, measureText } from '../widgets.ts';
 import { FOOTER_PANEL_HEIGHT, FOOTER_TOP } from '../bands.ts';
 
 /** The colour of each reel symbol. */
@@ -134,7 +135,10 @@ export class ReelScreen implements Screen {
       }
 
       if (def) {
-        drawText(g, `×${def.mult.toFixed(2)}`, wx + winW / 2, winY + winH - 16, {
+        // RULE 4.1: a multiplier is written `x1.5` -- lowercase x, no
+        // space -- and RULE 4.3: it lives in the panel where the boosted
+        // value is compared, not in the top bar.
+        drawText(g, multiplier(def.mult), wx + winW / 2, winY + winH - 16, {
           font: FONT.tiny,
           color: PAL.P,
           align: 'center',
@@ -146,7 +150,7 @@ export class ReelScreen implements Screen {
     const payout = state.pendingPayout();
     const pendingText = this.spinning
       ? 'The wheel is turning…'
-      : `Pending multiplier: ×${payout.toFixed(2)}`;
+      : `Pending multiplier: ${multiplier(payout)}`;
 
     drawText(g, pendingText, winX, winY + winH + 20, {
       font: FONT.mid,
@@ -154,13 +158,36 @@ export class ReelScreen implements Screen {
     });
 
     // The cost of a spin, under the windows.
-    drawText(
-      g,
-      `Cost: ${state.charmCost()} charms  ·  You have ${state.charms()}`,
-      winX,
-      winY + winH + 64,
-      { font: FONT.small, color: PAL.P }
-    );
+    //
+    // RULE 1.2 / RULE 4.6: the charm is a picture and a number, never a
+    // bare word with a number attached, and the picture carries the
+    // unit.
+    const charmIcon = ctx.sprites.get('icon_charm');
+    const costLabel = 'Cost';
+    drawText(g, costLabel, winX, winY + winH + 64, {
+      font: FONT.small,
+      color: PAL.P,
+    });
+    const costIconX = winX + measureText(costLabel, FONT.small) + 8;
+    if (charmIcon) drawSprite(g, charmIcon, costIconX, winY + winH + 62, 1);
+    drawText(g, `${state.charmCost()}`, costIconX + (charmIcon ? 22 : 0), winY + winH + 64, {
+      font: FONT.small,
+      color: PAL.D,
+    });
+    drawText(g, '·', costIconX + 44, winY + winH + 64, {
+      font: FONT.small,
+      color: PAL.P,
+    });
+    const haveIconX = costIconX + 54;
+    drawText(g, 'You have', haveIconX, winY + winH + 64, {
+      font: FONT.small,
+      color: PAL.P,
+    });
+    if (charmIcon) drawSprite(g, charmIcon, haveIconX + measureText('You have', FONT.small) + 8, winY + winH + 62, 1);
+    drawText(g, `${state.charms()}`, haveIconX + measureText('You have', FONT.small) + 30, winY + winH + 64, {
+      font: FONT.small,
+      color: PAL.D,
+    });
 
     // The guarantee used to live here, in the content panel, and it did
     // not fit: the sentence is 404 pixels wide and the space beside the
@@ -172,26 +199,28 @@ export class ReelScreen implements Screen {
     // empty space. The reel's own record sits on the right of the same
     // band, so the two panels balance each other.
 
-    // The spin button.
+    // The spin button: the primary action on this screen, so it gets the
+    // gold bevelled face (RULE 3.1, RULE 3.7) and the star icon on its
+    // leading side (RULE 2.6).
     const canSpin = state.canSpin() && !this.spinning;
-    const bw = 150;
+    // The button is 190 wide because the label and its icon have to fit
+    // without truncation: "Spin the reel" at the mid size plus the star
+    // icon is wider than 150, and a clipped label on the one button the
+    // player is looking for is a defect.
+    const bw = 190;
     const bh = 40;
     const bx = panelX + 40;
     const by = panelY + panelH - 62;
 
-    g.fillStyle = canSpin ? PAL.Y : PAL.X;
-    g.fillRect(bx, by, bw, bh);
-    g.fillStyle = canSpin ? PAL.H : PAL.P;
-    g.fillRect(bx + 1, by + 1, bw - 2, 1);
-    g.fillStyle = PAL.K;
-    g.fillRect(bx, by, bw, 1);
-    g.fillRect(bx, by + bh - 1, bw, 1);
-    g.fillRect(bx, by, 1, bh);
-    g.fillRect(bx + bw - 1, by, 1, bh);
-    drawText(g, this.spinning ? 'Turning…' : 'Spin the reel', bx + bw / 2, by + 12, {
+    drawBevelButton(g, {
+      rect: { x: bx, y: by, w: bw, h: bh },
+      label: this.spinning ? 'Turning…' : 'Spin the reel',
+      enabled: canSpin,
+      primary: canSpin,
+      icon: 'symbol_star',
+      sprites: ctx.sprites,
       font: FONT.mid,
-      color: canSpin ? PAL.K : PAL.P,
-      align: 'center',
+      pressed: ctx.pressedRegionId === 'reel:spin',
     });
 
     regions.push({
@@ -217,49 +246,71 @@ export class ReelScreen implements Screen {
     let totalWeight = 0;
     for (const w of weights.values()) totalWeight += w;
 
-    let oy = panelY + 48;
-    for (const def of SYMBOLS) {
+    // The odds table.
+    //
+    // RULE 10.1: full-width inset rows, with a thin coloured block at
+    // the leading edge as the row's icon column.
+    //
+    // RULE 10.2: a WIDE table alternates its row fills, so the column of
+    // percentages can be scanned.
+    //
+    // RULE 10.5: the percentage is right-aligned, so the numbers line
+    // up down the column.
+    //
+    // RULE 4.4: the share is a thin bar in a light track.
+    const rowH = 38;
+    const rowX = oddsX + 12;
+    const rowW = oddsW - 24;
+    let oy = panelY + 44;
+    SYMBOLS.forEach((def, i) => {
       const weight = weights.get(def.id) ?? def.weight;
       const chance = totalWeight > 0 ? weight / totalWeight : 0;
+
+      g.fillStyle = i % 2 === 0 ? PAL.W : PAL.C;
+      g.fillRect(rowX, oy, rowW, rowH - 4);
+
+      // The leading block: the symbol's colour as a plate.
+      g.fillStyle = SYMBOL_COLOR[def.id] ?? PAL.N;
+      g.fillRect(rowX, oy, 6, rowH - 4);
 
       // The drawn motif, so the odds table matches the reel itself.
       const image = ctx.sprites.get(SYMBOL_SPRITE[def.id] ?? '');
       if (image) {
-        drawSprite(g, image, oddsX + 18, oy - 2, 1);
+        drawSprite(g, image, rowX + 12, oy + 3, 1);
       } else {
-        drawText(g, def.id.slice(0, 2).toUpperCase(), oddsX + 20, oy, {
+        drawText(g, def.id.slice(0, 2).toUpperCase(), rowX + 14, oy + 5, {
           font: FONT.mid,
           color: PAL.D,
         });
       }
 
-      drawText(g, def.id, oddsX + 44, oy + 2, {
+      drawText(g, def.id, rowX + 36, oy + 5, {
         font: FONT.body,
         color: def.good ? PAL.D : PAL.P,
       });
 
-      drawText(g, `×${def.mult.toFixed(2)}`, oddsX + 140, oy + 2, {
+      drawText(g, multiplier(def.mult), rowX + 118, oy + 6, {
         font: FONT.small,
         color: def.good ? PAL.D : PAL.P,
       });
 
-      drawText(g, `${(chance * 100).toFixed(1)}%`, oddsX + oddsW - 24, oy + 2, {
+      drawText(g, `${(chance * 100).toFixed(1)}%`, rowX + rowW - 10, oy + 6, {
         font: FONT.small,
         color: PAL.P,
         align: 'right',
       });
 
       // A bar showing the share.
-      const barX = oddsX + 44;
-      const barY = oy + 20;
-      const barW = oddsW - 68;
+      const barX = rowX + 36;
+      const barY = oy + 24;
+      const barW = rowW - 46;
       g.fillStyle = PAL.X;
       g.fillRect(barX, barY, barW, 6);
       g.fillStyle = SYMBOL_COLOR[def.id] ?? PAL.N;
       g.fillRect(barX, barY, Math.round(barW * chance), 6);
 
-      oy += 38;
-    }
+      oy += rowH;
+    });
 
     // The reel's own history.
     const reel = state.sim.reel;
@@ -277,7 +328,7 @@ export class ReelScreen implements Screen {
     });
     drawText(
       g,
-      'A miss still pays ×1.00. The reel never takes money from you.',
+      'A miss still pays x1. The reel never takes money from you.',
       panelX + 20,
       footY + 32,
       { font: FONT.small, color: PAL.D, maxWidth: panelW - 40 }
@@ -304,7 +355,7 @@ export class ReelScreen implements Screen {
     );
     drawText(
       g,
-      `Best ×${reel.biggestWin.toFixed(2)}   ·   charms ${state.charms()}`,
+      `Best ${multiplier(reel.biggestWin)}   ·   charms ${state.charms()}`,
       oddsX + 20,
       footY + 50,
       { font: FONT.small, color: PAL.P }

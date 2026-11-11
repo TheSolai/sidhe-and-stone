@@ -204,60 +204,422 @@ export function drawButton(
   pressed = false,
   hovered = false
 ): void {
-  const { rect } = button;
+  drawBevelButton(ctx, {
+    rect: button.rect,
+    label: button.label,
+    enabled: button.enabled,
+    pressed,
+    hovered,
+  });
+}
+
+/**
+ * A bevelled 3D button, in the KairoSoft idiom.
+ *
+ * RULE 3.1: a raised button is a bevelled 3D rectangle -- a lighter edge
+ * along the top and left, a darker edge along the bottom and right.
+ *
+ * RULE 3.2: the bevel is ONE pixel at 1x and the face is FLAT. There is
+ * no gradient on the face, because a gradient is a smooth blend and the
+ * palette is closed: every pixel on screen is one of the palette's
+ * colours, and a gradient would put hundreds of others on the canvas.
+ *
+ * RULE 3.6: on press the bevel INVERTS -- the light edge moves to the
+ * bottom and right -- so the button sinks instead of fading.
+ *
+ * RULE 3.7: the primary action gets its own face (gold) so it reads as
+ * different from the secondary buttons around it.
+ *
+ * The icon, when there is one, is on the LEADING side of the label
+ * (RULE 2.6 / RULE 7.3).
+ */
+export interface BevelButtonSpec {
+  rect: Rect;
+  label: string;
+  enabled?: boolean;
+  /** Gold face: the primary action. */
+  primary?: boolean;
+  /** A sprite name, drawn on the leading side of the label. */
+  icon?: string;
+  /** The sprite set the icon is looked up in. */
+  sprites?: SpriteSet;
+  pressed?: boolean;
+  hovered?: boolean;
+  /** The font to write the label in. Defaults by button height. */
+  font?: FontSpec;
+}
+
+export function drawBevelButton(
+  ctx: CanvasRenderingContext2D,
+  spec: BevelButtonSpec
+): void {
+  const { rect } = spec;
   const x = Math.round(rect.x);
   const y = Math.round(rect.y);
   const w = Math.round(rect.w);
   const h = Math.round(rect.h);
 
-  const base = button.enabled ? (hovered ? PAL.W : PAL.C) : PAL.X;
-  ctx.fillStyle = base;
+  const enabled = spec.enabled !== false;
+  const pressed = enabled && spec.pressed === true;
+  const primary = spec.primary === true;
+
+  // The face, and the two edges that make it read as a solid object.
+  const face = enabled ? (primary ? PAL.Y : PAL.C) : PAL.X;
+  const light = enabled ? (primary ? PAL.H : PAL.W) : PAL.P;
+  const dark = enabled ? (primary ? PAL.A : PAL.P) : PAL.P;
+
+  ctx.fillStyle = face;
   ctx.fillRect(x, y, w, h);
 
-  if (button.enabled) {
-    // Top and left highlight, bottom and right shadow.
-    ctx.fillStyle = pressed ? PAL.P : PAL.W;
-    ctx.fillRect(x + 1, y + 1, w - 2, 1);
-    ctx.fillRect(x + 1, y + 1, 1, h - 2);
-    ctx.fillStyle = pressed ? PAL.W : PAL.P;
-    ctx.fillRect(x + 1, y + h - 2, w - 2, 1);
-    ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-  } else {
-    ctx.fillStyle = PAL.P;
-    ctx.fillRect(x + 1, y + 1, w - 2, 1);
-    ctx.fillRect(x + 1, y + 1, 1, h - 2);
-  }
+  // The bevel: light along the top and left, dark along the bottom and
+  // right -- or the other way round when the button is pressed.
+  ctx.fillStyle = pressed ? dark : light;
+  ctx.fillRect(x + 1, y + 1, w - 2, 1);
+  ctx.fillRect(x + 1, y + 1, 1, h - 2);
+  ctx.fillStyle = pressed ? light : dark;
+  ctx.fillRect(x + 1, y + h - 2, w - 2, 1);
+  ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
 
+  // The hard outline that keeps the button off the surface behind it.
   strokeRect(ctx, x, y, w, h, PAL.K);
 
-  const color = button.enabled ? PAL.K : PAL.P;
-  let textX = x + w / 2;
-  let iconW = 0;
+  const ink = enabled ? PAL.K : PAL.P;
+  const font = spec.font ?? (h >= 30 ? FONT.mid : FONT.small);
+  const labelW = measureText(spec.label, font);
 
-  if (button.icon) {
-    const size = 14;
-    iconW = size + 4;
-    textX = x + w / 2 + iconW / 2;
-  }
+  // The icon, when there is one, is a real sprite on the leading side.
+  const image = spec.icon && spec.sprites ? spec.sprites.get(spec.icon) : undefined;
+  const iconSize = 18;
+  const iconW = image ? iconSize + 4 : 0;
 
-  const font = h >= 26 ? FONT.mid : FONT.small;
-  drawText(ctx, button.label, textX, y + Math.round((h - 11) / 2), {
+  const groupW = iconW + labelW;
+  const groupX = Math.round(x + (w - groupW) / 2);
+  const textX = groupX + iconW;
+  const textY = y + Math.round((h - font.size) / 2) - (pressed ? 1 : 0);
+
+  drawText(ctx, spec.label, textX, textY, {
     font,
-    color,
-    align: 'center',
-    maxWidth: w - 8 - iconW,
+    color: ink,
+    maxWidth: Math.max(8, w - 8 - iconW),
   });
 
-  if (button.icon) {
-    // Icons are drawn by the caller through the sprite set; this hook exists
-    // so the icon and the label stay aligned.
-    (button as Button & { iconRect?: Rect }).iconRect = {
-      x: Math.round(textX - iconW / 2),
-      y: Math.round(y + (h - 14) / 2),
-      w: 14,
-      h: 14,
-    };
+  if (image) {
+    drawSprite(
+      ctx,
+      image,
+      groupX,
+      y + Math.round((h - iconSize) / 2) - (pressed ? 1 : 0),
+      1
+    );
   }
+}
+
+/**
+ * A small numeric badge: a solid yellow square with a dark number.
+ *
+ * RULE 7.2: a badge on an icon button shows a pending count. It is a
+ * graphic, not a glyph of its own, so the number inside it is dark ink
+ * on gold -- which is a legible pair -- rather than a colour that means
+ * "attention" on its own.
+ *
+ * RULE 7.5: yellow is the badge colour, and nowhere else.
+ */
+export function drawBadge(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  count: number
+): void {
+  if (count <= 0) return;
+  const bx = Math.round(x);
+  const by = Math.round(y);
+  const size = 11;
+
+  ctx.fillStyle = PAL.Y;
+  ctx.fillRect(bx, by, size, size);
+  strokeRect(ctx, bx, by, size, size, PAL.K);
+
+  const text = count > 99 ? '99+' : String(count);
+  drawText(ctx, text, bx + size / 2, by + 2, {
+    font: FONT.tiny,
+    color: PAL.K,
+    align: 'center',
+  });
+}
+
+/**
+ * A pixel-rounded rectangle.
+ *
+ * The canvas has rounded-rect primitives, but they are drawn with arcs,
+ * and an arc is anti-aliased: the edge pixels are blends, and a blend is
+ * a colour that is not in the palette. So the rounding is done by hand,
+ * one whole-pixel row at a time.
+ */
+function fillRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  color: string
+): void {
+  const radius = Math.max(0, Math.min(r, Math.floor(Math.min(w, h) / 2)));
+  ctx.fillStyle = color;
+  for (let row = 0; row < h; row += 1) {
+    let inset = 0;
+    if (radius > 0) {
+      let d = 0;
+      if (row < radius) d = radius - row - 0.5;
+      else if (row >= h - radius) d = radius - (h - 1 - row) - 0.5;
+      if (d > 0) inset = radius - Math.floor(Math.sqrt(Math.max(0, radius * radius - d * d)));
+    }
+    ctx.fillRect(x + inset, y + row, w - inset * 2, 1);
+  }
+}
+
+/**
+ * A white pill: the header shape a Kairosoft modal carries.
+ *
+ * RULE 5.2: every modal has a header in its own shape -- a white pill
+ * inside the frame -- and RULE 5.5: the frame itself is a single strong
+ * accent colour, and the interior stays quiet.
+ */
+export function drawPixelPill(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  fill: string = PAL.W,
+  border: string = PAL.K,
+  radius = 6
+): void {
+  const x = Math.round(rect.x);
+  const y = Math.round(rect.y);
+  const w = Math.round(rect.w);
+  const h = Math.round(rect.h);
+
+  // The outline is the same shape, one pixel larger all round.
+  fillRoundRect(ctx, x - 1, y - 1, w + 2, h + 2, radius + 1, border);
+  fillRoundRect(ctx, x, y, w, h, radius, fill);
+}
+
+/**
+ * A centred modal panel.
+ *
+ * RULE 5.1: a centred modal over a dimmed backdrop, never a slide-up
+ * bottom sheet.
+ *
+ * RULE 5.2: a white-pill header, and a footer action row.
+ *
+ * RULE 5.5: ONE accent colour for the whole frame -- the thick border --
+ * with a quiet cream interior.
+ */
+export interface ModalSpec {
+  rect: Rect;
+  title: string;
+  /** The single accent colour of the frame. */
+  accent?: string;
+}
+
+export interface ModalFrame {
+  /** Where the body content goes, under the header pill. */
+  content: Rect;
+  /** The top of the footer action row. */
+  footerTop: number;
+}
+
+export function drawModal(ctx: CanvasRenderingContext2D, spec: ModalSpec): ModalFrame {
+  const x = Math.round(spec.rect.x);
+  const y = Math.round(spec.rect.y);
+  const w = Math.round(spec.rect.w);
+  const h = Math.round(spec.rect.h);
+  const accent = spec.accent ?? PAL.E;
+  const border = 3;
+
+  // The thick, single-colour frame.
+  ctx.fillStyle = accent;
+  ctx.fillRect(x, y, w, h);
+
+  // The quiet interior.
+  ctx.fillStyle = PAL.C;
+  ctx.fillRect(x + border, y + border, w - border * 2, h - border * 2);
+
+  // The white-pill header.
+  const titleW = Math.round(measureText(spec.title, FONT.mid));
+  const pillW = Math.min(w - border * 2 - 16, titleW + 28);
+  const pillH = 22;
+  const pillX = x + Math.round((w - pillW) / 2);
+  const pillY = y + border + 8;
+  drawPixelPill(ctx, { x: pillX, y: pillY, w: pillW, h: pillH });
+  drawText(ctx, spec.title, pillX + pillW / 2, pillY + 5, {
+    font: FONT.mid,
+    color: PAL.K,
+    align: 'center',
+    maxWidth: pillW - 12,
+  });
+
+  // The rule under the header, so the body is clearly the body.
+  ctx.fillStyle = PAL.P;
+  ctx.fillRect(x + border + 8, pillY + pillH + 6, w - border * 2 - 16, 1);
+
+  const contentTop = pillY + pillH + 14;
+  const footerTop = y + h - border - 46;
+
+  return {
+    content: {
+      x: x + border + 8,
+      y: contentTop,
+      w: w - border * 2 - 16,
+      h: Math.max(0, footerTop - contentTop - 6),
+    },
+    footerTop,
+  };
+}
+
+/**
+ * A stat row inside a modal.
+ *
+ * RULE 5.3: the rows of a modal table alternate between two quiet
+ * fills, so a column of numbers can be scanned.
+ *
+ * RULE 10.1: a thin coloured block at the LEADING edge is the row's
+ * icon column. It is a graphic, never the only carrier of the meaning
+ * (RULE 4.5) -- the label says what the row is.
+ *
+ * RULE 10.5: the value is right-aligned, so the numbers line up.
+ */
+export interface ModalRowSpec {
+  label: string;
+  value: string;
+  /** The colour of the leading block. */
+  tint?: string;
+  /** The row's fill. Alternate this between two quiet colours. */
+  fill?: string;
+  /** Draw the value in this colour instead of the default ink. */
+  valueColor?: string;
+  /** The font of the label and the value. */
+  font?: FontSpec;
+  /**
+   * A sprite drawn just before the value.
+   *
+   * RULE 4.6: the icon carries the unit, so a money figure is a coin and
+   * a number rather than a number and a currency mark.
+   */
+  icon?: string;
+  sprites?: SpriteSet;
+}
+
+export function drawModalRow(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  spec: ModalRowSpec
+): void {
+  const x = Math.round(rect.x);
+  const y = Math.round(rect.y);
+  const w = Math.round(rect.w);
+  const h = Math.round(rect.h);
+  const font = spec.font ?? FONT.body;
+
+  ctx.fillStyle = spec.fill ?? PAL.W;
+  ctx.fillRect(x, y, w, h);
+
+  // The leading block: the row's colour, as a plate rather than a tint
+  // on the text.
+  ctx.fillStyle = spec.tint ?? PAL.K;
+  ctx.fillRect(x, y, 6, h);
+
+  drawText(ctx, spec.label, x + 14, y + Math.round((h - font.size) / 2), {
+    font,
+    color: PAL.D,
+    maxWidth: w - 100,
+  });
+
+  // The value, right-aligned, with the coin in front of it when the row
+  // is a money row.
+  const valueW = Math.round(measureText(spec.value, font));
+  const image = spec.icon && spec.sprites ? spec.sprites.get(spec.icon) : undefined;
+  const iconW = image ? 18 + 3 : 0;
+
+  drawText(ctx, spec.value, x + w - 10, y + Math.round((h - font.size) / 2), {
+    font,
+    color: spec.valueColor ?? PAL.K,
+    align: 'right',
+    maxWidth: w - 90,
+  });
+
+  if (image) {
+    drawSprite(ctx, image, x + w - 10 - valueW - iconW, y + Math.round((h - 18) / 2), 1);
+  }
+}
+
+/**
+ * A speech bubble.
+ *
+ * RULE 5.6: character speech is a white bubble with a thin dark outline
+ * and a small tail pointing at the speaker. System messages are never in
+ * a bubble -- they live in the HUD, in a panel, or in a banner.
+ */
+export function drawSpeechBubble(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  text: string,
+  tailAt: number,
+  tailDir: 'down' | 'left' = 'down'
+): void {
+  const x = Math.round(rect.x);
+  const y = Math.round(rect.y);
+  const w = Math.round(rect.w);
+  const h = Math.round(rect.h);
+
+  if (tailDir === 'left') {
+    // The tail points LEFT, at a speaker who stands BESIDE the bubble.
+    //
+    // The downward tail used to be the only kind, and the curator's
+    // bubble sits to the RIGHT of the curator, so the tail had to be
+    // clamped to the bubble's own left edge and pointed at nothing. The
+    // rule says the tail points AT THE SPEAKER, so when the speaker is
+    // beside the bubble the tail has to point sideways.
+    //
+    // `tailAt` is the speaker's Y, because that is the axis a sideways
+    // tail slides along.
+    const ty = Math.round(Math.max(y + 6, Math.min(y + h - 7, tailAt)));
+    // The tail leaves the bubble's left wall and tapers to a point.
+    const reach = 6;
+    for (let i = 0; i < reach; i += 1) {
+      const col = x - 1 - i;
+      const half = 4 - i;
+      ctx.fillStyle = PAL.K;
+      ctx.fillRect(col, ty - half, 1, half * 2 + 1);
+    }
+    // The white inside of the tail, so it reads as one shape with the
+    // bubble rather than as a black wedge stuck on the side.
+    for (let i = 1; i < reach; i += 1) {
+      const col = x - 1 - i;
+      const half = 3 - i;
+      ctx.fillStyle = PAL.W;
+      ctx.fillRect(col, ty - half, 1, half * 2 + 1);
+    }
+  } else {
+    // The tail: a three-step triangle pointing down at the speaker.
+    const tx = Math.round(Math.max(x + 6, Math.min(x + w - 12, tailAt)));
+    ctx.fillStyle = PAL.K;
+    ctx.fillRect(tx - 5, y + h - 1, 11, 1);
+    ctx.fillRect(tx - 3, y + h, 7, 1);
+    ctx.fillRect(tx - 1, y + h + 1, 3, 1);
+    ctx.fillStyle = PAL.W;
+    ctx.fillRect(tx - 4, y + h, 9, 1);
+    ctx.fillRect(tx - 2, y + h + 1, 5, 1);
+    ctx.fillRect(tx, y + h + 2, 1, 1);
+  }
+
+  // The bubble itself.
+  fillRoundRect(ctx, x - 1, y - 1, w + 2, h + 2, 6, PAL.K);
+  fillRoundRect(ctx, x, y, w, h, 5, PAL.W);
+
+  drawText(ctx, text, x + 8, y + Math.round((h - FONT.body.size) / 2), {
+    font: FONT.body,
+    color: PAL.D,
+    maxWidth: w - 16,
+  });
 }
 
 /**

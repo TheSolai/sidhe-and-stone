@@ -11,9 +11,9 @@
 
 import { PAL, GRADES, GRADE_SPRITE } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
-import { money } from '../screen.ts';
+import { moneyNumber } from '../screen.ts';
 import { drawSprite, drawSpriteCentred } from '../sprites.ts';
-import { drawPanel, drawText, drawChip, drawTintedValue, FONT, measureText } from '../widgets.ts';
+import { drawPanel, drawText, drawChip, FONT, measureText } from '../widgets.ts';
 import { FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_WIDTH } from '../bands.ts';
 
 export class GalleryScreen implements Screen {
@@ -156,34 +156,43 @@ export class GalleryScreen implements Screen {
       title: 'Today’s takings',
     });
 
-    // The three readings, each with a tint.
+    // The three readings, each with its own picture.
     //
     // The VALUES used to be written in the accent colour itself -- clay
     // money and relic teal straight onto the cream panel. Clay on cream
     // is 2.47:1 and teal is 2.26:1, so those numbers were unreadable.
-    // Now the value is written in dark ink and a small chip carries the
-    // tint: the chip says "this is the money number" without asking the
-    // player to read a colour as a glyph.
-    const lines: [string, string, string][] = [];
-    lines.push([
-      'Exhibits earning',
-      `${Math.min(state.onDisplay(), state.demand())} of ${state.onDisplay()}`,
-      PAL.U,
-    ]);
-    lines.push(['Daily takings', money(state.exhibitValue('crown') * 0 + this.dailyTakings(ctx)), PAL.A]);
-    lines.push(['Demand today', `${state.demand()} visitors`, PAL.L]);
+    // Now the value is written in dark ink and the picture in front of it
+    // carries the meaning (RULE 1.2, RULE 4.6).
+    const lines: { label: string; value: string; icon: string }[] = [
+      {
+        label: 'Exhibits earning',
+        value: `${Math.min(state.onDisplay(), state.demand())} of ${state.onDisplay()}`,
+        icon: 'upgrade_gallery',
+      },
+      {
+        label: 'Daily takings',
+        value: moneyNumber(this.dailyTakings(ctx)),
+        icon: 'icon_coin',
+      },
+      {
+        label: 'Demand today',
+        value: `${state.demand()}`,
+        icon: 'icon_demand',
+      },
+    ];
 
     let ly = footY + 30;
     let lx = MARGIN_X + 20;
-    for (const [label, value, tint] of lines) {
-      drawText(g, label, lx, ly, { font: FONT.small, color: PAL.P });
-      // The chip is drawn to the LEFT of the value, so the chips form a
-      // column under the labels and the numbers stay aligned.
-      drawTintedValue(g, value, lx + 12, ly + 15, {
+    for (const line of lines) {
+      drawText(g, line.label, lx, ly, { font: FONT.small, color: PAL.P });
+      // The icon is on the leading side of the value (RULE 7.3), and it
+      // carries the unit, so the number itself stays naked.
+      const image = ctx.sprites.get(line.icon);
+      if (image) drawSprite(g, image, lx, ly + 12, 1);
+      drawText(g, line.value, lx + 22, ly + 15, {
         font: FONT.body,
-        tint,
-        align: 'left',
-        maxWidth: 190,
+        color: PAL.D,
+        maxWidth: 180,
       });
       lx += 210;
     }

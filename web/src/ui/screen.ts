@@ -26,6 +26,14 @@ export interface ScreenContext {
   time: number;
   /** The player's last pointer position, for hover states. */
   pointer: { x: number; y: number } | null;
+  /**
+   * The id of the region the pointer is currently held down on.
+   *
+   * RULE 3.6: on press the button SINKS -- its bevel inverts -- rather
+   * than fading. For that to be visible the drawing code has to know
+   * which region is held, so the framework says which one it is.
+   */
+  pressedRegionId: string | null;
 }
 
 export interface Region {
@@ -107,6 +115,20 @@ export function money(v: number): string {
   return `£${rounded.toLocaleString('en-GB')}`;
 }
 
+/**
+ * The money figure with no currency mark on it.
+ *
+ * RULE 4.6: the icon carries the unit, so the number stays naked. The
+ * HUD draws the coin beside this number, and the coin says "money" --
+ * which is why the gold can stay a picture instead of becoming a glyph
+ * that measures 2.47:1 on cream.
+ *
+ * RULE 1.4: the comma thousands separators are still there.
+ */
+export function moneyNumber(v: number): string {
+  return Math.round(v).toLocaleString('en-GB');
+}
+
 /** Format a signed money delta, with an explicit plus or minus. */
 export function signedMoney(v: number): string {
   const rounded = Math.round(v);
@@ -115,9 +137,20 @@ export function signedMoney(v: number): string {
   return money(0);
 }
 
-/** Format a multiplier, the way the reel shows it. */
+/**
+ * Format a multiplier, the way the reel shows it.
+ *
+ * RULE 4.1: a multiplier is written `x1.5` -- a lowercase x, no space,
+ * one decimal -- never as a percentage and never as a chip.
+ *
+ * A value that is exactly whole loses its decimal altogether, so a
+ * doubled payout reads `x2` and not `x2.0`, which is how Kairosoft
+ * writes it. A value that genuinely needs two decimals (the reel's 0.85
+ * miss) keeps them: rounding it to `x0.9` would lie about the payout.
+ */
 export function multiplier(v: number): string {
-  return `×${v.toFixed(2)}`;
+  const text = v.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  return `x${text}`;
 }
 
 /** Capitalise the first letter. */

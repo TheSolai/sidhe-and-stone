@@ -28,9 +28,10 @@
 import { PAL } from '../palette.ts';
 import type { GoalProgress } from '../../sim/game-state.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
-import { money } from '../screen.ts';
+import { moneyNumber } from '../screen.ts';
 import { CONTENT_TOP, FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_HEIGHT, PANEL_WIDTH } from '../bands.ts';
 import { drawPanel, drawText, drawWell, FONT, measureText } from '../widgets.ts';
+import { drawSprite, type SpriteSet } from '../sprites.ts';
 
 /** The height of one goal row. */
 const ROW_H = 26;
@@ -84,7 +85,7 @@ export class GoalsScreen implements Screen {
 
       let gy = wellY + 34;
       for (const gp of list.filter((x) => x.goal.tier === tier)) {
-        this.drawGoal(g, gp, tx + 10, gy, TIER_TEXT_W);
+        this.drawGoal(g, gp, tx + 10, gy, TIER_TEXT_W, ctx.sprites);
 
         // Clicking a goal opens it in the detail panel below, so the
         // player can read what any of the eighteen asks of them without
@@ -163,7 +164,23 @@ export class GoalsScreen implements Screen {
       g.fillRect(barX, FOOTER_TOP + 42, 1, 12);
       g.fillRect(barX + barW - 1, FOOTER_TOP + 42, 1, 12);
 
-      drawText(g, this.rewardText(detail.goal), MARGIN_X + PANEL_WIDTH - 20, FOOTER_TOP + 40, {
+      // RULE 4.6: the coin carries the unit, so the reward figure is
+      // naked and the coin is drawn on its leading side.
+      const detailReward = this.rewardText(detail.goal);
+      const detailRewardW = measureText(detailReward, FONT.small);
+      if (detail.goal.reward.money !== undefined) {
+        const coin = ctx.sprites.get('icon_coin');
+        if (coin) {
+          drawSprite(
+            g,
+            coin,
+            MARGIN_X + PANEL_WIDTH - 20 - detailRewardW - 14,
+            FOOTER_TOP + 42,
+            1
+          );
+        }
+      }
+      drawText(g, detailReward, MARGIN_X + PANEL_WIDTH - 20, FOOTER_TOP + 40, {
         font: FONT.small,
         color: PAL.D,
         align: 'right',
@@ -199,7 +216,8 @@ export class GoalsScreen implements Screen {
     gp: GoalProgress,
     x: number,
     y: number,
-    w: number
+    w: number,
+    sprites: SpriteSet
   ): void {
     const { goal } = gp;
 
@@ -223,8 +241,19 @@ export class GoalsScreen implements Screen {
     // The reward, measured first, so the title knows how much room it
     // has left. Without this the longest title and the longest reward
     // would overlap on the same line.
+    //
+    // RULE 4.6: the coin carries the unit, so the figure itself is
+    // naked -- no currency glyph, which measures 2.47:1 on cream.
     const reward = this.rewardText(goal);
-    const rewardW = Math.round(measureText(reward, FONT.tiny));
+    // The coin is 18 pixels wide, and it needs a four-pixel gap before
+    // the number it belongs to. Reserving less than that puts the gold
+    // disc UNDER the figure -- which is exactly what it did, and the
+    // numbers were unreadable where they overlapped.
+    const COIN_W = 18;
+    const COIN_GAP = 4;
+    const rewardW =
+      Math.round(measureText(reward, FONT.tiny)) +
+      (goal.reward.money !== undefined ? COIN_W + COIN_GAP : 0);
 
     // The title is dark ink either way. Moss on the white well is
     // 2.61:1 -- unreadable as a glyph -- and the tick box already
@@ -235,6 +264,14 @@ export class GoalsScreen implements Screen {
       maxWidth: w - 18 - rewardW - 10,
     });
 
+    // The coin sits on the LEADING side of the money figure (RULE 7.3),
+    // so the pair is "coin then number" and reads as one unit.
+    if (goal.reward.money !== undefined) {
+      const coin = sprites.get('icon_coin');
+      if (coin) drawSprite(g, coin, x + w - rewardW, y + 1, 1);
+      // The number sits to the RIGHT of the coin: the picture carries
+      // the unit, the figure carries the amount (RULE 7.3, RULE 4.6).
+    }
     drawText(g, reward, x + w, y + 1, {
       font: FONT.tiny,
       color: gp.complete ? PAL.D : PAL.P,
@@ -254,7 +291,8 @@ export class GoalsScreen implements Screen {
   /** The reward, written the way the player sees it elsewhere. */
   private rewardText(goal: { reward: { money?: number; charms?: number; luck?: number } }): string {
     const parts: string[] = [];
-    if (goal.reward.money !== undefined) parts.push(money(goal.reward.money));
+    // RULE 4.6: naked number -- the coin icon is drawn beside it.
+    if (goal.reward.money !== undefined) parts.push(moneyNumber(goal.reward.money));
     if (goal.reward.charms !== undefined) parts.push(`${goal.reward.charms} charms`);
     if (goal.reward.luck !== undefined) parts.push(`+${goal.reward.luck.toFixed(2)} luck`);
     // No spaces around the separator: the reward shares a line with the

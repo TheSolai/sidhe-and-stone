@@ -11,9 +11,9 @@
 
 import { PAL, GRADES, GRADE_SPRITE, GRADE_COLOR } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
-import { money } from '../screen.ts';
+import { moneyNumber } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawChip, drawPanel, drawText, FONT } from '../widgets.ts';
+import { drawBevelButton, drawChip, drawPanel, drawText, FONT } from '../widgets.ts';
 import { FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_WIDTH } from '../bands.ts';
 
 export class VaultScreen implements Screen {
@@ -78,10 +78,14 @@ export class VaultScreen implements Screen {
         color: shown > 0 ? PAL.D : PAL.P,
         maxWidth: colW - 16,
       });
-      drawText(g, `${money(value)}/day`, cx + 8, statsY + 34, {
+      // RULE 4.6: the coin carries the unit, so the figure is a picture
+      // and a number rather than a number and a currency mark.
+      const coin = ctx.sprites.get('icon_coin');
+      if (coin) drawSprite(g, coin, cx + 8, statsY + 32, 1);
+      drawText(g, `${moneyNumber(value)}/day`, cx + 30, statsY + 34, {
         font: FONT.small,
         color: PAL.D,
-        maxWidth: colW - 16,
+        maxWidth: colW - 38,
       });
 
       // The theft risk, stated as a number and a word. A bare percentage
@@ -107,22 +111,20 @@ export class VaultScreen implements Screen {
         enabled: boolean,
         id: string,
         onClick: () => void,
-        fill: string = PAL.C
+        primary = false
       ) => {
-        g.fillStyle = enabled ? fill : PAL.X;
-        g.fillRect(bx, by, bw, 26);
-        g.fillStyle = enabled ? PAL.W : PAL.P;
-        g.fillRect(bx + 1, by + 1, bw - 2, 1);
-        g.fillStyle = PAL.K;
-        g.fillRect(bx, by, bw, 1);
-        g.fillRect(bx, by + 25, bw, 1);
-        g.fillRect(bx, by, 1, 26);
-        g.fillRect(bx + bw - 1, by, 1, 26);
-        drawText(g, label, bx + bw / 2, by + 8, {
+        // RULE 3.1: a bevelled 3D button -- a light edge along the top
+        // and left, a dark edge along the bottom and right, and a flat
+        // face.
+        // RULE 9.2: ONE accent on the screen, and it is the primary
+        // action. The other two buttons are plain cream.
+        drawBevelButton(g, {
+          rect: { x: bx, y: by, w: bw, h: 26 },
+          label,
+          enabled,
+          primary: primary && enabled,
           font: FONT.small,
-          color: enabled ? PAL.K : PAL.P,
-          align: 'center',
-          maxWidth: bw - 6,
+          pressed: ctx.pressedRegionId === id,
         });
         regions.push({ x: bx, y: by, w: bw, h: 26, id, enabled, onClick });
         by += 32;
@@ -137,7 +139,7 @@ export class VaultScreen implements Screen {
         () => {
           state.displayOne(grade);
         },
-        PAL.M
+        true
       );
 
       button(
@@ -152,13 +154,12 @@ export class VaultScreen implements Screen {
       // Selling is only for artefacts already in the vault, and it gives
       // half the daily value.
       button(
-        `Sell one (${money(value / 2)})`,
+        `Sell one (${moneyNumber(value / 2)})`,
         vaulted > 0,
         `vault:sell:${grade}`,
         () => {
           state.sellOne(grade);
-        },
-        PAL.U
+        }
       );
 
       cx += colW;

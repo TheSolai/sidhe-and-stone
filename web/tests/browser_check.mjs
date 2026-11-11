@@ -224,6 +224,79 @@ if (saved) {
   );
 }
 
+// ------------------------------------------------------- the pressed state
+//
+// RULE 3.6: on press, a button SINKS -- its bevel inverts -- rather than
+// fading. The press has to reach the drawing code, not just the click
+// handler, so the check holds the pointer down and reads the canvas
+// while the button is still held.
+//
+// A button that only reacts on release is a button that gives no
+// feedback, and on a canvas interface there is no DOM hover state to
+// fall back on.
+//
+// The tutorial has to be dismissed first: its veil is an ordered dither
+// over the WHOLE screen, including the nav strip, and a dithered veil
+// erases the very pixels this check is looking for.
+
+// Dismiss the tutorial if it is still running.
+if ((await regionIds(page)).includes('tutorial:skip')) {
+  await clickRegion(page, 'tutorial:skip');
+  await page.waitForTimeout(250);
+}
+
+const pressPoint = await page.evaluate(() => {
+  const app = window.__sidhe;
+  const region = app.interactiveRegions.find((r) => r.id === 'nav:reel');
+  if (!region) return null;
+  const canvas = document.getElementById('game');
+  const bounds = canvas.getBoundingClientRect();
+  const scale = bounds.width / canvas.width;
+  return {
+    x: bounds.left + (region.x + region.w / 2) * scale,
+    y: bounds.top + (region.y + region.h / 2) * scale,
+    region: { x: region.x, y: region.y, w: region.w, h: region.h },
+  };
+});
+check(pressPoint !== null, 'the reel tab can be found for a press test');
+
+/** The exact pixels of the nav chip, so the comparison is pixel-true. */
+const chipPixels = async () =>
+  page.evaluate((r) => {
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    return [...ctx.getImageData(r.x, r.y, r.w, r.h).data];
+  }, pressPoint.region);
+
+if (pressPoint) {
+  const idle = await chipPixels();
+
+  await page.mouse.move(pressPoint.x, pressPoint.y);
+  await page.mouse.down();
+  await page.waitForTimeout(200);
+
+  const held = await page.evaluate(() => window.__sidhe.pressedRegionId);
+  check(held === 'nav:reel', `holding the button reports it as pressed (${held})`);
+
+  const pressed = await chipPixels();
+  const differing = idle.filter((v, i) => v !== pressed[i]).length;
+  check(differing > 0, `the held button is drawn differently from the released one (${differing} bytes differ)`);
+  await page.screenshot({ path: '/tmp/ss-06-pressed.png' });
+
+  // Release over empty canvas, so the release does not also navigate.
+  await page.mouse.move(600, 300);
+  await page.waitForTimeout(100);
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+
+  const afterRelease = await page.evaluate(() => window.__sidhe.pressedRegionId);
+  check(afterRelease === null, `releasing clears the pressed state (${afterRelease})`);
+
+  const back = await chipPixels();
+  const same = idle.every((v, i) => v === back[i]);
+  check(same, 'the button looks the same again once it is released');
+}
+
 // ---------------------------------------------------------------- the reel
 
 await clickRegion(page, 'nav:reel');

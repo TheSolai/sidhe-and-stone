@@ -15,7 +15,7 @@ import { PAL, DIG_COLOR, DIG_NAME } from '../palette.ts';
 import { DIG_TYPES } from '../../sim/game-state.ts';
 import { DIGS } from '../../sim/sim-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
-import { money } from '../screen.ts';
+import { moneyNumber } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
 import { drawPanel, drawText, drawWell, drawChip, FONT, measureText } from '../widgets.ts';
 import {
@@ -209,7 +209,17 @@ export class DigSiteScreen implements Screen {
       const cost = state.digCost(dig);
       const finds = def ? def.finds : 0;
 
-      drawText(g, `${days} day${days === 1 ? '' : 's'}   ·   ${money(cost)}`, cx + 16, cy + 26, {
+      // RULE 4.6: the coin carries the unit, so the cost is a naked
+      // number with the coin on its leading side.
+      const daysText = `${days} day${days === 1 ? '' : 's'}`;
+      drawText(g, daysText, cx + 16, cy + 26, {
+        font: FONT.small,
+        color: PAL.P,
+      });
+      const coin = ctx.sprites.get('icon_coin');
+      const coinX = cx + 16 + Math.round(measureText(daysText, FONT.small)) + 12;
+      if (coin) drawSprite(g, coin, coinX, cy + 24, 1);
+      drawText(g, moneyNumber(cost), coinX + (coin ? 14 : 0), cy + 26, {
         font: FONT.small,
         color: PAL.P,
       });

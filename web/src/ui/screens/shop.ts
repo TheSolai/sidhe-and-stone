@@ -24,9 +24,9 @@
 import { PAL, UPGRADE_COLOR, UPGRADE_DESC, UPGRADE_NAME } from '../palette.ts';
 import { UPGRADES } from '../../sim/sim-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
-import { money } from '../screen.ts';
+import { moneyNumber } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawButton, drawPanel, drawText, FONT } from '../widgets.ts';
+import { drawBevelButton, drawPanel, drawText, FONT } from '../widgets.ts';
 import {
   CONTENT_TOP,
   FOOTER_PANEL_HEIGHT,
@@ -87,7 +87,11 @@ export class ShopScreen implements Screen {
       const cost = state.upgradeCost(kind);
       const maxed = cost < 0;
 
-      drawPanel(g, { x: cx, y: cy, w: cardW, h: cardH }, { fill: PAL.C });
+      // RULE 10.2: a wide table alternates its row fills, so the eye can
+      // run along a row of prices without losing its place.
+      drawPanel(g, { x: cx, y: cy, w: cardW, h: cardH }, {
+        fill: row % 2 === 0 ? PAL.C : PAL.W,
+      });
 
       // A colour band down the left edge, so the nine cards are told apart
       // at a glance. The name is always written out as well -- the colour
@@ -157,22 +161,24 @@ export class ShopScreen implements Screen {
       const btnH = 26;
 
       if (maxed) {
-        drawButton(g, { rect: { x: btnX, y: btnY, w: btnW, h: btnH }, label: 'MAX', enabled: false, onClick: () => {} });
+        drawBevelButton(g, {
+          rect: { x: btnX, y: btnY, w: btnW, h: btnH },
+          label: 'MAX',
+          enabled: false,
+        });
       } else {
         const affordable = state.money() >= cost;
-        drawButton(
-          g,
-          {
-            rect: { x: btnX, y: btnY, w: btnW, h: btnH },
-            label: money(cost),
-            enabled: affordable,
-            onClick: () => {
-              state.buyUpgrade(kind);
-            },
-          },
-          false,
-          false
-        );
+        // RULE 4.6: the coin carries the unit, so the price is a picture
+        // and a number. RULE 3.1: the button is bevelled, with a flat
+        // face and a light top-left edge.
+        drawBevelButton(g, {
+          rect: { x: btnX, y: btnY, w: btnW, h: btnH },
+          label: moneyNumber(cost),
+          enabled: affordable,
+          icon: 'icon_coin',
+          sprites: ctx.sprites,
+          pressed: ctx.pressedRegionId === `shop:buy:${kind}`,
+        });
         regions.push({
           x: btnX,
           y: btnY,

@@ -17,6 +17,11 @@ extends RefCounted
 ## That is what makes a cream rectangle read as a physical object rather
 ## than as a spreadsheet cell, and it is the single biggest difference
 ## between this interface and a desktop one.
+##
+## The bevels are StoneBevel (src/ui/bevel.gd), a custom StyleBox. A Control
+## that overrides _draw() paints over the engine's own label, which was
+## measured on this project; a StyleBox is drawn by the engine BEFORE the
+## label, so the bevel stays underneath the text.
 
 ## Where the generated pixel art lives.
 const SPRITE_DIR := "res://assets/sprites/"
@@ -36,6 +41,12 @@ const COL_T := StoneTheme.COL_T   ## rust
 const COL_M := StoneTheme.COL_M   ## moss
 const COL_A := Color("b98053")    ## clay (also the dark edge on gold)
 const COL_U := Color("8896a3")    ## slate
+
+## The minimum height of anything tappable.
+##
+## Apple HIG asks for 44x44 pt, and the research behind the redesign
+## agrees. A 12px label inside a 44px target is still a 44px target.
+const TAP := 44
 
 
 ## A flat fill with no border. The base of every bevelled widget.
@@ -57,7 +68,8 @@ static func box(fill: Color, border: Color, width: int = 1) -> StyleBoxFlat:
 	return s
 
 
-## A cream panel with the standard 10px horizontal / 8px vertical padding.
+## A flat fill with a hard border and padding. For panels that do not get
+## a bevel.
 static func panel(fill: Color) -> StyleBoxFlat:
 	var s := box(fill, COL_K)
 	s.content_margin_left = 10
@@ -65,6 +77,106 @@ static func panel(fill: Color) -> StyleBoxFlat:
 	s.content_margin_top = 8
 	s.content_margin_bottom = 8
 	return s
+
+
+## A chunky bevelled surface.
+##
+## This is the house look. `accent` is the colour of the hard outline, so
+## a card can be picked out of a list without tinting a single letter.
+static func bevel(fill: Color = COL_C, accent: Color = COL_K,
+		light: Color = COL_W, dark: Color = COL_P) -> StoneBevel:
+	var b := StoneBevel.new()
+	b.face = fill
+	b.ink = accent
+	b.light = light
+	b.dark = dark
+	return b
+
+
+## A bevelled button: raised, with a hard outline, and a flat face.
+##
+## The button is at least TAP tall so it can be pressed with a thumb.
+static func button(text: String, cb: Callable, fill: Color = COL_C,
+		accent: Color = COL_K) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, TAP)
+	b.add_theme_stylebox_override("normal", bevel(fill, accent))
+	b.add_theme_stylebox_override("hover", bevel(COL_W, accent))
+	b.add_theme_stylebox_override("pressed", bevel(fill, accent).pressed())
+	b.add_theme_stylebox_override("disabled", bevel(COL_X, COL_P))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", COL_K)
+	b.add_theme_color_override("font_hover_color", COL_K)
+	b.add_theme_color_override("font_pressed_color", COL_K)
+	b.add_theme_color_override("font_disabled_color", COL_P)
+	b.pressed.connect(cb)
+	return b
+
+
+## A small bevelled button: still TAP tall, but with tighter padding so a
+## row of them fits across a phone.
+static func small_button(text: String, cb: Callable, fill: Color = COL_C,
+		accent: Color = COL_K) -> Button:
+	var b := button(text, cb, fill, accent)
+	var s := bevel(fill, accent)
+	s.content_margin_left = 8
+	s.content_margin_right = 8
+	s.content_margin_top = 4
+	s.content_margin_bottom = 4
+	b.add_theme_stylebox_override("normal", s)
+	b.add_theme_stylebox_override("hover", bevel(COL_W, accent))
+	b.add_theme_stylebox_override("pressed", bevel(fill, accent).pressed())
+	b.add_theme_font_size_override("font_size", 13)
+	return b
+
+
+## The style of a destination in the bottom navigation.
+##
+## Exactly ONE destination is lit. The reference UI has no active state at
+## all, which is the one place this interface deliberately diverges: a
+## bottom bar where nothing says where you are is a bottom bar you have to
+## read to use. The lit destination is the accent colour on this screen,
+## and dark ink sits on it (K on Y is 9.13:1).
+static func nav_style(active: bool) -> StoneBevel:
+	if active:
+		return bevel(COL_Y, COL_K)
+	return bevel(COL_C, COL_K)
+
+
+## A destination in the bottom navigation: a drawn icon and a word.
+##
+## The icon comes FIRST and the label follows, which is the convention the
+## research found. The word is always present, because a bare icon is a
+## puzzle and a puzzle is a bad thing to put in a tab bar.
+static func nav_button(label: String, icon_file: String, cb: Callable) -> Button:
+	var b := Button.new()
+	b.text = label
+	b.custom_minimum_size = Vector2(0, TAP)
+	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.clip_text = true
+	var s := bevel(COL_C, COL_K)
+	s.content_margin_left = 6
+	s.content_margin_right = 6
+	s.content_margin_top = 4
+	s.content_margin_bottom = 4
+	b.add_theme_stylebox_override("normal", s)
+	b.add_theme_stylebox_override("hover", bevel(COL_W, COL_K))
+	b.add_theme_stylebox_override("pressed", bevel(COL_C, COL_K).pressed())
+	b.add_theme_stylebox_override("disabled", s)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", COL_D)
+	b.add_theme_color_override("font_hover_color", COL_K)
+	b.add_theme_color_override("font_pressed_color", COL_K)
+	b.add_theme_font_size_override("font_size", 12)
+	var path := SPRITE_DIR + icon_file + ".png"
+	if ResourceLoader.exists(path):
+		b.icon = load(path)
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_constant_override("h_separation", 4)
+	b.pressed.connect(cb)
+	return b
 
 
 ## A labelled section header: a small caps label with a rule under it.
@@ -145,6 +257,21 @@ static func chip_label(col: Color, text: String, size: int = 13) -> HBoxContaine
 	return row
 
 
+## A thin vertical bar of colour: the identity of a row.
+##
+## A row in a list is identified by a 4px block at its leading edge rather
+## than by a coloured border around the whole card. The border made every
+## row look like a separate object; the block makes a shelf read as one
+## block of stuff.
+static func row_block(col: Color, w: int = 4) -> ColorRect:
+	var c := ColorRect.new()
+	c.color = col
+	c.custom_minimum_size = Vector2(w, 0)
+	c.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return c
+
+
 ## A generated sprite as a UI icon.
 ##
 ## The textures are 18x18 and 26x26 pixel art. They are shown at their
@@ -172,7 +299,7 @@ static func icon(file: String, px: int = 24) -> TextureRect:
 static func icon2(file: String) -> TextureRect:
 	var base := 18 if file.begins_with("icon_") or file.begins_with("symbol_") \
 		or file.begins_with("artefact_") or file.begins_with("upgrade_") \
-		or file.begins_with("visitor_") else 26
+		or file.begins_with("visitor_") or file.begins_with("curator") else 26
 	return icon(file, base * 2)
 
 
@@ -183,8 +310,11 @@ static func spacer(w: float = 0, h: float = 0) -> Control:
 	return c
 
 
-## A progress bar with the house track and fill, plus a lit top edge on
-## the fill so it reads as a filled trough rather than a flat block.
+## A progress bar with the house track and fill.
+##
+## The track is parchment and the fill is flat colour. A thin bar in a
+## light track, with the fill carrying the state, is what the reference
+## UI does, and it is the only honest way to show progress at a glance.
 static func bar(value: float, fill: Color = COL_Y, h: int = 8) -> ProgressBar:
 	var p := ProgressBar.new()
 	p.show_percentage = false
@@ -192,20 +322,50 @@ static func bar(value: float, fill: Color = COL_Y, h: int = 8) -> ProgressBar:
 	p.max_value = 1.0
 	p.step = 0.001
 	p.value = clampf(value, 0.0, 1.0)
-	p.add_theme_stylebox_override("background", box(COL_X, COL_K))
-	p.add_theme_stylebox_override("fill", box(fill, COL_K))
+	p.add_theme_stylebox_override("background", flat(COL_X))
+	p.add_theme_stylebox_override("fill", flat(fill))
 	return p
 
 
-## A card: a raised cream slab with a coloured left edge.
+## A card: a raised cream slab.
 ##
-## The colour is the artefact's own identity colour, so a shelf reads at a
-## glance, but the grade name is always written out: colour supplements
-## the name, it never replaces it.
-static func card(accent: Color) -> PanelContainer:
+## The identity colour of the thing in the card is a 4px block at the
+## leading edge, added by the caller. The slab itself stays quiet.
+static func card(accent: Color = COL_K) -> PanelContainer:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", panel(COL_W))
+	p.add_theme_stylebox_override("panel", bevel(COL_W, accent))
 	return p
+
+
+## The row inside a card: a single horizontal line of card content.
+##
+## A PanelContainer stretches its ONLY child to the full rect, so the row
+## is created here and added to the card, and the caller fills it rather
+## than replacing it. The row is CENTRED vertically inside the card, so a
+## card that is taller than its row still reads as one thing.
+static func card_row(card: PanelContainer) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	card.add_child(row)
+	return row
+
+
+## The column inside a card, for cards that carry more than one line.
+##
+## The card is rebuilt as a single column so the second line sits UNDER
+## the title rather than fighting it for width in the same row. The row
+## is REMOVED from the card rather than just emptied: a PanelContainer
+## stretches every child to the full rect, so an empty row left in there
+## would sit invisibly on top of the column.
+static func card_col(card: PanelContainer) -> VBoxContainer:
+	for c in card.get_children():
+		card.remove_child(c)
+		c.queue_free()
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	card.add_child(col)
+	return col
 
 
 ## A title with a small caption under it.
@@ -232,3 +392,44 @@ static func titled(title: String, caption: String, accent: Color = COL_C) -> Con
 		col.add_child(c)
 
 	return col
+
+
+## A header block for a modal panel.
+##
+## The research found the reference UI put a header in its own shape
+## inside the frame, rather than letting the first line of text float.
+static func panel_header(text: String) -> Control:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", box(COL_W, COL_K))
+	var l := Label.new()
+	l.text = text.to_upper()
+	l.add_theme_color_override("font_color", COL_D)
+	l.add_theme_font_size_override("font_size", 15)
+	p.add_child(l)
+	return p
+
+
+## A row inside a modal: a leading colour block, a label, and a
+## right-aligned value.
+##
+## Money is right-aligned so the digits line up down the column, which is
+## the only way a column of numbers can be scanned.
+static func stat_row(key: String, value: String, accent: Color = COL_K,
+		fill: Color = COL_C) -> Control:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", flat(fill))
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	p.add_child(row)
+
+	row.add_child(row_block(accent, 4))
+
+	var k := tight(key, COL_P, 14)
+	k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(k)
+
+	var v := tight(value, COL_D, 16)
+	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(v)
+	return p

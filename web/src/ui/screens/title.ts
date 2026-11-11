@@ -8,7 +8,14 @@
 
 import { PAL } from '../palette.ts';
 import type { Screen, ScreenContext } from '../screen.ts';
-import { drawPanel, drawText, drawDitherGradient, FONT, measureText } from '../widgets.ts';
+import {
+  drawBevelButton,
+  drawPanel,
+  drawText,
+  drawDitherGradient,
+  FONT,
+  measureText,
+} from '../widgets.ts';
 import { drawSprite } from '../sprites.ts';
 
 export class TitleScreen implements Screen {
@@ -32,22 +39,21 @@ export class TitleScreen implements Screen {
     const bx = cx - bw / 2;
 
     // New game.
+    //
+    // RULE 3.1: every raised button is a bevelled 3D rectangle -- a light
+    // edge along the top and left, a dark edge along the bottom and
+    // right -- with a FLAT face.
+    //
+    // RULE 3.7: the primary action is visually distinct. The gold face
+    // says "this is the one", and it is the biggest button on the
+    // screen.
     const newY = 330;
-    g.fillStyle = PAL.Y;
-    g.fillRect(bx, newY, bw, bh);
-    g.fillStyle = PAL.H;
-    g.fillRect(bx + 1, newY + 1, bw - 2, 1);
-    g.fillStyle = PAL.A;
-    g.fillRect(bx + 1, newY + bh - 2, bw - 2, 1);
-    g.fillStyle = PAL.K;
-    g.fillRect(bx, newY, bw, 1);
-    g.fillRect(bx, newY + bh - 1, bw, 1);
-    g.fillRect(bx, newY, 1, bh);
-    g.fillRect(bx + bw - 1, newY, 1, bh);
-    drawText(g, 'New Museum', bx + bw / 2, newY + 12, {
+    drawBevelButton(g, {
+      rect: { x: bx, y: newY, w: bw, h: bh },
+      label: 'New Museum',
+      primary: true,
       font: FONT.mid,
-      color: PAL.K,
-      align: 'center',
+      pressed: ctx.pressedRegionId === 'title:new',
     });
     regions.push({
       x: bx,
@@ -60,19 +66,12 @@ export class TitleScreen implements Screen {
 
     // Continue.
     const contY = newY + bh + 12;
-    g.fillStyle = this.hasSave ? PAL.C : PAL.X;
-    g.fillRect(bx, contY, bw, bh);
-    g.fillStyle = this.hasSave ? PAL.W : PAL.P;
-    g.fillRect(bx + 1, contY + 1, bw - 2, 1);
-    g.fillStyle = PAL.K;
-    g.fillRect(bx, contY, bw, 1);
-    g.fillRect(bx, contY + bh - 1, bw, 1);
-    g.fillRect(bx, contY, 1, bh);
-    g.fillRect(bx + bw - 1, contY, 1, bh);
-    drawText(g, 'Continue', bx + bw / 2, contY + 12, {
+    drawBevelButton(g, {
+      rect: { x: bx, y: contY, w: bw, h: bh },
+      label: 'Continue',
+      enabled: this.hasSave,
       font: FONT.mid,
-      color: this.hasSave ? PAL.K : PAL.P,
-      align: 'center',
+      pressed: ctx.pressedRegionId === 'title:continue',
     });
     regions.push({
       x: bx,
@@ -86,19 +85,11 @@ export class TitleScreen implements Screen {
 
     // Settings.
     const setY = contY + bh + 12;
-    g.fillStyle = PAL.C;
-    g.fillRect(bx, setY, bw, 30);
-    g.fillStyle = PAL.W;
-    g.fillRect(bx + 1, setY + 1, bw - 2, 1);
-    g.fillStyle = PAL.K;
-    g.fillRect(bx, setY, bw, 1);
-    g.fillRect(bx, setY + 29, bw, 1);
-    g.fillRect(bx, setY, 1, 30);
-    g.fillRect(bx + bw - 1, setY, 1, 30);
-    drawText(g, 'Settings', bx + bw / 2, setY + 8, {
+    drawBevelButton(g, {
+      rect: { x: bx, y: setY, w: bw, h: 30 },
+      label: 'Settings',
       font: FONT.small,
-      color: PAL.K,
-      align: 'center',
+      pressed: ctx.pressedRegionId === 'title:settings',
     });
     regions.push({
       x: bx,

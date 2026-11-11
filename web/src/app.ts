@@ -14,7 +14,7 @@ import { GameState } from './sim/game-state.ts';
 import type { DaySummary } from './sim/game-state.ts';
 import { loadGame, saveGame, type Settings } from './save.ts';
 import { Audio } from './ui/audio.ts';
-import { drawHud, drawNav, navLayout, type NavButton } from './ui/hud.ts';
+import { drawHud, drawNav, navLayout, type NavLayout } from './ui/hud.ts';
 import { HINT_TEXT_Y, HUD_HEIGHT, NAV_TOP, SHADOW_OFFSET } from './ui/bands.ts';
 import { drawWithOrderedFade } from './ui/fade.ts';
 import {
@@ -35,7 +35,10 @@ import {
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH, Surface } from './ui/surface.ts';
 import { SpriteSet } from './ui/sprites.ts';
 import {
+  drawBevelButton,
   drawChip,
+  drawModal,
+  drawModalRow,
   drawPanel,
   drawText,
   drawVeil,
@@ -44,6 +47,7 @@ import {
   measureText,
 } from './ui/widgets.ts';
 
+import { UPGRADES } from './sim/sim-core.ts';
 import { TitleScreen } from './ui/screens/title.ts';
 import { DigSiteScreen } from './ui/screens/dig-site.ts';
 import { CuratorScreen } from './ui/screens/curator.ts';
@@ -110,7 +114,18 @@ export class App {
   } {
     return { texts: textDraws.map((t) => ({ ...t })) };
   }
-  private navButtons: NavButton[] = [];
+  /**
+   * The id of the region the pointer is currently held down on.
+   *
+   * Exposed so the browser checks can prove the pressed state actually
+   * reaches the drawing code (RULE 3.6), rather than only that a click
+   * eventually fires.
+   */
+  public get pressedRegionId(): string | null {
+    return this.pressedRegion?.id ?? null;
+  }
+
+  private navState: NavLayout | null = null;
 
   private pointer: { x: number; y: number } | null = null;
   private pressedRegion: Region | null = null;
@@ -344,6 +359,31 @@ export class App {
     this.summary = null;
   }
 
+  /**
+   * The pending counts shown as badges on the navigation chips.
+   *
+   * RULE 7.2: a small numeric badge on an icon button shows a pending
+   * count. The Storeroom badge is the finds still waiting to be
+   * catalogued, and the Upgrades badge is how many upgrades the player
+   * could buy right now -- the two numbers that change what the player
+   * would do next.
+   */
+  private navBadges(): Record<string, number> {
+    const badges: Record<string, number> = {};
+
+    const raw = this.state.rawCount();
+    if (raw > 0) badges.curator = raw;
+
+    let affordable = 0;
+    for (const u of UPGRADES) {
+      const cost = this.state.upgradeCost(u.id);
+      if (cost >= 0 && this.state.money() >= cost) affordable += 1;
+    }
+    if (affordable > 0) badges.shop = affordable;
+
+    return badges;
+  }
+
   private context(): ScreenContext {
     return {
       state: this.state,
@@ -351,6 +391,10 @@ export class App {
       surface: this.surface,
       time: this.elapsed,
       pointer: this.pointer,
+      // RULE 3.6: the framework says which region the pointer is held
+      // down on, so the button that owns it can be drawn pressed -- its
+      // bevel inverted, so it sinks rather than fading.
+      pressedRegionId: this.pressedRegion?.id ?? null,
     };
   }
 
@@ -439,9 +483,14 @@ export class App {
     this.overlayRegions = [];
 
     if (!isTitle) {
-      const hud = drawHud(ctx);
-      this.navButtons = navLayout(LOGICAL_WIDTH, LOGICAL_HEIGHT);
-      for (const b of this.navButtons) {
+      // The HUD carries the day, the resources and the money. The advance
+      // action does NOT live here: RULE 6.1 and RULE 6.3 put it in the
+      // fixed bottom bar as a discrete button, so the strip owns it.
+      drawHud(ctx);
+
+      const nav = navLayout(LOGICAL_WIDTH, LOGICAL_HEIGHT);
+      this.navState = nav;
+      for (const b of nav.buttons) {
         this.regions.push({
           x: b.x,
           y: b.y,
@@ -451,11 +500,13 @@ export class App {
           onClick: () => this.goTo(b.id),
         });
       }
+      // The region id is kept, so the browser checks and the capture
+      // harness can still find the button they have always found.
       this.regions.push({
-        x: hud.endDayButton.x,
-        y: hud.endDayButton.y,
-        w: hud.endDayButton.w,
-        h: hud.endDayButton.h,
+        x: nav.endDay.x,
+        y: nav.endDay.y,
+        w: nav.endDay.w,
+        h: nav.endDay.h,
         id: 'hud:endday',
         onClick: () => this.endDay(),
       });
@@ -511,8 +562,8 @@ export class App {
 
     this.regions.push(...own);
 
-    if (!isTitle) {
-      drawNav(ctx, this.activeId, this.navButtons);
+    if (!isTitle && this.navState) {
+      drawNav(ctx, this.activeId, this.navState, this.navBadges());
     }
 
     this.drawToasts(g);
@@ -551,97 +602,159 @@ export class App {
     }
   }
 
-  /** The end-of-day summary overlay. */
+  /**
+   * The end-of-day summary overlay.
+   *
+   * RULE 5.1: a CENTRED modal over a dimmed backdrop, never a slide-up
+   * bottom sheet.
+   *
+   * RULE 5.2: a white-pill header, stat rows, and a footer action row.
+   *
+   * RULE 5.3: the rows alternate between two quiet fills.
+   *
+   * RULE 5.5: ONE accent colour for the frame -- arcane teal -- with a
+   * quiet cream interior.
+   *
+   * RULE 4.6: the money rows carry the coin, so the number stays naked.
+   */
   private drawSummary(g: CanvasRenderingContext2D): void {
     const s = this.summary;
     if (!s) return;
 
     drawVeil(g, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PAL.K, PAL.P);
 
-    const w = 460;
-    const h = 330;
+    const w = 480;
+    const h = 380;
     const x = (LOGICAL_WIDTH - w) / 2;
     const y = (LOGICAL_HEIGHT - h) / 2;
 
-    drawPanel(g, { x, y, w, h }, { fill: PAL.C, title: `Day ${s.day} closes` });
+    const frame = drawModal(
+      g,
+      { rect: { x, y, w, h }, title: `Day ${s.day} closes`, accent: PAL.E }
+    );
 
-    let ly = y + 46;
-    const line = (label: string, value: string, tint: string = PAL.K) => {
-      // The label is panel-edge ink, not the mid brown N. N on the cream
-      // summary panel is 4.06:1 -- under the floor for body text. P on
-      // cream is 8.32:1 and still reads a step lighter than the D value.
-      drawText(g, label, x + 24, ly, { font: FONT.body, color: PAL.P });
-      // Dark ink for the value, a chip for the tint. Clay money on cream
-      // is 2.47:1 and arcane teal is 1.23:1 -- unreadable as glyphs.
-      drawTintedValue(g, value, x + w - 24, ly, {
-        font: FONT.body,
-        tint,
-        align: 'right',
-      });
-      ly += 22;
-    };
+    const number = (v: number): string => Math.round(v).toLocaleString('en-GB');
 
-    line('Takings', `£${Math.round(s.revenue)}`, PAL.A);
-    line('Upkeep', `-£${Math.round(s.opex)}`, PAL.T);
-    if (s.capex > 0) line('Investment', `-£${Math.round(s.capex)}`, PAL.U);
-    if (s.payout > 0) line('Fate Reel', `+£${Math.round(s.payout)}`, PAL.E);
-    if (s.stolen > 0) line('Stolen', `-${s.stolen}`, PAL.T);
-    if (s.curated > 0) line('Catalogued', `${s.curated}`, PAL.M);
-
-    g.fillStyle = PAL.P;
-    g.fillRect(x + 24, ly - 4, w - 48, 1);
-    ly += 8;
-
-    const deltaColor = s.delta >= 0 ? PAL.M : PAL.T;
-    drawText(g, 'Change', x + 24, ly, { font: FONT.mid, color: PAL.D });
-    drawTintedValue(g, `${s.delta >= 0 ? '+' : ''}£${Math.round(s.delta)}`, x + w - 24, ly, {
-      font: FONT.mid,
-      tint: deltaColor,
-      align: 'right',
-    });
-    ly += 26;
-
-    drawText(g, `In the till: £${Math.round(s.money)}`, x + 24, ly, {
-      font: FONT.body,
-      color: PAL.K,
-    });
-    ly += 26;
-
-    if (s.day_event && s.day_event.title) {
-      drawTintedValue(g, `Omen: ${s.day_event.title}`, x + 24, ly, {
-        font: FONT.small,
-        tint: PAL.U,
-      });
-      ly += 18;
+    // The breakdown. Every row has the same shape: a label on the left,
+    // a value on the right, and a coloured block at the leading edge
+    // (RULE 10.1) so the eye can find the interesting rows.
+    const rows: { label: string; value: string; tint: string; coin?: boolean }[] = [
+      { label: 'Takings', value: number(s.revenue), tint: PAL.A, coin: true },
+      { label: 'Upkeep', value: `-${number(s.opex)}`, tint: PAL.T, coin: true },
+    ];
+    if (s.capex > 0) {
+      rows.push({ label: 'Investment', value: `-${number(s.capex)}`, tint: PAL.U, coin: true });
+    }
+    if (s.payout > 0) {
+      rows.push({ label: 'Fate Reel', value: `+${number(s.payout)}`, tint: PAL.E, coin: true });
+    }
+    if (s.stolen > 0) {
+      rows.push({ label: 'Stolen', value: `-${s.stolen}`, tint: PAL.T });
+    }
+    if (s.curated > 0) {
+      rows.push({ label: 'Catalogued', value: `${s.curated}`, tint: PAL.M });
     }
 
-    const btnW = 140;
-    const btnX = x + (w - btnW) / 2;
-    const btnY = y + h - 46;
-    g.fillStyle = PAL.Y;
-    g.fillRect(btnX, btnY, btnW, 30);
-    g.fillStyle = PAL.K;
-    g.fillRect(btnX, btnY, btnW, 1);
-    g.fillRect(btnX, btnY + 29, btnW, 1);
-    g.fillRect(btnX, btnY, 1, 30);
-    g.fillRect(btnX + btnW - 1, btnY, 1, 30);
-    drawText(g, 'Close', btnX + btnW / 2, btnY + 9, {
-      font: FONT.body,
-      color: PAL.K,
-      align: 'center',
+    const rowH = 24;
+    let ry = frame.content.y;
+    rows.forEach((row, i) => {
+      drawModalRow(
+        g,
+        { x: frame.content.x, y: ry, w: frame.content.w, h: rowH },
+        {
+          label: row.label,
+          value: row.value,
+          tint: row.tint,
+          // The rows alternate, so a column of figures can be scanned
+          // without reading it (RULE 5.3).
+          fill: i % 2 === 0 ? PAL.W : PAL.C,
+          icon: row.coin ? 'icon_coin' : undefined,
+          sprites: this.sprites,
+        }
+      );
+      ry += rowH;
+    });
+
+    // The rule, then the two lines that matter: the change, and what is
+    // in the till.
+    ry += 6;
+    g.fillStyle = PAL.P;
+    g.fillRect(frame.content.x, ry, frame.content.w, 1);
+    ry += 8;
+
+    drawModalRow(
+      g,
+      { x: frame.content.x, y: ry, w: frame.content.w, h: 26 },
+      {
+        label: 'Change',
+        value: `${s.delta >= 0 ? '+' : '-'}${number(Math.abs(s.delta))}`,
+        tint: s.delta >= 0 ? PAL.M : PAL.T,
+        fill: PAL.W,
+        font: FONT.mid,
+        icon: 'icon_coin',
+        sprites: this.sprites,
+      }
+    );
+    ry += 26;
+
+    drawModalRow(
+      g,
+      { x: frame.content.x, y: ry, w: frame.content.w, h: 26 },
+      {
+        label: 'In the till',
+        value: number(s.money),
+        tint: PAL.A,
+        fill: PAL.C,
+        font: FONT.mid,
+        icon: 'icon_coin',
+        sprites: this.sprites,
+      }
+    );
+    ry += 26;
+
+    if (s.day_event && s.day_event.title) {
+      drawModalRow(
+        g,
+        { x: frame.content.x, y: ry, w: frame.content.w, h: 24 },
+        {
+          label: 'Omen',
+          value: s.day_event.title,
+          tint: PAL.U,
+          fill: PAL.W,
+          font: FONT.small,
+        }
+      );
+    }
+
+    // The footer action row (RULE 5.2): one primary button, bevelled.
+    const btnW = 150;
+    const btnH = 32;
+    const btnX = x + Math.round((w - btnW) / 2);
+    const btnY = frame.footerTop + 6;
+    drawBevelButton(g, {
+      rect: { x: btnX, y: btnY, w: btnW, h: btnH },
+      label: 'Close',
+      primary: true,
+      pressed: this.pressedRegion?.id === 'summary:close',
     });
 
     this.overlayRegions.push({
       x: btnX,
       y: btnY,
       w: btnW,
-      h: 30,
+      h: btnH,
       id: 'summary:close',
       onClick: () => this.dismissSummary(),
     });
   }
 
-  /** The tutorial overlay. */
+  /**
+   * The tutorial overlay.
+   *
+   * The same centred modal as the day summary (RULE 5.1), with a
+   * white-pill header carrying the beat's name and a footer action row
+   * holding the skip link and the primary button (RULE 5.2).
+   */
   private drawTutorial(g: CanvasRenderingContext2D): void {
     if (!this.tutorialOpen) return;
     const beat = this.state.tutorial.current();
@@ -652,23 +765,26 @@ export class App {
 
     drawVeil(g, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PAL.K, PAL.P);
 
-    const w = 520;
-    const h = 210;
+    const w = 540;
+    const h = 240;
     const x = (LOGICAL_WIDTH - w) / 2;
     const y = (LOGICAL_HEIGHT - h) / 2;
 
-    drawPanel(g, { x, y, w, h }, { fill: PAL.C, title: beat.title });
+    const frame = drawModal(
+      g,
+      { rect: { x, y, w, h }, title: beat.title, accent: PAL.U }
+    );
 
     // Wrap the body text by hand: the canvas has no word-wrap, and the
     // body is prose rather than a label.
-    const maxWidth = w - 56;
+    const maxWidth = frame.content.w - 8;
     const words = beat.body.split(' ');
     let lineText = '';
-    let ly = y + 52;
+    let ly = frame.content.y + 4;
     for (const word of words) {
       const test = lineText.length === 0 ? word : `${lineText} ${word}`;
       if (measureText(test, FONT.body) > maxWidth && lineText.length > 0) {
-        drawText(g, lineText, x + 28, ly, { font: FONT.body, color: PAL.D });
+        drawText(g, lineText, frame.content.x + 4, ly, { font: FONT.body, color: PAL.D });
         ly += 19;
         lineText = word;
       } else {
@@ -676,34 +792,32 @@ export class App {
       }
     }
     if (lineText) {
-      drawText(g, lineText, x + 28, ly, { font: FONT.body, color: PAL.D });
+      drawText(g, lineText, frame.content.x + 4, ly, { font: FONT.body, color: PAL.D });
+      ly += 19;
     }
 
     // Progress dots.
     const total = this.state.tutorial.progress();
     for (let i = 0; i < total; i++) {
       g.fillStyle = i <= this.state.tutorial.index ? PAL.Y : PAL.P;
-      g.fillRect(x + 28 + i * 12, y + h - 66, 8, 8);
+      g.fillRect(frame.content.x + 4 + i * 12, ly + 6, 8, 8);
     }
 
-    const btnW = 130;
-    const btnX = x + w - btnW - 24;
-    const btnY = y + h - 52;
-    g.fillStyle = PAL.Y;
-    g.fillRect(btnX, btnY, btnW, 30);
-    g.fillStyle = PAL.K;
-    g.fillRect(btnX, btnY, btnW, 1);
-    g.fillRect(btnX, btnY + 29, btnW, 1);
-    g.fillRect(btnX, btnY, 1, 30);
-    g.fillRect(btnX + btnW - 1, btnY, 1, 30);
-    drawText(g, 'Got it', btnX + btnW / 2, btnY + 9, {
-      font: FONT.body,
-      color: PAL.K,
-      align: 'center',
+    // The footer action row: the skip link on the left, the primary
+    // button on the right.
+    const btnW = 140;
+    const btnH = 32;
+    const btnX = x + w - btnW - 20;
+    const btnY = frame.footerTop + 6;
+    drawBevelButton(g, {
+      rect: { x: btnX, y: btnY, w: btnW, h: btnH },
+      label: 'Got it',
+      primary: true,
+      pressed: this.pressedRegion?.id === 'tutorial:next',
     });
 
     // The skip link.
-    drawTintedValue(g, 'Skip tutorial', x + 28, btnY + 9, {
+    drawTintedValue(g, 'Skip tutorial', frame.content.x + 4, btnY + 9, {
       font: FONT.small,
       tint: PAL.U,
     });
@@ -712,7 +826,7 @@ export class App {
       x: btnX,
       y: btnY,
       w: btnW,
-      h: 30,
+      h: btnH,
       id: 'tutorial:next',
       onClick: () => {
         this.state.tutorial.advance();
@@ -722,10 +836,10 @@ export class App {
     });
 
     this.overlayRegions.push({
-      x: x + 28,
+      x: frame.content.x + 4,
       y: btnY,
       w: 110,
-      h: 30,
+      h: btnH,
       id: 'tutorial:skip',
       onClick: () => {
         this.state.skipTutorial();
