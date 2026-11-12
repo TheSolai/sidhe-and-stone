@@ -164,35 +164,98 @@ export function drawSpriteRotated(
   cx: number,
   cy: number,
   angle: number,
-  scale = 1
+  scale = 1,
+  options: {
+    pivot?: { x: number; y: number };
+    flipX?: boolean;
+    /**
+     * The part of the sprite to rotate, in image pixels.
+     *
+     * A prop that is made of a moving part and a fixed part -- the Fate
+     * Reel's lever, whose arm swings while its mount stays bolted to the
+     * floor -- cannot be drawn by rotating the whole image, because the
+     * fixed part would swing with it. So the arm is rotated on its own,
+     * and the mount is blitted separately.
+     *
+     * The pivot is given in the RECT's coordinates, not the image's.
+     */
+    source?: { x: number; y: number; w: number; h: number };
+  } = {}
 ): void {
   if (!image || !scratchCtx) return;
   const src = spritePixels(image);
 
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
-  // The bounding box of the rotated sprite.
-  const bw = Math.ceil(Math.abs(src.w * cos) + Math.abs(src.h * sin));
-  const bh = Math.ceil(Math.abs(src.w * sin) + Math.abs(src.h * cos));
-  if (bw < 1 || bh < 1) return;
+  const flip = options.flipX === true;
+
+  // The part of the image being drawn.
+  const rect = options.source ?? { x: 0, y: 0, w: src.w, h: src.h };
+  if (rect.w <= 0 || rect.h <= 0) return;
+
+  // The point the sprite turns about.
+  //
+  // By default that is the middle of the sprite, and `(cx, cy)` is where
+  // the middle lands. A lever needs to turn about its MOUNT instead --
+  // the bolt in the floor -- so the pivot can be given explicitly, and
+  // then `(cx, cy)` is where the pivot lands.
+  //
+  // Pivot coordinates are in source pixels, where pixel `i` covers the
+  // continuous span `[i, i + 1)`. So the middle of a 16px sprite is
+  // `(8, 8)`, and the middle of pixel `(11, 14)` is `(11.5, 14.5)`.
+  const pivot = options.pivot ?? { x: rect.w / 2, y: rect.h / 2 };
+  // A mirrored sprite carries its pivot with it.
+  const px = flip ? rect.w - pivot.x : pivot.x;
+  const py = pivot.y;
+
+  // The bounding box of the rotated sprite, in the rotated frame.
+  //
+  // The rotation happens about the pivot, so the pivot stays where it
+  // is and the corners swing around it.
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  // The corners of the SPRITE, in continuous source coordinates: the
+  // sprite covers [0, src.w) x [0, src.h). They used to be the corners
+  // of a 1x1 unit square, which made the rotated bounding box far too
+  // small -- the rotation was clipped to a couple of pixels and the
+  // sprite vanished.
+  for (const corner of spriteCorners(rect.w, rect.h)) {
+    const vx = corner[0] - px;
+    const vy = corner[1] - py;
+    const rx = px + vx * cos - vy * sin;
+    const ry = py + vx * sin + vy * cos;
+    if (rx < minX) minX = rx;
+    if (rx > maxX) maxX = rx;
+    if (ry < minY) minY = ry;
+    if (ry > maxY) maxY = ry;
+  }
+  const bw = Math.max(1, Math.ceil(maxX - minX));
+  const bh = Math.max(1, Math.ceil(maxY - minY));
 
   scratch.width = bw;
   scratch.height = bh;
   const out = scratchCtx.createImageData(bw, bh);
   const d = out.data;
-  const halfW = src.w / 2;
-  const halfH = src.h / 2;
 
   for (let y = 0; y < bh; y += 1) {
-    const dy = y - bh / 2 + 0.5;
+    // The centre of this destination pixel, in the rotated frame.
+    const gy = minY + y + 0.5;
     for (let x = 0; x < bw; x += 1) {
-      const dx = x - bw / 2 + 0.5;
+      const gx = minX + x + 0.5;
       // Inverse-rotate the destination pixel back into source space.
-      const sx = Math.round(dx * cos + dy * sin + halfW - 0.5);
-      const sy = Math.round(-dx * sin + dy * cos + halfH - 0.5);
-      if (sx < 0 || sy < 0 || sx >= src.w || sy >= src.h) continue;
+      const dx = gx - px;
+      const dy = gy - py;
+      const fx = px + dx * cos + dy * sin;
+      const fy = py - dx * sin + dy * cos;
+      const rx = Math.floor(fx);
+      const ry = Math.floor(fy);
+      if (rx < 0 || ry < 0 || rx >= rect.w || ry >= rect.h) continue;
 
-      const si = (sy * src.w + sx) * 4;
+      const sx = rect.x + rx;
+      const sy = rect.y + ry;
+      const si = (sy * src.w + (flip ? src.w - 1 - sx : sx)) * 4;
       if (src.data[si + 3] === 0) continue;
 
       const di = (y * bw + x) * 4;
@@ -206,12 +269,64 @@ export function drawSpriteRotated(
 
   const smoothing = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
+  // The pivot sits at `(px, py)` in the rotated frame, and the frame's
+  // top-left corner is drawn at `(cx, cy)` plus the pivot's offset.
   ctx.drawImage(
     scratch,
-    Math.round(cx - (bw * scale) / 2),
-    Math.round(cy - (bh * scale) / 2),
+    Math.round(cx + (minX - px) * scale),
+    Math.round(cy + (minY - py) * scale),
     bw * scale,
     bh * scale
   );
   ctx.imageSmoothingEnabled = smoothing;
+}
+
+/**
+ * Draw part of a sprite, unsmoothed in colour.
+ *
+ * This is the fixed half of a moving prop: the mount the lever is
+ * bolted to does not turn, so it is blitted rather than rotated.
+ */
+export function drawSpriteRegion(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement | undefined,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+  x: number,
+  y: number,
+  scale = 1
+): void {
+  if (!image) return;
+  const smoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(
+    image,
+    sx,
+    sy,
+    sw,
+    sh,
+    Math.round(x),
+    Math.round(y),
+    Math.round(sw * scale),
+    Math.round(sh * scale)
+  );
+  ctx.imageSmoothingEnabled = smoothing;
+}
+
+/**
+ * The four corners of a sprite of the given size, in continuous source
+ * coordinates. The sprite covers [0, w) x [0, h).
+ */
+function spriteCorners(
+  w: number,
+  h: number
+): ReadonlyArray<readonly [number, number]> {
+  return [
+    [0, 0],
+    [w, 0],
+    [w, h],
+    [0, h],
+  ];
 }

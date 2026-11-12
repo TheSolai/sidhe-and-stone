@@ -57,7 +57,11 @@ PALETTE_HEX = {
 LEGAL_KEYS = set(PALETTE_HEX)
 HEX_TO_KEY = {v.lower(): k for k, v in PALETTE_HEX.items()}
 
-SPRITES = [
+# The sprites that MUST exist. This is a floor, not the roster: the roster
+# itself is discovered from disk (see discover_sprites) so that a newly
+# drawn sprite is verified the moment it lands, rather than sitting
+# unverified until someone remembers to edit this list.
+EXPECTED_SPRITES = [
     "artefact_clay", "artefact_crown", "artefact_mask", "artefact_relic",
     "artefact_rubble", "artefact_tablet",
     "curator", "dig_site", "gallery_case", "reel_wheel",
@@ -73,6 +77,21 @@ SPRITES = [
     "upgrade_diggers", "upgrade_excavators", "upgrade_guides",
     "upgrade_archivists", "upgrade_wards",
 ]
+
+
+def discover_sprites() -> list:
+    """Every sprite with a source file under art/<name>/<name>.px.js.
+
+    The source tree is the single source of truth for what exists, so the
+    verifier must never maintain a parallel hand-written roster of its own.
+    """
+    found = set()
+    for entry in sorted(ART.iterdir()):
+        if not entry.is_dir():
+            continue
+        if (entry / f"{entry.name}.px.js").exists():
+            found.add(entry.name)
+    return sorted(found)
 
 # The only canvas sizes the art direction allows.
 ALLOWED_CANVASES = {(16, 16), (24, 24)}
@@ -386,7 +405,25 @@ def main() -> int:
     if atlas_path.exists():
         atlas = json.loads(atlas_path.read_text())
 
-    for name in SPRITES:
+    roster = discover_sprites()
+
+    # Every sprite the project promises must exist. A name on the floor with
+    # no source on disk is a deletion, and must fail loudly.
+    for name in EXPECTED_SPRITES:
+        if name not in roster:
+            failures += 1
+            checks += 1
+            print(f"  FAIL {name}: expected sprite is missing from art/{name}/")
+
+    # And nothing may be staged as a PNG without a source behind it, which
+    # would smuggle a raster in outside the art-as-code path.
+    for name in sorted(p.stem for p in WEB_SPRITES.glob("*.png")):
+        if name not in roster:
+            failures += 1
+            checks += 1
+            print(f"  FAIL {name}: staged PNG has no source in art/{name}/")
+
+    for name in roster:
         problems = (check_source(name) + check_pixels(name)
                     + check_style(name) + check_sync(name))
 

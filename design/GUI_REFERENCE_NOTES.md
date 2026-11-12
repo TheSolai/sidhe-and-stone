@@ -19,6 +19,7 @@ Every rule below is written as an imperative you can implement and then verify.
 |---|---|
 | *(verified)* | I opened this specific image/URL and read the detail directly |
 | *(corroborating)* | Seen consistently across many screenshots, but not read pixel-by-pixel |
+| *(search snippet)* | The page itself was unreachable, but the quoted wording appeared in a search result. Quoted as a snippet, never as a page I read. |
 | `NO SOLID EVIDENCE FOUND` | I looked and could not find it. Nothing is invented to fill the gap. |
 
 **The single most important caveat in this document:** the highest-value source everyone assumed would exist — actual Kairosoft source code — **does not exist in public form.** `Red-K0/GameDevStory-Decomp` is an *asset extraction* project, not a decompilation of code: it contains the 1996 PC game's bitmaps, WAVs and executables, and no source files at all. The rich UI constant data everyone hoped for in it **does not exist**. What I could extract instead is *far better anyway*: 56 real App Store screenshots from 10 live Kairosoft titles, which show the shipping UI rather than a lossy reconstruction of it. Every visual claim below comes from those real shipping builds.
@@ -62,15 +63,15 @@ Every rule below is written as an imperative you can implement and then verify.
 - **Source:** https://itunes.apple.com/lookup?id=1617006551 · https://itunes.apple.com/lookup?id=396085661
 
 **RULE 2.2 — Use 3–5 destinations for a tab bar, and give every destination an icon *and* a text label.**
-- **Evidence:** Material Design 3: "Navigation bars provide access to three to five destinations… **Each destination is represented by an icon and label text. One navigation destination is always active.**" It also warns "**Don't remove the labels from navigation items**" and "All navigation items require a label text. It should be 1-2 words."
+- **Evidence:** *(verified)* Material Design 3: "Navigation bars provide access to three to five destinations… **Each destination is represented by an icon and label text. One navigation destination is always active.**" It also warns "**Don't remove the labels from navigation items**" and "All navigation items require a label text. It should be 1-2 words."
 - **Source:** https://m3.material.io/components/navigation-bar/guidelines
 
 **RULE 2.3 — Signal the active destination with a single, unmistakable indicator — and only one.**
-- **Evidence:** Material 3: "The active indicator shows which page from the nav bar is currently being displayed", "**Use the active indicator only for the active destination**", "**Don't use the active indicator for more than one destination at a time**", and "Active and inactive icons must have a minimum **3:1 contrast ratio** with the container."
+- **Evidence:** *(verified)* Material 3: "The active indicator shows which page from the nav bar is currently being displayed", "**Use the active indicator only for the active destination**", "**Don't use the active indicator for more than one destination at a time**", and "Active and inactive icons must have a minimum **3:1 contrast ratio** with the container."
 - **Source:** https://m3.material.io/components/navigation-bar/guidelines
 
 **RULE 2.4 — Keep the tab bar's chrome monochrome when the content underneath is colourful.**
-- **Evidence:** Apple HIG, tab bars: "**Avoid applying a similar color to tab labels and content layer backgrounds.** If your app already has bright, colorful content in the content layer, prefer a **monochromatic appearance for tab bars**, or choose an accent color with sufficient visual differentiation." HIG also specifies the tab bar is **68 points** tall, translucent by default with only the selected tab opaque.
+- **Evidence:** *(verified)* Apple HIG, tab bars: "**Avoid applying a similar color to tab labels and content layer backgrounds.** If your app already has bright, colorful content in the content layer, prefer a **monochromatic appearance for tab bars**, or choose an accent color with sufficient visual differentiation." HIG also specifies the tab bar is **68 points** tall, translucent by default with only the selected tab opaque.
 - **Source:** https://developer.apple.com/design/human-interface-guidelines/tab-bars
 
 **RULE 2.5 — Do not copy the Kairosoft bottom bar literally for a tab bar. Kairosoft's own bottom bar is an action bar, not a tab bar.**
@@ -110,12 +111,12 @@ Every rule below is written as an imperative you can implement and then verify.
 - **Source:** https://itunes.apple.com/lookup?id=1320716777 · https://itunes.apple.com/lookup?id=1617006551
 
 **RULE 3.4 — Use a 9-slice sprite for chunky pixel-art buttons so they scale to any label length without distorting the bevel.**
-- **Evidence:** Godot's `NinePatchRect` "produces clean panels of any size based on a small texture. To do so, it splits the texture in a 3×3 grid. When you scale the node, it tiles the texture's edges horizontally or vertically, tiles the center on both axes, and leaves the corners unchanged." The four `patch_margin_*` properties define the protected border; `AXIS_STRETCH_MODE_TILE` "Repeats the center texture across the node… This won't cause any visible distortion" whereas `AXIS_STRETCH_MODE_STRETCH` "may cause the texture to be distorted."
+- **Evidence:** *(verified)* Godot's `NinePatchRect` "produces clean panels of any size based on a small texture. To do so, it splits the texture in a 3×3 grid. When you scale the node, it tiles the texture's edges horizontally or vertically, tiles the center on both axes, and leaves the corners unchanged." The four `patch_margin_*` properties define the protected border; `AXIS_STRETCH_MODE_TILE` "Repeats the center texture across the node… This won't cause any visible distortion" whereas `AXIS_STRETCH_MODE_STRETCH` "may cause the texture to be distorted."
 - **Source:** https://docs.godotengine.org/en/stable/classes/class_ninepatchrect.html
 - **Note:** this is an implementation-mechanics citation (Godot's own docs), not a Kairosoft citation. Kairosoft's shipping UI is flat-shaded with per-widget pixel art, and the game's own asset pipeline is RLE-compressed 8-bit bitmaps, not 9-slice atlases.
 
 **RULE 3.5 — Make every tappable target at least 44×44 pt, even when the pixel-art glyph is smaller.**
-- **Evidence:** Apple HIG, Accessibility: the minimum touch target for **iOS/iPadOS is 44×44 pt** (macOS 28×28, tvOS 66×66, visionOS 60×60, watchOS 44×44). HIG further: "**Consider spacing between controls as important as size.** Include enough padding between elements to reduce the chance that someone taps the wrong control. In general, it works well to add **about 12 points of padding** around elements that include a bezel. For elements without a bezel, about **24 points of padding** works well around the element's visible edges."
+- **Evidence:** *(verified)* Apple HIG, Accessibility: the minimum touch target for **iOS/iPadOS is 44×44 pt** (macOS 28×28, tvOS 66×66, visionOS 60×60, watchOS 44×44). HIG further: "**Consider spacing between controls as important as size.** Include enough padding between elements to reduce the chance that someone taps the wrong control. In general, it works well to add **about 12 points of padding** around elements that include a bezel. For elements without a bezel, about **24 points of padding** works well around the element's visible edges."
 - **Source:** https://developer.apple.com/design/human-interface-guidelines/accessibility
 
 **RULE 3.6 — On press, invert or sink the button rather than fading it.**
@@ -131,15 +132,15 @@ Every rule below is written as an imperative you can implement and then verify.
 ## 4. Numbers, multipliers and bars
 
 **RULE 4.1 — Write multipliers as `x1.5` — lowercase `x`, no space, one decimal — never as a percentage or a chip.**
-- **Evidence:** The Kairosoft wiki describes multipliers in exactly this notation: "**Any opponent whose multiplier is greater than "x1.0" is a very difficult opponent**" (Dream Town Story Global Battle); "bonuses to XP given (**x1.2, x1.5 and x2** for 10-24, 25-49 and 50+ items)" and "Ingredient XP granted from items is multiplied by an additional 1.2x on Mondays" (Bonbon Cakery); "**Each combo adds to a multiplier (starting at 100%)**" (Dream Town Story combos).
+- **Evidence:** *(verified)* The Kairosoft wiki describes multipliers in exactly this notation: "**Any opponent whose multiplier is greater than "x1.0" is a very difficult opponent**" (Dream Town Story Global Battle); "bonuses to XP given (**x1.2, x1.5 and x2** for 10-24, 25-49 and 50+ items)" and "Ingredient XP granted from items is multiplied by an additional 1.2x on Mondays" (Bonbon Cakery); "**Each combo adds to a multiplier (starting at 100%)**" (Dream Town Story combos).
 - **Source:** https://kairosoft.wiki.gg/wiki/Tips_(Dream_Town_Story) · https://kairosoft.wiki.gg/wiki/Items_(Bonbon_Cakery) · https://kairosoft.wiki.gg/wiki/Combos_(Dream_Town_Story)
 
 **RULE 4.2 — Use `%` only for additive stat bonuses ("Adds +10% to all stats"), and keep the `+` sign.**
-- **Evidence:** Bonbon Cakery's item table lists "Adds +10% to all stats", "+15%", "+20%", "+30%", "+50%", and negative variants "All stat increase/decrease -5%/-10%/-20%". Note the convention: a *multiplier* is `x1.5`; a *flat percentage bonus* is `+10%`.
+- **Evidence:** *(verified)* Bonbon Cakery's item table lists "Adds +10% to all stats", "+15%", "+20%", "+30%", "+50%", and negative variants "All stat increase/decrease -5%/-10%/-20%". Note the convention: a *multiplier* is `x1.5`; a *flat percentage bonus* is `+10%`.
 - **Source:** https://kairosoft.wiki.gg/wiki/Items_(Bonbon_Cakery)
 
 **RULE 4.3 — Put the multiplier in the panel where the boosted value is compared, not in the top bar.**
-- **Evidence:** The `x1.0`/`x1.5` notation appears inside specific windows — the Global Battle window (Dream Town Story) and the item/bonus descriptions (Bonbon Cakery) — rather than as a persistent HUD chip.
+- **Evidence:** *(verified, structural)* The `x1.0`/`x1.5` notation appears inside specific windows — the Global Battle window (Dream Town Story) and the item/bonus descriptions (Bonbon Cakery) — rather than as a persistent HUD chip.
 - **Source:** https://kairosoft.wiki.gg/wiki/Tips_(Dream_Town_Story) · https://kairosoft.wiki.gg/wiki/Items_(Bonbon_Cakery)
 
 **RULE 4.4 — Render progress as a thin horizontal bar in a light track, with the fill colour carrying the state.**
@@ -199,7 +200,7 @@ Every rule below is written as an imperative you can implement and then verify.
 - **Source:** https://itunes.apple.com/lookup?id=1623111026
 
 **RULE 6.3 — Do NOT make "End Day" a full-width button. This is where the GameStewKit GDD diverges from the Kairosoft convention and the research does not support it.**
-- **Evidence:** Across all 10 Kairosoft titles sampled, the bottom bar is **never** a single full-width primary button — it is always 2–3 discrete buttons in a row, with the advance action as one of them. *(Corroborating)* A scan of the bottom strip of all 56 screenshots found the recurring shapes to be: (a) a 2-button utility bar (`Save`/`Menu`), and (b) a 2–3 button control bar (`Site` + action + `Finish`/`Menu`/`Quit`); no full-width advance button appears anywhere. The GDD's *"End Day is a full-width button at the bottom, always reachable"* should therefore be changed to **a discrete, always-visible button in the fixed bottom bar** — which preserves the "always reachable" intent while matching the reference.
+- **Evidence:** *(corroborating)* Across all 10 Kairosoft titles sampled, the bottom bar is **never** a single full-width primary button — it is always 2–3 discrete buttons in a row, with the advance action as one of them. *(Corroborating)* A scan of the bottom strip of all 56 screenshots found the recurring shapes to be: (a) a 2-button utility bar (`Save`/`Menu`), and (b) a 2–3 button control bar (`Site` + action + `Finish`/`Menu`/`Quit`); no full-width advance button appears anywhere. The GDD's *"End Day is a full-width button at the bottom, always reachable"* should therefore be changed to **a discrete, always-visible button in the fixed bottom bar** — which preserves the "always reachable" intent while matching the reference.
 - **Source:** https://itunes.apple.com/lookup?id=396085661 · https://itunes.apple.com/lookup?id=1617006551 · https://itunes.apple.com/lookup?id=1103109519
 
 **RULE 6.4 — Keep the bottom bar's utility buttons (Save/Menu) at the extreme edges and the advance action adjacent to them, not centred behind the primary action.**
@@ -262,11 +263,11 @@ Every rule below is written as an imperative you can implement and then verify.
 - **Source:** https://itunes.apple.com/lookup?id=396085661 · https://itunes.apple.com/lookup?id=1320716777
 
 **RULE 9.4 — Kairosoft's art direction is explicitly "bright, toy-like" — the bright colours belong to the *sprites*, which is the whole reason the chrome stays quiet.**
-- **Evidence:** The `Pixel Art Research: Learning from Kairosoft` article's opening (as returned in search results) reads: "Kairosoft is a company that creates many pixel art management simulation games. While there are many pixel art games in the world, the defining feature of Kairosoft games is, above all, the pixel art of buildings and characters that look like toys, created with bright colors. When you actually play the games, you can see that even though each piece of pixel art uses a low pixel count, it …" — *the full article could not be retrieved; see Fetch failures.*
+- **Evidence:** *(search snippet)* The `Pixel Art Research: Learning from Kairosoft` article's opening (as returned in search results) reads: "Kairosoft is a company that creates many pixel art management simulation games. While there are many pixel art games in the world, the defining feature of Kairosoft games is, above all, the pixel art of buildings and characters that look like toys, created with bright colors. When you actually play the games, you can see that even though each piece of pixel art uses a low pixel count, it …" — *the full article could not be retrieved; see Fetch failures.*
 - **Source:** https://note.com/iseebinokathi/n/n4e7bf9bf4e90
 
 **RULE 9.5 — Use a neutral mid-grey key colour as the "no data" placeholder, and reserve full saturation for meaningful pixels.**
-- **Evidence:** The `Game Dev Story` asset pipeline ships `Color.bmp` as "A 1 pixel bitmap of hex color `#808080`, the exact middle of the 24-bit color spectrum. Not displayed due to size." — i.e. a deliberately neutral, non-competing grey.
+- **Evidence:** *(verified)* The `Game Dev Story` asset pipeline ships `Color.bmp` as "A 1 pixel bitmap of hex color `#808080`, the exact middle of the 24-bit color spectrum. Not displayed due to size." — i.e. a deliberately neutral, non-competing grey.
 - **Source:** https://raw.githubusercontent.com/Red-K0/GameDevStory-Decomp/main/Assets/Assets.md
 
 ---

@@ -155,12 +155,16 @@ const REEL_STOP_TIMES := [0.55, 0.72, 0.90]
 ## destination, "Collection", and switch between the two halves with a
 ## segmented control inside the screen. Five destinations, six screens, and
 ## exactly one destination lit at a time.
+##
+## Every one of these is an 18x18 sprite, so the icons in the row are all
+## the same size. A row of mixed 18 and 26 pixel icons reads as a mistake,
+## and the icon is drawn before the label in every case.
 const TABS := [
-	{"label": "Collection", "icon": "gallery_case", "tab": 0},
-	{"label": "Digs", "icon": "dig_site", "tab": 2},
+	{"label": "Collection", "icon": "upgrade_gallery", "tab": 0},
+	{"label": "Digs", "icon": "upgrade_site", "tab": 2},
 	{"label": "Staff", "icon": "curator", "tab": 3},
 	{"label": "Goals", "icon": "symbol_star", "tab": 4},
-	{"label": "Ledger", "icon": "icon_coin", "tab": 5},
+	{"label": "Ledger", "icon": "artefact_coin", "tab": 5},
 ]
 
 ## Which destination lights up for which screen. The gallery and the vault
@@ -254,6 +258,11 @@ func _build_ui() -> void:
 	root.add_child(scroll)
 
 	var pad := MarginContainer.new()
+	# The pad must EXPAND to the scroll's width. Without the expand flag a
+	# ScrollContainer hands its child only the child's MINIMUM width, so the
+	# whole ladder collapsed to 86px and every wrapped label inside it was
+	# forced to break one letter per line.
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pad.add_theme_constant_override("margin_left", 10)
 	pad.add_theme_constant_override("margin_right", 10)
 	pad.add_theme_constant_override("margin_top", 8)
@@ -290,7 +299,7 @@ func _build_topbar() -> Control:
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
 
-	_lbl_day = StoneKit.tight("Day 1", COL_TEXT, 17)
+	_lbl_day = StoneKit.tight("Day 1", COL_TEXT, StoneTheme.FS_MID)
 	row.add_child(_lbl_day)
 
 	# Two expanding gaps around the middle group, so the resources sit in
@@ -360,7 +369,7 @@ func _build_milestone_card() -> Control:
 	head.add_theme_constant_override("separation", 6)
 	col.add_child(head)
 
-	head.add_child(StoneKit.tight("NEXT GOAL", COL_DIM_P, 11))
+	head.add_child(StoneKit.tight("NEXT GOAL", COL_DIM_P, StoneTheme.FS_TINY))
 	# Good news about the ladder: a moss chip, never moss TEXT.
 	_chip_goal = StoneKit.chip(COL_MOSS)
 	_chip_goal.visible = false
@@ -395,14 +404,14 @@ func _build_reel_zone() -> Control:
 	head.add_theme_constant_override("separation", 6)
 	col.add_child(head)
 
-	head.add_child(StoneKit.tight("FATE REEL", COL_TEXT, 15))
+	head.add_child(StoneKit.tight("FATE REEL", COL_TEXT, StoneTheme.FS_BODY))
 	head.add_child(StoneKit.icon("reel_wheel", 20))
 
 	# The multiplier is written as a number, never as a chip and never as a
 	# percentage: x1.5, lowercase x, no space. It lives here, in the panel
 	# that shows what the reel is about to do to today's takings, which is
 	# where the boosted value is compared.
-	_lbl_payout = StoneKit.tight("x1.0", COL_TEXT, 17)
+	_lbl_payout = StoneKit.tight("x1.0", COL_TEXT, StoneTheme.FS_MID)
 	head.add_child(_lbl_payout)
 
 	var sp := Control.new()
@@ -412,7 +421,7 @@ func _build_reel_zone() -> Control:
 	# Luck lives with the reel, because luck is what the reel reads. It was
 	# in the top bar, where it was a word with no meaning next to two
 	# numbers that had icons.
-	_lbl_luck = StoneKit.tight("Luck 0.0", COL_DIM_P, 13)
+	_lbl_luck = StoneKit.tight("Luck 0.0", COL_DIM_P, StoneTheme.FS_SMALL)
 	head.add_child(_lbl_luck)
 
 	_btn_table = StoneKit.small_button("Odds", _toggle_table, COL_CARD, COL_K)
@@ -454,7 +463,7 @@ func _build_reel_zone() -> Control:
 		_reel_icons.append(icon)
 
 	_btn_spin = StoneKit.button("Spin", _on_spin_pressed, COL_GOLD, COL_K)
-	_btn_spin.add_theme_font_size_override("font_size", 17)
+	_btn_spin.add_theme_font_size_override("font_size", StoneTheme.FS_MID)
 	_btn_spin.custom_minimum_size = Vector2(96, 56)
 	# The charm sprite, drawn, never a font glyph.
 	var charm_tex_path := SPRITE_DIR + "icon_charm.png"
@@ -474,7 +483,7 @@ func _build_reel_zone() -> Control:
 	_chip_status.visible = false
 	status_row.add_child(_chip_status)
 
-	_lbl_status = StoneKit.label("", COL_TEXT, 13)
+	_lbl_status = StoneKit.label("", COL_TEXT, StoneTheme.FS_SMALL)
 	status_row.add_child(_lbl_status)
 
 	_table_panel = _build_odds_table()
@@ -541,15 +550,15 @@ func _rebuild_odds_body() -> void:
 
 		line.add_child(StoneKit.icon(SYMBOL_SPRITE[s], 18))
 
-		var nm := StoneKit.tight(str(st["name"]), COL_TEXT, 13)
+		var nm := StoneKit.tight(str(st["name"]), COL_TEXT, StoneTheme.FS_SMALL)
 		nm.custom_minimum_size = Vector2(64, 0)
 		line.add_child(nm)
 
-		var mult := StoneKit.tight(_mult_text(float(ReelCore.SYMBOLS[s]["mult"])), COL_TEXT, 13)
+		var mult := StoneKit.tight(_mult_text(float(ReelCore.SYMBOLS[s]["mult"])), COL_TEXT, StoneTheme.FS_SMALL)
 		mult.custom_minimum_size = Vector2(42, 0)
 		line.add_child(mult)
 
-		var pct := StoneKit.tight("%.1f%%" % (share * 100.0), COL_DIM_P, 13)
+		var pct := StoneKit.tight("%.1f%%" % (share * 100.0), COL_DIM_P, StoneTheme.FS_SMALL)
 		pct.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		pct.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		line.add_child(pct)
@@ -615,7 +624,7 @@ func _build_bottombar() -> Control:
 	# The one warm call to action. It is bigger than everything else in the
 	# bar, it is not full width, and it is on the right.
 	var end := StoneKit.button("End Day", _on_end_day, COL_GOLD, COL_K)
-	end.add_theme_font_size_override("font_size", 18)
+	end.add_theme_font_size_override("font_size", StoneTheme.FS_MID)
 	end.custom_minimum_size = Vector2(132, 48)
 	action_row.add_child(end)
 
@@ -645,7 +654,10 @@ func _refresh() -> void:
 	_lbl_luck.text = "Luck %.1f" % state.luck()
 
 	var pending := state.pending_payout()
-	_lbl_payout.text = _mult_text(maxf(1.0, pending))
+	# The neutral payout is x1.0. Anything else is shown as it is, bad news
+	# included: a triple blight really does pay x0.85, and hiding that
+	# behind a floor of 1.0 would lie to the player.
+	_lbl_payout.text = _mult_text(pending if pending > 0.0 else 1.0)
 
 	_btn_spin.disabled = not state.can_spin() or _spin_active
 	_btn_spin.text = "Spin"
@@ -772,10 +784,10 @@ func _build_gallery_tab() -> void:
 		row.add_child(StoneKit.icon(GRADE_SPRITE[grade], 18))
 		# The grade colour lives in the sprite and in the block. The NAME is
 		# written out, so colour is never the only meaning.
-		var name_label := StoneKit.tight("%s x%d" % [grade.capitalize(), n], COL_TEXT, 17)
+		var name_label := StoneKit.tight("%s x%d" % [grade.capitalize(), n], COL_TEXT, StoneTheme.FS_MID)
 		row.add_child(name_label)
 		row.add_child(StoneKit.spacer(8, 0))
-		row.add_child(StoneKit.tight("£%d/day" % state.exhibit_value(grade), COL_DIM_P, 13))
+		row.add_child(StoneKit.tight("£%d/day" % state.exhibit_value(grade), COL_DIM_P, StoneTheme.FS_SMALL))
 		var sp := Control.new()
 		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(sp)
@@ -810,7 +822,7 @@ func _build_gallery_tab() -> void:
 
 	if not any:
 		_content.add_child(StoneKit.label("The gallery is empty. Move something up from the vault.",
-			COL_DIM_P, 13))
+			COL_DIM_P, StoneTheme.FS_SMALL))
 
 	_content.add_child(StoneKit.spacer(0, 4))
 	_content.add_child(StoneKit.section("Today"))
@@ -842,7 +854,7 @@ func _build_gallery_tab() -> void:
 	case_row.add_child(StoneKit.icon("visitor_b", 18))
 	case_row.add_child(StoneKit.icon("visitor_c", 18))
 	case_row.add_child(StoneKit.label("%d of %d slots used" %
-		[state.on_display(), state.gallery_slots()], COL_DIM_P, 13))
+		[state.on_display(), state.gallery_slots()], COL_DIM_P, StoneTheme.FS_SMALL))
 
 
 # ---------------------------------------------------------------- vault
@@ -862,9 +874,9 @@ func _build_vault_tab() -> void:
 		var row := StoneKit.card_row(card)
 		row.add_child(StoneKit.row_block(GRADE_COL[grade], 4))
 		row.add_child(StoneKit.icon(GRADE_SPRITE[grade], 18))
-		row.add_child(StoneKit.tight("%s x%d" % [grade.capitalize(), n], COL_TEXT, 17))
+		row.add_child(StoneKit.tight("%s x%d" % [grade.capitalize(), n], COL_TEXT, StoneTheme.FS_MID))
 		row.add_child(StoneKit.spacer(8, 0))
-		row.add_child(StoneKit.tight("£%d/day" % state.exhibit_value(grade), COL_DIM_P, 13))
+		row.add_child(StoneKit.tight("£%d/day" % state.exhibit_value(grade), COL_DIM_P, StoneTheme.FS_SMALL))
 		var sp := Control.new()
 		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(sp)
@@ -884,7 +896,7 @@ func _build_vault_tab() -> void:
 
 	if not any:
 		_content.add_child(StoneKit.label("The vault is empty. Digs take days to complete.",
-			COL_DIM_P, 13))
+			COL_DIM_P, StoneTheme.FS_SMALL))
 	else:
 		_content.add_child(StoneKit.label(
 			"Vaulted artefacts are safe from thieves but earn nothing. Selling gets half value, now.",
@@ -915,7 +927,7 @@ func _build_digs_tab() -> void:
 		col.add_child(row)
 		row.add_child(StoneKit.row_block(DIG_COL.get(running.get("dig", ""), COL_SLATE), 4))
 		row.add_child(StoneKit.icon("dig_site", 26))
-		row.add_child(StoneKit.tight("Site %d" % (i + 1), COL_TEXT, 17))
+		row.add_child(StoneKit.tight("Site %d" % (i + 1), COL_TEXT, StoneTheme.FS_MID))
 
 		if not running.is_empty():
 			var dig: String = running["dig"]
@@ -923,7 +935,7 @@ func _build_digs_tab() -> void:
 			row.add_child(StoneKit.spacer(8, 0))
 			# Progress is good news: a moss chip beside dark text.
 			row.add_child(StoneKit.chip_label(COL_MOSS,
-				"%s - %d day(s) left" % [_dig_name(dig), maxi(0, left)], 15))
+				"%s - %d day(s) left" % [_dig_name(dig), maxi(0, left)], StoneTheme.FS_BODY))
 			_content.add_child(card)
 			continue
 
@@ -943,7 +955,7 @@ func _build_digs_tab() -> void:
 
 			var b := StoneKit.button(_dig_name(dig),
 				func(d = dig): state.assign_dig(i, d))
-			b.add_theme_font_size_override("font_size", 13)
+			b.add_theme_font_size_override("font_size", StoneTheme.FS_SMALL)
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			# Digs are allowed ON CREDIT. Blocking an unaffordable dig
 			# would dead-end the game: broke, no finds, no exhibits, no
@@ -956,12 +968,12 @@ func _build_digs_tab() -> void:
 				b.add_theme_stylebox_override("pressed", StoneKit.bevel(COL_CARD, COL_RUST).pressed())
 			cell.add_child(b)
 			cell.add_child(StoneKit.tight("£%d - %dd" %
-				[state.dig_cost(dig), state.dig_days(dig)], COL_DIM_P, 11))
+				[state.dig_cost(dig), state.dig_days(dig)], COL_DIM_P, StoneTheme.FS_TINY))
 
 		var pending := state.pending_dig(i)
 		if pending != "":
 			col.add_child(StoneKit.chip_label(DIG_COL.get(pending, COL_DIM_P),
-				"Assigned: %s" % _dig_name(pending), 13))
+				"Assigned: %s" % _dig_name(pending), StoneTheme.FS_SMALL))
 
 		_content.add_child(card)
 
@@ -1198,7 +1210,7 @@ func _show_day_report(s: Dictionary) -> void:
 	# The footer action row.
 	col.add_child(StoneKit.spacer(0, 4))
 	var ok := StoneKit.button("Continue", func(): _clear_overlay(), COL_GOLD, COL_K)
-	ok.add_theme_font_size_override("font_size", 18)
+	ok.add_theme_font_size_override("font_size", StoneTheme.FS_MID)
 	ok.custom_minimum_size = Vector2(0, 48)
 	col.add_child(ok)
 
@@ -1238,7 +1250,7 @@ func _build_tutorial_card() -> void:
 	skip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(skip)
 
-	col.add_child(StoneKit.label(state.tutorial.current_body(), COL_DIM_P, 13))
+	col.add_child(StoneKit.label(state.tutorial.current_body(), COL_DIM_P, StoneTheme.FS_SMALL))
 
 
 # ---------------------------------------------------------------- goals
@@ -1272,16 +1284,16 @@ func _build_goals_tab() -> void:
 		title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		title_col.add_theme_constant_override("separation", 1)
 		row.add_child(title_col)
-		title_col.add_child(StoneKit.label(str(g["title"]), COL_TEXT, 15))
+		title_col.add_child(StoneKit.label(str(g["title"]), COL_TEXT, StoneTheme.FS_BODY))
 		title_col.add_child(StoneKit.label(str(g["body"]), COL_DIM_P, 12))
 
 		if done:
-			row.add_child(StoneKit.chip_label(COL_MOSS, "EARNED", 13))
+			row.add_child(StoneKit.chip_label(COL_MOSS, "EARNED", StoneTheme.FS_SMALL))
 		else:
 			row.add_child(StoneKit.tight("%d/%d" % [int(e["progress"]), int(e["target"])],
 				COL_TEXT, 14))
 
-		col.add_child(StoneKit.label("Reward: %s" % state.goals.reward_text(g), COL_DIM_P, 11))
+		col.add_child(StoneKit.label("Reward: %s" % state.goals.reward_text(g), COL_DIM_P, StoneTheme.FS_TINY))
 
 		if not done:
 			col.add_child(StoneKit.bar(float(e["progress"]) / maxf(1.0, float(e["target"])),
@@ -1305,7 +1317,7 @@ func _build_ledger_tab() -> void:
 
 	if rev.is_empty():
 		_content.add_child(StoneKit.label("Nothing yet. End a day and the ledger begins.",
-			COL_DIM_P, 13))
+			COL_DIM_P, StoneTheme.FS_SMALL))
 	else:
 		# A table, with a header row and alternating fills, so the numbers
 		# line up in columns and can be read across.
@@ -1326,22 +1338,22 @@ func _build_ledger_tab() -> void:
 			var row := HBoxContainer.new()
 			row.add_theme_constant_override("separation", 8)
 			_content.add_child(row)
-			row.add_child(StoneKit.tight("%d" % (i + 1), COL_TEXT, 13))
-			row.add_child(StoneKit.tight("%d" % int(rev[i]), COL_TEXT, 13))
-			row.add_child(StoneKit.tight("%d" % (int(opx[i]) if i < opx.size() else 0), COL_DIM_P, 13))
+			row.add_child(StoneKit.tight("%d" % (i + 1), COL_TEXT, StoneTheme.FS_SMALL))
+			row.add_child(StoneKit.tight("%d" % int(rev[i]), COL_TEXT, StoneTheme.FS_SMALL))
+			row.add_child(StoneKit.tight("%d" % (int(opx[i]) if i < opx.size() else 0), COL_DIM_P, StoneTheme.FS_SMALL))
 			# Net: the sign carries the meaning, the chip carries the mood.
 			row.add_child(StoneKit.chip(COL_MOSS if net >= 0 else COL_RUST))
 			row.add_child(StoneKit.tight("%s%d" % ["+" if net >= 0 else "-", absi(net)],
-				COL_TEXT, 13))
-			row.add_child(StoneKit.tight("%d" % (int(cur[i]) if i < cur.size() else 0), COL_TEXT, 13))
+				COL_TEXT, StoneTheme.FS_SMALL))
+			row.add_child(StoneKit.tight("%d" % (int(cur[i]) if i < cur.size() else 0), COL_TEXT, StoneTheme.FS_SMALL))
 			row.add_child(StoneKit.tight("%d" % (int(stol[i]) if i < stol.size() else 0),
-				COL_TEXT, 13))
+				COL_TEXT, StoneTheme.FS_SMALL))
 
 	_content.add_child(StoneKit.spacer(0, 8))
 	_content.add_child(StoneKit.section("Recent events"))
 	var events := state.recent_events(12)
 	if events.is_empty():
-		_content.add_child(StoneKit.label("Nothing recorded yet.", COL_DIM_P, 13))
+		_content.add_child(StoneKit.label("Nothing recorded yet.", COL_DIM_P, StoneTheme.FS_SMALL))
 	for e in events:
 		var kind := str(e.get("kind", "plain"))
 
@@ -1356,8 +1368,14 @@ func _build_ledger_tab() -> void:
 		ev_row.add_theme_constant_override("separation", 6)
 		_content.add_child(ev_row)
 		ev_row.add_child(StoneKit.chip(chip_col))
-		ev_row.add_child(StoneKit.label("Day %d - %s" % [int(e.get("day", 0)),
-			str(e.get("text", ""))], COL_TEXT, 13))
+		# The day narrative already begins "Day 5 - ", so prefixing the day
+		# again produced "Day 5 - Day 5 - Visitors paid...". Only prefix the
+		# day onto entries that do not already carry one.
+		var ev_text := str(e.get("text", ""))
+		var ev_prefix := "" if ev_text.begins_with("Day ") else \
+			"Day %d - " % int(e.get("day", 0))
+		ev_row.add_child(StoneKit.label(ev_prefix + ev_text, COL_TEXT,
+			StoneTheme.FS_SMALL))
 
 
 # ---------------------------------------------------------------- save/load
@@ -1475,7 +1493,7 @@ func _event_banner(ev: Dictionary) -> Control:
 	head.add_child(StoneKit.row_block(COL_GOLD, 4))
 	head.add_child(StoneKit.tight("TODAY: %s" % str(ev.get("title", "")), COL_TEXT, 16))
 
-	col.add_child(StoneKit.label(str(ev.get("text", "")), COL_TEXT, 13))
+	col.add_child(StoneKit.label(str(ev.get("text", "")), COL_TEXT, StoneTheme.FS_SMALL))
 
 	# The effect line. If the event does nothing measurable, say nothing.
 	var effects: Array[String] = []
@@ -1504,9 +1522,15 @@ func _event_banner(ev: Dictionary) -> Control:
 ## change what the player is owed. The symbol multipliers are whole tenths
 ## and always show one.
 func _mult_text(v: float) -> String:
+	# A whole multiplier other than the neutral 1.0 is written without the
+	# decimal, because that is how the reference writes it: x1.2, x1.5, x2.
 	var tenths := v * 10.0
 	if absf(tenths - roundf(tenths)) < 0.05:
+		if absf(v - roundf(v)) < 0.001 and absf(v - 1.0) > 0.001:
+			return "x%d" % int(roundf(v))
 		return "x%.1f" % v
+	# A value that is not a whole tenth keeps its second decimal, because
+	# rounding it would misstate what the player is owed.
 	return "x%.2f" % v
 
 

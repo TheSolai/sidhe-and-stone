@@ -19,7 +19,6 @@ include("../palette.px.js")
 // the palette does not allow in a sprite at all. Now the ramp only ever
 // steps one way, the moon is unambiguously arcane, and every key in it is
 // one the palette actually offers.
-
 sprite("symbol_moon", { w: 16, h: 16, outline: "K" },
   `
   ................

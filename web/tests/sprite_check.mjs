@@ -52,15 +52,15 @@ function check(condition, message) {
 
 const SHOP = {
   MARGIN_X: 20,
-  TOP_Y: 96,
-  CARD_W: 297,
-  CARD_H: 94,
-  GAP_X: 14,
-  GAP_Y: 12,
-  // The sprite sits this far into the card, at this scale.
-  ICON_DX: 14,
+  // The shop is a nine-row LIST, not a grid of cards: the upgrade
+  // descriptions are sentences, and a sentence needs a line of its own.
+  // The rows start at CONTENT_TOP + 4 and are 30 tall.
+  LIST_TOP: 96,
+  ROW_H: 30,
+  // The sprite sits this far into the row, at this scale.
+  ICON_DX: 12,
   ICON_DY: 6,
-  ICON_SCALE: 2,
+  ICON_SCALE: 1,
 };
 
 // The upgrade order is the order in sim-core.ts.
@@ -195,12 +195,9 @@ await page.waitForTimeout(500);
 
 for (let i = 0; i < UPGRADES.length; i++) {
   const [kind, sprite] = UPGRADES[i];
-  const col = i % 3;
-  const row = Math.floor(i / 3);
-  const cx = SHOP.MARGIN_X + col * (SHOP.CARD_W + SHOP.GAP_X);
-  const cy = SHOP.TOP_Y + row * (SHOP.CARD_H + SHOP.GAP_Y);
-  const x = cx + SHOP.ICON_DX;
-  const y = cy + SHOP.ICON_DY;
+  const rowY = SHOP.LIST_TOP + i * SHOP.ROW_H;
+  const x = SHOP.MARGIN_X + SHOP.ICON_DX;
+  const y = rowY + SHOP.ICON_DY;
 
   const res = await compareRegion(page, sprite, x, y, SHOP.ICON_SCALE);
   const ok = res.compared > 0 && res.mismatch === 0;

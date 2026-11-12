@@ -28,6 +28,18 @@ import {
   PANEL_WIDTH,
 } from '../bands.ts';
 
+/**
+ * The number of days the backlog will take to clear, written short.
+ *
+ * A tenth of a day matters when the pile is nearly gone -- "0.3 days"
+ * says the work is nearly finished -- but past ten days the decimal is
+ * noise, and it makes the line too long for the space it has.
+ */
+function clearDays(days: number): string {
+  if (days < 10) return days.toFixed(1);
+  return String(Math.round(days));
+}
+
 export class CuratorScreen implements Screen {
   public readonly id = 'curator';
   public readonly label = 'Storeroom';
@@ -193,9 +205,14 @@ export class CuratorScreen implements Screen {
     // The tail points LEFT, at the curator: the bubble sits beside the
     // speaker, so a downward tail would have pointed at the floor. The
     // tail's Y is the middle of the curator sprite.
+    //
+    // The bubble is 46 tall, so a two-line speech fits inside it. The
+    // bubble used to be 34, which left room for one line, and one line
+    // is not enough for what the curator has to say: "The storeroom is
+    // clear." is 242 pixels and the bubble was 210.
     drawSpeechBubble(
       g,
-      { x: MARGIN_X + 62, y: crewY + 26, w: 210, h: 34 },
+      { x: MARGIN_X + 62, y: crewY + 22, w: 210, h: 46 },
       speech,
       crewY + 28 + 18,
       'left'
@@ -234,20 +251,26 @@ export class CuratorScreen implements Screen {
     // On the right of the crew panel: the backlog, stated as a number.
     // Curators are the bottleneck in this game, so the backlog is given
     // its own reading rather than only being a pile of sprites.
-    drawText(g, 'Backlog', MARGIN_X + 600, crewY + 26, {
+    //
+    // The column starts at MARGIN_X + 560, not MARGIN_X + 600: the
+    // crew's own readings run to about x=506, and Silkscreen is a wide
+    // face, so the sentence about the backlog needs the room. It ran to
+    // x=1055 -- off the canvas -- before.
+    const backlogX = MARGIN_X + 560;
+    drawText(g, 'Backlog', backlogX, crewY + 26, {
       font: FONT.small,
       color: PAL.P,
     });
-    drawText(g, `${backlog} waiting`, MARGIN_X + 600, crewY + 42, {
+    drawText(g, `${backlog} waiting`, backlogX, crewY + 42, {
       font: FONT.body,
       color: PAL.D,
     });
     drawText(
       g,
       backlog === 0
-        ? 'Nothing waiting — the storeroom is clear.'
-        : `About ${daysToClear.toFixed(1)} days of work to clear.`,
-      MARGIN_X + 600,
+        ? 'The storeroom is clear.'
+        : `About ${clearDays(daysToClear)} days to clear.`,
+      backlogX,
       crewY + 56,
       { font: FONT.small, color: PAL.P }
     );
@@ -270,13 +293,18 @@ export class CuratorScreen implements Screen {
       // Rust on cream is 3.04:1, so the warning is written in dark ink
       // with a rust chip beside it. The chip is the alarm; the words are
       // the information.
+      //
+      // The warning is right-aligned against the right margin and is
+      // given the whole run from the screen name to that margin, so it
+      // is never cut: Silkscreen is a wide face, and the old 420-pixel
+      // allowance cut it in the middle of the sentence.
       const tw = measureText(text, FONT.small);
-      const tx = ctx.surface.canvas.width - 24 - tw;
+      const tx = 936 - tw;
       drawChip(g, tx - 14, 70, PAL.T);
       drawText(g, text, tx, 68, {
         font: FONT.small,
         color: PAL.D,
-        maxWidth: 420,
+        maxWidth: 936 - 250,
       });
     }
   }

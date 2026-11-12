@@ -73,6 +73,13 @@ export interface DrawBounds {
    * instead of guessed at.
    */
   lowest: { x: number; y: number; w: number; h: number } | null;
+  /**
+   * The single draw call that reached the furthest RIGHT.
+   *
+   * The mirror of `lowest`: when a screen runs off the right edge of the
+   * canvas, this says which piece of it did.
+   */
+  rightmost: { x: number; y: number; w: number; h: number } | null;
 }
 
 /** What the audit collected during the last frame. */
@@ -234,10 +241,14 @@ export function beginAudit(ctx: CanvasRenderingContext2D): void {
       maxY: y + h,
       calls: 0,
       lowest: null,
+      rightmost: null,
     };
     if (x < bounds.minX) bounds.minX = x;
     if (y < bounds.minY) bounds.minY = y;
-    if (x + w > bounds.maxX) bounds.maxX = x + w;
+    if (x + w > bounds.maxX) {
+      bounds.maxX = x + w;
+      bounds.rightmost = { x, y, w, h };
+    }
     if (y + h > bounds.maxY) {
       bounds.maxY = y + h;
       bounds.lowest = { x, y, w, h };
@@ -260,32 +271,43 @@ export function beginAudit(ctx: CanvasRenderingContext2D): void {
     original.fillRect(x, y, w, h);
   }) as typeof ctx.fillRect;
 
-  ctx.drawImage = ((
-    image: CanvasImageSource,
-    dx: number,
-    dy: number,
-    dw?: number,
-    dh?: number
-  ) => {
-    // The five-argument form gives the destination size; the
-    // three-argument form takes it from the source.
-    if (dw === undefined || dh === undefined) {
+  ctx.drawImage = ((...args: unknown[]) => {
+    // There are three forms of this call: (image, dx, dy), (image, dx,
+    // dy, dw, dh) and (image, sx, sy, sw, sh, dx, dy, dw, dh).
+    //
+    // What lands on the canvas is always the DESTINATION rectangle, so
+    // that is the rectangle that gets measured. Reading the source
+    // rectangle by mistake would put a sprite's own pixel coordinates
+    // into the layout audit, and the audit would then report that a
+    // screen drew in the top-left corner when it had drawn nowhere
+    // near it.
+    const image = args[0] as CanvasImageSource;
+    let dx: number;
+    let dy: number;
+    let dw: number;
+    let dh: number;
+
+    if (args.length >= 9) {
+      dx = args[5] as number;
+      dy = args[6] as number;
+      dw = args[7] as number;
+      dh = args[8] as number;
+    } else if (args.length >= 5) {
+      dx = args[1] as number;
+      dy = args[2] as number;
+      dw = args[3] as number;
+      dh = args[4] as number;
+    } else {
+      dx = args[1] as number;
+      dy = args[2] as number;
       const src = image as HTMLImageElement;
-      surfaces.push({
-        x: dx,
-        y: dy,
-        w: src.width,
-        h: src.height,
-        color: '#000000',
-        sprite: true,
-      });
-      if (audit.inScreen) recordBounds(dx, dy, src.width, src.height);
-      original.drawImage(image, dx, dy);
-      return;
+      dw = src.width;
+      dh = src.height;
     }
+
     surfaces.push({ x: dx, y: dy, w: dw, h: dh, color: '#000000', sprite: true });
     if (audit.inScreen) recordBounds(dx, dy, dw, dh);
-    original.drawImage(image, dx, dy, dw, dh);
+    (original.drawImage as (...a: unknown[]) => void)(...args);
   }) as typeof ctx.drawImage;
 }
 

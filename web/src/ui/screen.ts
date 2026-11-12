@@ -49,6 +49,39 @@ export interface Region {
   enabled?: boolean;
   /** If set, the pointer over this region shows this hint text. */
   hint?: string;
+
+  // ------------------------------------------------------------- gestures
+  //
+  // A click is not the only way to use a control. The Fate Reel's lever
+  // is pulled: the pointer goes down on it, travels, and comes back up,
+  // and the control has to see the whole journey. So a region MAY
+  // handle the pointer itself.
+  //
+  // The hooks are optional, and a region that does not define them
+  // behaves exactly as before: the framework finds it on press, and
+  // calls onClick on release inside it.
+
+  /**
+   * Called when the pointer goes down inside this region.
+   *
+   * The pointer is captured by the canvas, so the movement that follows
+   * arrives even if it leaves the region -- and even if it leaves the
+   * canvas.
+   */
+  onPointerDown?: (p: { x: number; y: number }) => void;
+  /**
+   * Called as the pointer moves while it is held down on this region.
+   */
+  onPointerMove?: (p: { x: number; y: number }) => void;
+  /**
+   * Called when the pointer is released, wherever it happens to be.
+   *
+   * Return true to CONSUME the release: the framework then does not
+   * fire onClick. A drag that ends outside the region would otherwise be
+   * thrown away, and a gesture that has already done its work would
+   * fire the click as well.
+   */
+  onPointerUp?: (p: { x: number; y: number }) => boolean | void;
 }
 
 export interface Screen {

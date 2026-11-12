@@ -65,6 +65,40 @@ func _run_tests() -> void:
 	check(ui._reel_icons.size() == 3, "reel has three windows")
 	check(ui._reel_icons[0].is_visible_in_tree(), "reel is visible on the gallery tab")
 
+	# --- the bottom bar has three to five destinations, and exactly ONE of
+	# them is lit. A tab bar with no active state is a bar the player has to
+	# read; a bar with two lit destinations is a bar they cannot trust.
+	check(ui._tab_buttons.size() >= 3 and ui._tab_buttons.size() <= 5,
+		"bottom bar has 3-5 destinations")
+	for tab in 6:
+		ui._select_tab(tab)
+		var lit := 0
+		for b in ui._tab_buttons:
+			var style: StyleBox = b.get_theme_stylebox("normal")
+			if style is StoneBevel and (style as StoneBevel).face == StoneKit.COL_Y:
+				lit += 1
+		check(lit == 1, "exactly one destination is lit on screen %d" % tab)
+
+	# --- the long screens can still be scrolled, even though the scrollbar
+	# itself is hidden.
+	var scroll := ui.get_node_or_null("ScrollContainer")
+	if scroll == null:
+		for c in ui.get_children():
+			for cc in c.get_children():
+				if cc is ScrollContainer:
+					scroll = cc
+					break
+	check(scroll != null, "the content is in a scroll container")
+	if scroll != null:
+		check(scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_NEVER,
+			"the scrollbar is hidden but the list still scrolls")
+
+	# --- the multiplier notation: lowercase x, no space, and never a chip.
+	check(ui._mult_text(1.5) == "x1.5", "multiplier is written x1.5")
+	check(ui._mult_text(2.0) == "x2", "a whole multiplier drops the decimal")
+	check(ui._mult_text(1.0) == "x1.0", "the neutral multiplier is x1.0")
+	check(ui._mult_text(0.85) == "x0.85", "a fractional payout keeps its precision")
+
 	# --- odds table toggles
 	var was: bool = ui._table_panel.visible
 	ui._toggle_table()

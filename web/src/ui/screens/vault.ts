@@ -14,7 +14,27 @@ import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { moneyNumber } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
 import { drawBevelButton, drawChip, drawPanel, drawText, FONT } from '../widgets.ts';
-import { FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_WIDTH } from '../bands.ts';
+import {
+  FOOTER_PANEL_HEIGHT,
+  FOOTER_TOP,
+  MARGIN_X,
+  PANEL_HEIGHT,
+  PANEL_WIDTH,
+} from '../bands.ts';
+
+/**
+ * The price of selling one artefact, written so the label always fits.
+ *
+ * The button is 138 pixels wide and its label has 130 of them, and a
+ * price in thousands needs a comma and a fourth digit. Past a thousand
+ * the figure is shortened to thousands, because the label has to be
+ * whole: a cut label is a cut meaning.
+ */
+function sellPrice(value: number): string {
+  const n = Math.round(value);
+  if (n < 1000) return moneyNumber(n);
+  return `${Math.round(n / 1000)}K`;
+}
 
 export class VaultScreen implements Screen {
   public readonly id = 'vault';
@@ -28,7 +48,10 @@ export class VaultScreen implements Screen {
     const panelX = MARGIN_X;
     const panelY = 92;
     const panelW = PANEL_WIDTH;
-    const panelH = 294;
+    // A standard content panel: 300 tall, so it ends at 392 and leaves
+    // the gap before the footer band. It used to be 294, which pushed
+    // the third button off the bottom of the panel.
+    const panelH = PANEL_HEIGHT;
 
     drawPanel(g, { x: panelX, y: panelY, w: panelW, h: panelH }, {
       fill: PAL.C,
@@ -54,26 +77,26 @@ export class VaultScreen implements Screen {
       // The artefact's own picture, large.
       const image = ctx.sprites.get(GRADE_SPRITE[grade]);
       if (image) {
-        drawSprite(g, image, cx + Math.round((colW - image.width * 2) / 2), panelY + 44, 2);
+        drawSprite(g, image, cx + Math.round((colW - image.width * 2) / 2), panelY + 36, 2);
       }
 
       // The grade's colour as a band under the picture.
       g.fillStyle = GRADE_COLOR[grade] ?? PAL.N;
-      g.fillRect(cx + 10, panelY + 92, colW - 20, 4);
+      g.fillRect(cx + 10, panelY + 86, colW - 20, 4);
 
-      drawText(g, grade, cx + colW / 2, panelY + 102, {
+      drawText(g, grade, cx + colW / 2, panelY + 94, {
         font: FONT.mid,
         color: PAL.D,
         align: 'center',
       });
 
-      const statsY = panelY + 130;
+      const statsY = panelY + 126;
       drawText(g, `In vault: ${vaulted}`, cx + 8, statsY, {
         font: FONT.small,
         color: vaulted > 0 ? PAL.D : PAL.P,
         maxWidth: colW - 16,
       });
-      drawText(g, `On show: ${shown}`, cx + 8, statsY + 17, {
+      drawText(g, `On show: ${shown}`, cx + 8, statsY + 16, {
         font: FONT.small,
         color: shown > 0 ? PAL.D : PAL.P,
         maxWidth: colW - 16,
@@ -81,8 +104,8 @@ export class VaultScreen implements Screen {
       // RULE 4.6: the coin carries the unit, so the figure is a picture
       // and a number rather than a number and a currency mark.
       const coin = ctx.sprites.get('icon_coin');
-      if (coin) drawSprite(g, coin, cx + 8, statsY + 32, 1);
-      drawText(g, `${moneyNumber(value)}/day`, cx + 30, statsY + 34, {
+      if (coin) drawSprite(g, coin, cx + 8, statsY + 30, 1);
+      drawText(g, `${moneyNumber(value)}/day`, cx + 30, statsY + 32, {
         font: FONT.small,
         color: PAL.D,
         maxWidth: colW - 38,
@@ -94,17 +117,22 @@ export class VaultScreen implements Screen {
       // The theft risk is a number in dark ink with a chip beside it.
       // Rust as text on cream is only 3.04:1, so the chip carries the
       // warning and the ink carries the value.
-      drawChip(g, cx + 8, statsY + 53, risk > 0.08 ? PAL.T : PAL.M, 7);
-      drawText(g, `Theft ${(risk * 100).toFixed(1)}%`, cx + 20, statsY + 51, {
+      drawChip(g, cx + 8, statsY + 49, risk > 0.08 ? PAL.T : PAL.M, 7);
+      drawText(g, `Theft ${(risk * 100).toFixed(1)}%`, cx + 20, statsY + 47, {
         font: FONT.small,
         color: PAL.D,
         maxWidth: colW - 28,
       });
 
       // The buttons: display one, vault one, sell one.
-      const bw = colW - 26;
-      const bx = cx + 13;
-      let by = panelY + 208;
+      //
+      // The button is nearly the whole column wide, because the labels
+      // are long words in a wide face: at 120 pixels "Display one" was
+      // cut to "Display o…", and "Sell one (150)" was cut to "Sell one
+      // (150…" -- so every button on the screen showed a cut label.
+      const bw = colW - 8;
+      const bx = cx + 4;
+      let by = panelY + 198;
 
       const button = (
         label: string,
@@ -154,7 +182,7 @@ export class VaultScreen implements Screen {
       // Selling is only for artefacts already in the vault, and it gives
       // half the daily value.
       button(
-        `Sell one (${moneyNumber(value / 2)})`,
+        `Sell 1 (${sellPrice(value / 2)})`,
         vaulted > 0,
         `vault:sell:${grade}`,
         () => {

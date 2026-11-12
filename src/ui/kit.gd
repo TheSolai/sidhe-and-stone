@@ -127,7 +127,7 @@ static func small_button(text: String, cb: Callable, fill: Color = COL_C,
 	b.add_theme_stylebox_override("normal", s)
 	b.add_theme_stylebox_override("hover", bevel(COL_W, accent))
 	b.add_theme_stylebox_override("pressed", bevel(fill, accent).pressed())
-	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_font_size_override("font_size", StoneTheme.FS_SMALL)
 	return b
 
 
@@ -154,7 +154,7 @@ static func nav_button(label: String, icon_file: String, cb: Callable) -> Button
 	b.text = label
 	b.custom_minimum_size = Vector2(0, TAP)
 	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.clip_text = true
+	b.clip_text = false
 	var s := bevel(COL_C, COL_K)
 	s.content_margin_left = 6
 	s.content_margin_right = 6
@@ -168,13 +168,32 @@ static func nav_button(label: String, icon_file: String, cb: Callable) -> Button
 	b.add_theme_color_override("font_color", COL_D)
 	b.add_theme_color_override("font_hover_color", COL_K)
 	b.add_theme_color_override("font_pressed_color", COL_K)
-	b.add_theme_font_size_override("font_size", 12)
+	b.add_theme_font_size_override("font_size", StoneTheme.FS_SMALL)
 	var path := SPRITE_DIR + icon_file + ".png"
 	if ResourceLoader.exists(path):
 		b.icon = load(path)
 		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_constant_override("h_separation", 4)
+
+	# MEASURE, DO NOT GUESS. A Button with clip_text on reports a minimum
+	# width of just the icon, so a row of expanding buttons happily hands
+	# it LESS room than its own label needs and the label gets cut off
+	# mid-word: "COLLECTION" came out as "COLLECTIO". The width the label
+	# actually needs is computed here against the SAME face it will be
+	# drawn with, and set as the button's minimum, so the row can never
+	# squeeze it.
+	var face: Font = StoneTheme.crisp_font()
+	var fs: int = StoneTheme.FS_SMALL
+	var text_w: float = face.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var icon_w: float = 0.0
+	if b.icon != null:
+		icon_w = float(b.icon.get_width())
+	var margins: float = 12.0
+	var need: float = text_w + icon_w + 4.0 + margins
+	if need > b.custom_minimum_size.x:
+		b.custom_minimum_size = Vector2(need, b.custom_minimum_size.y)
+
 	b.pressed.connect(cb)
 	return b
 
@@ -195,7 +214,7 @@ static func section(title: String) -> Control:
 	var l := Label.new()
 	l.text = title.to_upper()
 	l.add_theme_color_override("font_color", COL_D)
-	l.add_theme_font_size_override("font_size", 13)
+	l.add_theme_font_size_override("font_size", StoneTheme.FS_SMALL)
 	row.add_child(l)
 
 	var rule := ColorRect.new()
@@ -210,7 +229,7 @@ static func section(title: String) -> Control:
 
 
 ## A dark-ink label. The default is 15px because that is the body size.
-static func label(text: String, col: Color = COL_D, size: int = 15) -> Label:
+static func label(text: String, col: Color = COL_D, size: int = StoneTheme.FS_BODY) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_color_override("font_color", col)
@@ -222,12 +241,20 @@ static func label(text: String, col: Color = COL_D, size: int = 15) -> Label:
 
 ## A label that does NOT wrap and does NOT expand. For values and captions
 ## that must sit on one line next to an icon.
-static func tight(text: String, col: Color = COL_D, size: int = 15) -> Label:
+##
+## The autowrap here was the bug that broke every screen. A Label with
+## autowrap on reports a minimum width of ONE CHARACTER, so in a row it
+## gets squeezed down to that minimum and then breaks mid-word: "Day 6"
+## came out as D / a / y / 6 down a narrow column at the left of the top
+## bar, and every label built with this helper did the same thing. Turning
+## the wrap OFF gives the label its natural single-line width, which is
+## what the helper is for.
+static func tight(text: String, col: Color = COL_D, size: int = StoneTheme.FS_BODY) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_color_override("font_color", col)
 	l.add_theme_font_size_override("font_size", size)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	return l
@@ -377,7 +404,7 @@ static func titled(title: String, caption: String, accent: Color = COL_C) -> Con
 	var t := Label.new()
 	t.text = title
 	t.add_theme_color_override("font_color", COL_D)
-	t.add_theme_font_size_override("font_size", 17)
+	t.add_theme_font_size_override("font_size", StoneTheme.FS_MID)
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(t)
@@ -386,7 +413,7 @@ static func titled(title: String, caption: String, accent: Color = COL_C) -> Con
 		var c := Label.new()
 		c.text = caption
 		c.add_theme_color_override("font_color", COL_P)
-		c.add_theme_font_size_override("font_size", 12)
+		c.add_theme_font_size_override("font_size", StoneTheme.FS_TINY)
 		c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.add_child(c)
@@ -404,7 +431,7 @@ static func panel_header(text: String) -> Control:
 	var l := Label.new()
 	l.text = text.to_upper()
 	l.add_theme_color_override("font_color", COL_D)
-	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_font_size_override("font_size", StoneTheme.FS_BODY)
 	p.add_child(l)
 	return p
 

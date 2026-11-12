@@ -11,17 +11,31 @@
  * So text is rasterised once into a ONE-BIT mask and blitted from there.
  * Every glyph pixel is the exact ink colour, and every edge is hard.
  *
- * The mask is cut from the same monospace face the layout was written
- * against, so the type stays readable at the sizes the game needs, and
- * any character the system can draw is available -- including the symbols
- * the interface uses.
+ * The mask is cut from SILKSCREEN, the pixel face the whole game is set
+ * in. Silkscreen is drawn on a grid, so at the sizes the game uses it
+ * lands on whole pixels and keeps its square, arcade lettering.
+ *
+ * The one-bit pipeline is unchanged: the glyph is rasterised once, the
+ * alpha is thresholded, and the mask is blitted in an exact palette
+ * colour. What changed is only WHICH face is rasterised.
  */
 
 import { PAL } from './palette';
 import { recordTextDraw, recordTruncation } from './audit';
 
 /** The face every size is cut from. */
-const FAMILY = 'ui-monospace, Menlo, monospace';
+const FAMILY = 'Silkscreen';
+
+/**
+ * Where the webfont lives.
+ *
+ * The path is built from Vite's base URL, so it resolves the same way
+ * every other asset does: from the root in development, and under the
+ * deployment sub-path in a built site. The URL is resolved against the
+ * document at load time, so a site served from a sub-folder finds it
+ * too.
+ */
+const FONT_URL = `${import.meta.env.BASE_URL}fonts/Silkscreen-Regular.ttf`;
 
 /**
  * How much ink a pixel needs before it counts as part of the glyph.
@@ -32,6 +46,26 @@ const FAMILY = 'ui-monospace, Menlo, monospace';
  */
 const COVERAGE = 0.45;
 
+/**
+ * The sizes the ramp is built from.
+ *
+ * These are the sizes at scale 1. `setFontScale` scales every one of
+ * them, so the ramp keeps its SHAPE at any scale: the body text and the
+ * small text stay the same size relative to each other, and the
+ * headings stay headings.
+ */
+const RAMP = {
+  tiny: 8,
+  small: 16,
+  body: 16,
+  mid: 24,
+  large: 32,
+  huge: 48,
+} as const;
+
+/** The names in the type ramp. */
+export type FontName = keyof typeof RAMP;
+
 /** A font size, in logical pixels. */
 export interface FontSpec {
   readonly size: number;
@@ -40,17 +74,52 @@ export interface FontSpec {
 /**
  * Text sizes for the 960x540 logical canvas.
  *
- * These are the same sizes the interface was laid out against, so the
- * layout does not shift when the text stops being anti-aliased.
+ * Every size is a multiple of 8, because Silkscreen is drawn on an
+ * eight-pixel grid: at those sizes its stems land on whole pixels and
+ * the lettering stays square instead of being smeared by a fractional
+ * scale.
+ *
+ * The sizes themselves are bigger than the old system-face sizes, and
+ * that is the point: Silkscreen carries its detail in fewer, fatter
+ * pixels, so it needs the room. The screens were adjusted to match --
+ * panels are wider, rows are taller, and the copy that used to be
+ * squeezed into a column now has the space to sit in it.
  */
-export const FONT = {
-  tiny: { size: 9 },
-  small: { size: 11 },
-  body: { size: 13 },
-  mid: { size: 16 },
-  large: { size: 22 },
-  huge: { size: 40 },
-} as const;
+export const FONT: Record<FontName, { size: number }> = {
+  tiny: { size: RAMP.tiny },
+  small: { size: RAMP.small },
+  body: { size: RAMP.body },
+  mid: { size: RAMP.mid },
+  large: { size: RAMP.large },
+  huge: { size: RAMP.huge },
+};
+
+/** The scale applied to the ramp. One is the shipped size. */
+let fontScale = 1;
+
+/**
+ * Scale every size in the ramp.
+ *
+ * The audit needs to know what the screens do when the type is bigger:
+ * a layout that only fits one size is a layout that breaks the first
+ * time a player asks for larger text. The glyphs are cut per size, so
+ * the caches are cleared when the scale changes.
+ */
+export function setFontScale(scale: number): void {
+  const next = Math.max(0.5, Math.min(2, Number.isFinite(scale) ? scale : 1));
+  if (next === fontScale) return;
+  fontScale = next;
+  for (const name of Object.keys(RAMP) as FontName[]) {
+    FONT[name].size = Math.max(1, Math.round(RAMP[name] * fontScale));
+  }
+  glyphs.clear();
+  advances.clear();
+}
+
+/** The scale the ramp is currently at. */
+export function getFontScale(): number {
+  return fontScale;
+}
 
 /** A one-bit glyph: the ink pixels, and where they sit relative to the pen. */
 interface Glyph {
@@ -71,6 +140,50 @@ interface Glyph {
 const glyphs = new Map<string, Glyph>();
 const advances = new Map<string, number>();
 
+/** Whether the webfont has finished loading. */
+let fontReady = false;
+
+/**
+ * Load the webfont, and wait until it is ready to be cut.
+ *
+ * A webfont that has not arrived yet is measured with the FALLBACK
+ * face, and a glyph cut from the fallback is a glyph cut from the
+ * wrong font: it would be cut once, cached, and then blitted on screen
+ * forever, in the wrong shape, at the wrong width. So the game waits
+ * for the font before it draws anything at all.
+ *
+ * The face is loaded through the FontFace API so the URL is explicit:
+ * it is resolved against the document, which means the same path works
+ * in development and in a built site deployed under a sub-path.
+ */
+export async function loadFont(): Promise<void> {
+  if (fontReady) return;
+
+  const url = new URL(FONT_URL, document.baseURI).href;
+  const face = new FontFace(FAMILY, `url("${url}") format("truetype")`, {
+    weight: 'normal',
+    style: 'normal',
+    display: 'block',
+  });
+
+  await face.load();
+  document.fonts.add(face);
+
+  // Ask the document for the face at a size, so the browser downloads
+  // it and reports it as usable, and then wait for the set to settle.
+  await document.fonts.load(`16px "${FAMILY}"`);
+  await document.fonts.ready;
+
+  if (!document.fonts.check(`16px "${FAMILY}"`)) {
+    throw new Error(
+      `Sidhe & Stone: the ${FAMILY} webfont did not load (${url}). ` +
+        'The game cannot draw its text without it.'
+    );
+  }
+
+  fontReady = true;
+}
+
 /** A canvas used only to rasterise and measure. */
 let scratch: HTMLCanvasElement | null = null;
 
@@ -86,6 +199,32 @@ function scratchContext(): CanvasRenderingContext2D {
 }
 
 /**
+ * Characters Silkscreen does not draw, and what stands in for them.
+ *
+ * The face covers Latin text, punctuation and a few marks, but not the
+ * arrow, the tick, or the shamrock. Those are drawn as SPRITES or as
+ * shapes at the call site, where they can be given real detail; this
+ * table is the last line of defence, so a character that slips through
+ * is never cut as an empty box.
+ */
+const FALLBACKS: Record<string, string> = {
+  '\u2192': '>', // rightwards arrow
+  '\u2190': '<', // leftwards arrow
+  '\u2191': '^', // upwards arrow
+  '\u2193': 'v', // downwards arrow
+  '\u2618': '*', // shamrock
+  '\u2713': 'v', // check mark
+  '\u2717': 'x', // ballot x
+  '\u25b2': '^', // black up-pointing triangle
+  '\u25bc': 'v', // black down-pointing triangle
+};
+
+/** The character a glyph is actually cut from. */
+function resolve(ch: string): string {
+  return FALLBACKS[ch] ?? ch;
+}
+
+/**
  * Cut a one-bit mask for a single character.
  *
  * The glyph is drawn once, at the target size, and then read back. The
@@ -93,8 +232,14 @@ function scratchContext(): CanvasRenderingContext2D {
  * above the threshold becomes ink.
  */
 function cutGlyph(size: number, ch: string): Glyph {
+  if (!fontReady) {
+    throw new Error(
+      'Sidhe & Stone: a glyph was cut before the webfont had loaded. ' +
+        'The game must wait for loadFont() before it draws.'
+    );
+  }
   const ctx = scratchContext();
-  ctx.font = `${size}px ${FAMILY}`;
+  ctx.font = `${size}px "${FAMILY}"`;
 
   const metrics = ctx.measureText('Hg');
   const ascent = Math.ceil(metrics.fontBoundingBoxAscent);
@@ -113,7 +258,7 @@ function cutGlyph(size: number, ch: string): Glyph {
   // surface: only the alpha channel is read back, and the glyph is later
   // blitted in its real ink colour. Nothing here reaches the screen.
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(ch, pad, baseline);
+  ctx.fillText(resolve(ch), pad, baseline);
 
   const { data } = ctx.getImageData(0, 0, width, height);
 
@@ -153,7 +298,7 @@ function cutGlyph(size: number, ch: string): Glyph {
     // glyph's own ink. An 'x' and an 'H' must sit on the same line even
     // though their ink starts at different heights.
     top: minY - (baseline - ascent),
-    advance: ctx.measureText(ch).width,
+    advance: ctx.measureText(resolve(ch)).width,
     tinted: new Map(),
   };
 }
@@ -175,8 +320,8 @@ function advanceFor(size: number, ch: string): number {
   let advance = advances.get(key);
   if (advance === undefined) {
     const ctx = scratchContext();
-    ctx.font = `${size}px ${FAMILY}`;
-    advance = ctx.measureText(ch).width;
+    ctx.font = `${size}px "${FAMILY}"`;
+    advance = ctx.measureText(resolve(ch)).width;
     advances.set(key, advance);
   }
   return advance;
@@ -227,6 +372,47 @@ function hexToRgb(color: string): [number, number, number] {
     parseInt(full.slice(2, 4), 16),
     parseInt(full.slice(4, 6), 16),
   ];
+}
+
+/**
+ * The pen advance for a single character.
+ *
+ * Exposed so that text which mixes glyphs and SPRITES can be measured
+ * the same way the glyph-only text is measured: the sprite takes the
+ * room it occupies, and the characters take their real advances.
+ */
+export function charAdvance(ch: string, font: FontSpec = FONT.body): number {
+  return advanceFor(font.size, ch);
+}
+
+/**
+ * Break a string into the lines that fit in `maxWidth`.
+ *
+ * The lines are broken on spaces, and no word is cut: a word too long
+ * for the line is given a line of its own. Wrapping is not truncation
+ * -- the whole sentence is still there, on more than one line -- so the
+ * audit records nothing and the text keeps its meaning.
+ */
+export function wrapText(
+  text: string,
+  maxWidth: number,
+  font: FontSpec = FONT.body
+): string[] {
+  if (maxWidth <= 0) return [text];
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (!line || measureText(candidate, font) <= maxWidth) {
+      line = candidate;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 /**

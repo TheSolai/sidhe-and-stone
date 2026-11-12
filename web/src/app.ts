@@ -12,7 +12,7 @@
 
 import { GameState } from './sim/game-state.ts';
 import type { DaySummary } from './sim/game-state.ts';
-import { loadGame, saveGame, type Settings } from './save.ts';
+import { hasSave, loadGame, saveGame, type Settings } from './save.ts';
 import { Audio } from './ui/audio.ts';
 import { drawHud, drawNav, navLayout, type NavLayout } from './ui/hud.ts';
 import { HINT_TEXT_Y, HUD_HEIGHT, NAV_TOP, SHADOW_OFFSET } from './ui/bands.ts';
@@ -25,6 +25,7 @@ import {
   truncations,
 } from './ui/audit.ts';
 import { PAL } from './ui/palette.ts';
+import { setFontScale } from './ui/font.ts';
 import {
   regionHit,
   ToastStack,
@@ -48,6 +49,7 @@ import {
 } from './ui/widgets.ts';
 
 import { UPGRADES } from './sim/sim-core.ts';
+import { buildForecast } from './ui/forecast.ts';
 import { TitleScreen } from './ui/screens/title.ts';
 import { DigSiteScreen } from './ui/screens/dig-site.ts';
 import { CuratorScreen } from './ui/screens/curator.ts';
@@ -125,6 +127,18 @@ export class App {
     return this.pressedRegion?.id ?? null;
   }
 
+  /**
+   * Scale every size in the type ramp.
+   *
+   * A test seam, like the rest of this class: the browser checks use it
+   * to find out what the screens do when the type is bigger than the
+   * size they were laid out for. A layout that only fits one size is a
+   * layout that breaks the first time somebody asks for larger text.
+   */
+  public setFontScale(scale: number): void {
+    setFontScale(scale);
+  }
+
   private navState: NavLayout | null = null;
 
   private pointer: { x: number; y: number } | null = null;
@@ -195,6 +209,14 @@ export class App {
       this.audio.playChime();
     };
 
+    // Each reel ticks as it comes to rest, so the sound lands with the
+    // wheels rather than all at once at the end.
+    state.onReelStop = () => {
+      this.audio.playClick();
+    };
+
+    // The reveal: the moment the last reel has stopped and the player
+    // can actually see what they got.
     state.onReelSpun = (res) => {
       if (res.pattern === 'triple') this.audio.playFanfare();
       else if (res.pattern === 'pair') this.audio.playChime();
@@ -231,11 +253,31 @@ export class App {
     canvas.addEventListener('pointermove', (e) => {
       const p = this.surface.toLogical(e);
       this.pointer = p;
+      if (!p) return;
+
+      // A region that is being dragged gets the movement, wherever the
+      // pointer has got to. The canvas holds the pointer capture, so this
+      // keeps arriving even outside the region and outside the canvas.
+      this.pressedRegion?.onPointerMove?.(p);
     });
 
     canvas.addEventListener('pointerleave', () => {
+      // Only the HOVER state is dropped. The pressed region is kept when
+      // it handles a drag, because the pointer capture keeps delivering
+      // the release to the canvas even after the pointer has left it --
+      // and a lever being pulled has to survive that. Any other region
+      // gives the press up, so a button cannot be left sunk when the
+      // pointer wanders off the canvas.
       this.pointer = null;
+      if (!this.pressedRegion?.onPointerMove) {
+        this.pressedRegion = null;
+      }
+    });
+
+    canvas.addEventListener('pointercancel', () => {
+      // The gesture was aborted by the system, so nothing is pressed.
       this.pressedRegion = null;
+      this.pointer = null;
     });
 
     canvas.addEventListener('pointerdown', (e) => {
@@ -257,6 +299,9 @@ export class App {
         this.regions.find((r) => r.enabled !== false && regionHit(r, p.x, p.y)) ??
         null;
 
+      // A region that handles gestures is told the press began.
+      this.pressedRegion?.onPointerDown?.(p);
+
       canvas.setPointerCapture(e.pointerId);
     });
 
@@ -271,6 +316,13 @@ export class App {
       this.pressedRegion = null;
 
       if (!pressed) return;
+
+      // A region that handled the gesture itself gets the release first,
+      // and can say it has already done the work. That is how a drag
+      // that ends outside the region -- which is most drags -- is not
+      // thrown away, and how a gesture does not also fire the click.
+      if (pressed.onPointerUp?.(p) === true) return;
+
       if (!regionHit(pressed, p.x, p.y)) return;
 
       // The region's own action. Every region carries one, including the
@@ -320,6 +372,21 @@ export class App {
   public goTo(id: string): void {
     if (!this.screens.has(id)) return;
     if (this.activeId === id) return;
+    // The title screen's forecast panel is only worth drawing when
+    // there IS a museum to forecast. Whether there is one is settled
+    // at boot, but the player can also reach the title screen from
+    // inside a running game -- and then the answer is yes.
+    //
+    // So the flag is refreshed on the way in rather than trusted from
+    // boot. Without this the title screen showed an empty "Continue"
+    // path with no forecast at all for anyone who played first.
+    if (id === 'title') {
+      const title = this.screens.get('title');
+      if (title && 'hasSave' in title) {
+        (title as unknown as { hasSave: boolean }).hasSave =
+          hasSave() || this.state.day() > 0;
+      }
+    }
     this.activeId = id;
     this.screens.get(id)?.enter?.();
     this.audio.playClick();
@@ -623,8 +690,11 @@ export class App {
 
     drawVeil(g, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PAL.K, PAL.P);
 
+    // The modal is taller than it used to be, because it now carries a
+    // TOMORROW section under the breakdown. It still fits: 50 .. 490 on a
+    // 540-tall canvas, clear of the navigation strip at 502.
     const w = 480;
-    const h = 380;
+    const h = 440;
     const x = (LOGICAL_WIDTH - w) / 2;
     const y = (LOGICAL_HEIGHT - h) / 2;
 
@@ -632,6 +702,16 @@ export class App {
       g,
       { rect: { x, y, w, h }, title: `Day ${s.day} closes`, accent: PAL.E }
     );
+
+    // The forecast. The modal is the moment the player decides whether to
+    // come back tomorrow, so it is where tomorrow gets its own section:
+    // the headline fact, and the two or three lines that back it up.
+    //
+    // It is drawn INSIDE the frame's content rectangle. The content area
+    // ends six pixels above the footer action row, so the section is
+    // laid out from the bottom of the rows above it and the last line is
+    // kept within the content box.
+    const forecast = buildForecast(this.state);
 
     const number = (v: number): string => Math.round(v).toLocaleString('en-GB');
 
@@ -724,6 +804,71 @@ export class App {
           font: FONT.small,
         }
       );
+      ry += 24;
+    }
+
+    // ── TOMORROW ──
+    //
+    // The end-of-day modal is where the player decides whether to come
+    // back, so tomorrow gets its own section: the headline fact, and the
+    // lines that back it up.
+    //
+    // Everything here is inside the frame's content rectangle. The
+    // content area ends six pixels above the footer action row, and the
+    // lines are dropped if they would not fit -- a cut sentence is worse
+    // than no sentence.
+    const fc = frame.content;
+    const contentBottom = fc.y + fc.h;
+    const lineH = 13;
+    const headlineH = 20;
+
+    ry += 8;
+    g.fillStyle = PAL.P;
+    g.fillRect(fc.x, ry, fc.w, 1);
+    ry += 8;
+
+    // The headline is the one fact worth saying out loud. It is written
+    // in the mid ink, and it is the first thing the player reads.
+    //
+    // The facts are walked in order and the first one that FITS is
+    // taken as the headline. A fact that would have to be cut is left
+    // out: an ellipsis in the middle of a sentence is a lie about what
+    // the game knows.
+    const facts = forecast.facts;
+    const headline = facts.find((f) => measureText(f, FONT.mid) <= fc.w);
+
+    if (headline && ry + headlineH <= contentBottom) {
+      drawText(g, headline, fc.x, ry, {
+        font: FONT.mid,
+        color: PAL.D,
+        maxWidth: fc.w,
+      });
+    }
+    ry += headlineH;
+
+    // The headline plus at most three more: four facts is what the
+    // modal has room for, and the forecast never offers more.
+    //
+    // The facts are walked in order, the headline is taken out of the
+    // walk, and each remaining fact that FITS is drawn. A fact that
+    // does not fit is left out rather than cut -- an ellipsis in the
+    // middle of a sentence is a lie about what the game knows.
+    let drawn = 0;
+    for (const line of facts) {
+      if (drawn >= 3) break;
+      if (line === headline) continue;
+      if (ry + lineH > contentBottom) break;
+      // The small lines are body copy, so they need the dark ink on the
+      // cream interior -- and they are omitted, not cut, if they do not
+      // fit the width.
+      if (measureText(line, FONT.small) > fc.w) continue;
+      drawText(g, line, fc.x, ry, {
+        font: FONT.small,
+        color: PAL.P,
+        maxWidth: fc.w,
+      });
+      ry += lineH;
+      drawn++;
     }
 
     // The footer action row (RULE 5.2): one primary button, bevelled.

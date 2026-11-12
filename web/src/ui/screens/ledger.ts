@@ -15,7 +15,7 @@
 import { PAL } from '../palette.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { moneyNumber } from '../screen.ts';
-import { drawModalRow, drawPanel, drawText, drawWell, FONT } from '../widgets.ts';
+import { drawModalRow, drawPanel, drawRichText, drawText, drawWell, FONT } from '../widgets.ts';
 
 export class LedgerScreen implements Screen {
   public readonly id = 'ledger';
@@ -166,10 +166,16 @@ export class LedgerScreen implements Screen {
           font: FONT.tiny,
           color: PAL.P,
         });
+        // The row already prints the day in its own column, and the day
+        // narrative itself begins "Day 5 -- ". Drawing both produced
+        // "Day 5  Day 5 -- Visitors paid...". The native build strips
+        // the duplicate prefix for the same reason; this is the web
+        // equivalent, applied to the text rather than to the column.
+        const body = entry.text.replace(/^Day\s+\d+\s*[\u2014\u2013-]\s*/, '');
         // The entry text sits on a W or a C row. Both are paper surfaces,
         // so the ink is dark: the accent hues are all under 4.5:1 there,
         // and the leading block already carries the kind.
-        drawText(g, entry.text, wellX + 62, rowY + 2, {
+        drawRichText(g, ctx.sprites, body, wellX + 62, rowY + 2, {
           font: FONT.small,
           color: PAL.D,
           maxWidth: wellW - 74,

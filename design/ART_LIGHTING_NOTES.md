@@ -284,10 +284,10 @@ python3 tools/grid_check.py --all                            -> 0 failures
 and the repo-wide suite:
 
 ```
-python3 ai/regen_sprites.py --build     -> staged 61 sprites
-python3 ai/verify_sprites.py            -> Sprite verification: 72 checks, 0 failures / ALL CHECKS PASS
-python3 tools/grid_check.py             -> Grid check: 61 sprites, 0 failures
-python3 tools/grid_check.py --all       -> Grid check: 61 sprites, 0 failures
+python3 ai/regen_sprites.py --build     -> staged 65 sprites
+python3 ai/verify_sprites.py            -> Sprite verification: 130 checks, 0 failures / ALL CHECKS PASS
+python3 tools/grid_check.py             -> Grid check: 65 sprites, 0 failures
+python3 tools/grid_check.py --all       -> Grid check: 65 sprites, 0 failures
 ```
 
 ---

@@ -1,6 +1,10 @@
 include("../palette.px.js")
 
 // More archivists: a stack of ledgers, every one of them in a different hand.
+//
+// The third ledger is bound in D, the deep shadow of the wood ramp, rather
+// than in S: the clay A on the ledger above it and the brown S sat 9.43
+// apart on the palette, close enough to read as one shade.
 sprite("upgrade_archivists", { w: 16, h: 16, outline: "K" },
   `
   ................
@@ -11,8 +15,8 @@ sprite("upgrade_archivists", { w: 16, h: 16, outline: "K" },
   ...AWWWWWWWWA...
   ...AAAAAAAAAA...
   ..ZZZZZZZZZZZZ..
-  ..SWWWWWWWWWWS..
-  ..SSSSSSSSSSSS..
+  ..DWWWWWWWWWWD..
+  ..DDDDDDDDDDDD..
   ...ZZZZZZZZZZ...
   ...NWWWWWWWWN...
   ...NNNNNNNNNN...

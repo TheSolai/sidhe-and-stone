@@ -10,14 +10,19 @@
     "preview": "vite preview",
     "balance": "node --experimental-strip-types src/sim/run-sim.ts",
     "balance:player": "node --experimental-strip-types src/sim/run-player-balance.ts",
-    "test": "npm run test:rng && npm run test:parity && npm run test:reel && npm run test:player && npm run test:browser && npm run test:band && npm run test:contrast",
+    "test": "npm run test:rng && npm run test:parity && npm run test:reel && npm run test:reel-preview && npm run test:player && npm run test:browser && npm run test:band && npm run test:contrast && npm run test:fontscale && npm run test:sprites",
+    "test:sprites": "python3 ../ai/verify_sprites.py && python3 ../tools/grid_check.py --all",
     "test:rng": "node --experimental-strip-types tests/rng_parity.ts",
     "test:parity": "node --experimental-strip-types tests/parity.ts",
     "test:reel": "node --experimental-strip-types tests/reel_parity.ts",
+    "test:reel-preview": "node --experimental-strip-types tests/reel_preview.ts",
     "test:player": "node --experimental-strip-types tests/player_path_parity.ts",
     "test:browser": "node tests/browser_check.mjs && node tests/canvas_check.mjs && node tests/sprite_check.mjs",
     "test:band": "node tests/band_check.mjs",
-    "test:contrast": "node tests/contrast_check.mjs"
+    "test:contrast": "node tests/contrast_check.mjs",
+    "test:fontscale": "node tests/font_scale_check.mjs",
+    "shots": "node tests/capture_final_shots.mjs",
+    "metrics": "node tests/glyph_metrics.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

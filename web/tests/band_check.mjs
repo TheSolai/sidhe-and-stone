@@ -221,6 +221,9 @@ for (const id of SCREENS) {
       (b.lowest
         ? `  lowest: ${b.lowest.x},${b.lowest.y} ${b.lowest.w}x${b.lowest.h}`
         : '') +
+      (b.rightmost && b.rightmost.x + b.rightmost.w > LOGICAL_WIDTH
+        ? `  rightmost: ${b.rightmost.x},${b.rightmost.y} ${b.rightmost.w}x${b.rightmost.h}`
+        : '') +
       (result.truncations.length
         ? `  [${result.truncations.length} string(s) cut: ${result.truncations.map((t) => `"${t.slice(0, 28)}…"`).join(', ')}]`
         : '')

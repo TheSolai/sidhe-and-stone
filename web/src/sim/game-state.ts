@@ -86,6 +86,15 @@ export class GameState {
   public onDayEnded: ((summary: DaySummary) => void) | null = null;
   public onGoalAchieved: ((goal: GoalDef) => void) | null = null;
   public onReelSpun: ((result: SpinResult) => void) | null = null;
+  /**
+   * Fired when ONE reel comes to rest, with its index.
+   *
+   * The three reels stop one after another, so a single sound at the
+   * end of the whole spin would land on the wrong thing. This fires
+   * three times per spin, once per reel, so the audio can tick along
+   * with the wheels.
+   */
+  public onReelStop: ((index: number) => void) | null = null;
   public onTutorialAdvanced: (() => void) | null = null;
   public onGameLoaded: (() => void) | null = null;
 
@@ -432,10 +441,22 @@ export class GameState {
   public spinReel(): SpinResult | null {
     const res = this.sim.spinReelNow();
     if (!res) return null;
-    this.onReelSpun?.(res);
     this.tutorialReport('reel_spun');
     this.onChanged?.();
     return res;
+  }
+
+  /**
+   * Announce that the reel has actually LANDED.
+   *
+   * The spin result is known the instant it is drawn -- the maths does
+   * not wait for an animation -- but the player is told about it when
+   * the last reel stops, because that is when they can see it. So the
+   * sound and the message fire from here, and the screen calls this at
+   * the moment of the reveal rather than at the moment of the pull.
+   */
+  public revealReel(result: SpinResult): void {
+    this.onReelSpun?.(result);
   }
 
   /** Resolve the day: upkeep, dig completion, curation, takings, theft. */

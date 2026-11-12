@@ -43,6 +43,15 @@ func _watchdog() -> void:
 
 func _capture() -> void:
 	DirAccess.make_dir_recursive_absolute(_out_dir)
+
+	# Capture at the LOGICAL canvas size, not at the scaled-down window
+	# size. The project opens a 540x960 window over a 720x1280 canvas, and
+	# grabbing the window texture at that size DOWNSCALES the frame, which
+	# blends every hard pixel edge into a colour the palette does not
+	# contain. A downscaled frame is not evidence of a palette violation;
+	# it is evidence of a downscale.
+	DisplayServer.window_set_size(Vector2i(720, 1280))
+
 	var scene: PackedScene = load("res://src/main.tscn")
 	var root_node := scene.instantiate()
 	root.add_child(root_node)
@@ -55,8 +64,10 @@ func _capture() -> void:
 	# --- 2. play a few days so the museum has something in it.
 	_play_a_while(root_node.state)
 
-	# --- 3. the tabs
-	var tabs := [["gallery", "02_gallery"], ["vault", "03_vault"],
+	# --- 3. the screens. The bottom bar has five destinations; the gallery
+	# and the vault are the two halves of the Collection destination, so the
+	# vault frame is reached through the switch inside that screen.
+	var tabs := [["collection", "02_gallery"], ["vault", "03_vault"],
 		["digs", "04_digs"], ["staff", "05_staff"], ["goals", "06_goals"],
 		["ledger", "07_ledger"]]
 	for entry in tabs:
@@ -65,7 +76,7 @@ func _capture() -> void:
 		await _shot(root_node, str(entry[1]))
 
 	# --- 4. the end-of-day report modal
-	_click_tab(root_node, "gallery")
+	_click_tab(root_node, "collection")
 	await create_timer(0.2).timeout
 	_click_button(root_node, "End Day")
 	await create_timer(0.6).timeout

@@ -9,6 +9,7 @@ import { App } from './app.ts';
 import { hasSave, loadSettings, saveSettings, type Settings } from './save.ts';
 import { SpriteSet, type SpriteAtlas } from './ui/sprites.ts';
 import { PAL } from './ui/palette.ts';
+import { loadFont } from './ui/font.ts';
 
 async function boot(): Promise<void> {
   const canvas = document.getElementById('game') as HTMLCanvasElement | null;
@@ -19,6 +20,12 @@ async function boot(): Promise<void> {
   }
 
   const settings = loadSettings();
+
+  // The face comes first. Every glyph in the game is cut from the
+  // bitmap font, and a glyph cut before the webfont has arrived would
+  // be cut from the fallback face and cached in the wrong shape. So the
+  // game waits for the font before it builds anything.
+  await loadFont();
 
   // Load the atlas manifest, then every sprite in it. The manifest is
   // generated at build time by `scripts/sync-assets.mjs`.

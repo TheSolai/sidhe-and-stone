@@ -1,33 +1,40 @@
 include("../palette.px.js")
 
-// The second visitor. Same build as the first one — a warm coat, a warm
-// head, legs under it — so the two have to be told apart at a glance.
+// Visitor B: the one in the dress.
 //
-// The difference is the hair: a bun pinned up on top of the head, a narrow
-// knot of N rather than a cap, so the silhouette alone says "this is the
-// other one". The head is narrower than the first visitor's, and the right
-// side of it carries an N shadow so the face is not a flat oval.
+// The same build as visitor A - a head, a face, a long garment, legs
+// under it - so the two have to be told apart at a glance, and the
+// silhouette does that: A wears a brimmed hat, B wears a hair bun.
 //
-// The coat is unchanged from the first visitor: Z on the lit left edge, S
-// for the body, N for the shadowed right side and the legs.
-
+// The bun is a compact knot of N four pixels wide, sitting on top of a
+// narrower head than A's, and the head falls away into N on its right
+// side, the same light everything else in the museum gets. The eyes are
+// a two-pixel pair of D, set on the face rather than hard against its
+// left edge.
+//
+// The dress is ochre Y, with H catching the light down the lit left edge
+// and N falling away down the shadowed right. A dark D line under the
+// hem puts the figure on the floor instead of floating over it.
+//
+// The dress was warm brown S. S and the clay A of the face sit 9.43
+// apart, which is close enough that the face and the dress read as one
+// shade; Y is 55.7 away from A, so the face stands clear of the cloth.
 sprite("visitor_b", { w: 16, h: 16, outline: "K" },
   `
   ................
-  .....NNNNNN.....
-  ......NNNN......
-  ......AAAA......
-  .....ADAADA.....
-  .....AAAAAN.....
-  .....SSSSSS.....
-  ...ZZSSSSSSNN...
-  ..ZZSSSSSSSSNN..
-  ..ZSSSSSSSSSNN..
-  ...SSSSSSNNNNN..
-  ...SSSSSSNNNNN..
-  ..SSSSSSNNNNNN..
-  ..SSSSNNNNNNNN..
-  ..SSNNNNNNNNNN..
-  ..DDDDDDDDDDDD..
-  `
-)
+  .....NNNN.......
+  ....AAAAAA......
+  ....AADDAA......
+  ....AAAAAN......
+  ....AAAAAN......
+  .....YYYYY......
+  ...HHYYYYYYN....
+  ..HHYYYYYYYYN...
+  ..HYYYYYYYYYYN..
+  ..YYYYYYYYYYNN..
+  ..YYYYYYYYNNNN..
+  ...YYYYYYNNNN...
+  ...YYYYNNNNNN...
+  ....NN....NN....
+  ....DD....DD....
+`)

@@ -18,8 +18,12 @@ import {
   loadPlaywright,
   canvasSignature,
   clickRegion,
+  colourProfile,
+  drawnTexts,
+  regionEnabled,
   regionIds,
   startStaticServer,
+  toPage,
 } from './browser_helpers.mjs';
 
 const { chromium } = loadPlaywright();
@@ -305,6 +309,299 @@ await page.screenshot({ path: '/tmp/ss-07-reel.png' });
 
 const reelIds = await regionIds(page);
 check(reelIds.includes('reel:spin'), 'the reel has a spin control');
+check(reelIds.includes('reel:lever'), 'the reel has a lever');
+
+// The lever is a control that is PULLED, not tapped, so the check that
+// matters is whether the grip actually goes down when the pointer goes
+// down. The grip is brass; its brass pixels are measured before and
+// during the pull, and their mean height has to fall.
+//
+// The crop holds the lever and nothing else: the reel windows end
+// above it, the spin button is to the left of it, and the status line
+// is above it.
+const LEVER_CROP = { x: 250, y: 316, w: 62, h: 76 };
+const BRASS = ['#e5b63d', '#efd788', '#dda742'];
+
+const atRest = await colourProfile(
+  page,
+  LEVER_CROP.x,
+  LEVER_CROP.y,
+  LEVER_CROP.w,
+  LEVER_CROP.h,
+  BRASS
+);
+check(
+  atRest.count > 20,
+  `the lever's brass grip is drawn (${atRest.count} brass pixels)`
+);
+
+// Take hold of the grip and pull it down.
+const charmsBeforePull = await page.evaluate(() => window.__sidhe.state.charms());
+const grip = await toPage(page, 276, 340);
+await page.mouse.move(grip.x, grip.y);
+await page.mouse.down();
+await page.mouse.move(grip.x, grip.y + 18 * grip.scale, { steps: 4 });
+await page.mouse.move(grip.x, grip.y + 42 * grip.scale, { steps: 6 });
+await page.waitForTimeout(120);
+
+const pulled = await colourProfile(
+  page,
+  LEVER_CROP.x,
+  LEVER_CROP.y,
+  LEVER_CROP.w,
+  LEVER_CROP.h,
+  BRASS
+);
+check(pulled.count > 20, 'the grip is still drawn while the lever is held');
+check(
+  pulled.meanY > atRest.meanY + 4,
+  `the grip goes DOWN when the lever is pulled (${atRest.meanY?.toFixed(1)} -> ${pulled.meanY?.toFixed(1)})`
+);
+check(
+  pulled.maxY > atRest.maxY,
+  `the lowest brass pixel drops when the lever is pulled (${atRest.maxY} -> ${pulled.maxY})`
+);
+
+await page.mouse.up();
+await page.waitForTimeout(120);
+
+// The pull was a spin, so it cost charms.
+const charmsAfterPull = await page.evaluate(() => window.__sidhe.state.charms());
+check(
+  charmsAfterPull === charmsBeforePull - 2,
+  `pulling the lever spun the reel (charms ${charmsBeforePull} -> ${charmsAfterPull})`
+);
+
+// While the wheel is turning, the control is locked...
+const duringSpin = await regionEnabled(page, 'reel:spin');
+check(duringSpin === false, 'the spin control is locked while the wheel is turning');
+
+// ...and it comes back when the last reel stops.
+await page.waitForTimeout(1600);
+const afterSpin = await regionEnabled(page, 'reel:spin');
+check(afterSpin === true, 'the spin control comes back after the reveal');
+
+// And the reel can be spun AGAIN. It used to be a one-shot: the gate
+// said "only if there has never been a result", which meant a player
+// could not use the reel twice in a day. The Godot original disables
+// the button only while the wheel is turning.
+const charmsBefore = await page.evaluate(() => window.__sidhe.state.charms());
+await clickRegion(page, 'reel:spin');
+await page.waitForTimeout(1600);
+const charmsAfter = await page.evaluate(() => window.__sidhe.state.charms());
+check(
+  charmsAfter === charmsBefore - 2,
+  `the reel can be spun a second time (charms ${charmsBefore} -> ${charmsAfter})`
+);
+const secondSpin = await regionEnabled(page, 'reel:spin');
+check(secondSpin === true, 'the spin control is usable again after the second spin');
+
+// The lever SPRINGS BACK.
+//
+// The pull is a sprung lever: it is pulled down while the hand is on it
+// and it returns to rest when the hand comes off. A lever that stayed
+// down would tell the player it is still held.
+//
+// The brass grip is measured once more, now that the spin is over and
+// the spring has had its quarter of a second, and it must be back up
+// where it started.
+const sprung = await colourProfile(
+  page,
+  LEVER_CROP.x,
+  LEVER_CROP.y,
+  LEVER_CROP.w,
+  LEVER_CROP.h,
+  BRASS
+);
+check(sprung.count > 20, `the grip is still drawn after the spring (${sprung.count} brass pixels)`);
+check(
+  Math.abs((sprung.meanY ?? 0) - (atRest.meanY ?? 0)) < 4,
+  `the lever springs back to rest (${atRest.meanY?.toFixed(1)} -> ${sprung.meanY?.toFixed(1)})`
+);
+
+// The reel's audio hook.
+//
+// The reels stop one at a time, and each stop has to TICK. A single
+// sound at the end of the spin would land on the wrong thing -- it
+// would sound like one reel finished when three had.
+//
+// So the audio is counted: the counter is installed on the live audio
+// object, reset, and then the wheel is spun. The counter must see at
+// least one tick per reel, plus the sound of the reveal.
+//
+// The counter is installed BEFORE the reset so that the navigation
+// clicks and the button click are not counted as reel ticks.
+const audioCounted = await page.evaluate(() => {
+  const audio = window.__sidhe.audio;
+  if (!audio) return false;
+  window.__reelAudio = { click: 0, chime: 0, fanfare: 0 };
+  for (const name of ['playClick', 'playChime', 'playFanfare']) {
+    const original = audio[name].bind(audio);
+    audio[name] = (...args) => {
+      const key = name.replace('play', '').toLowerCase();
+      window.__reelAudio[key] += 1;
+      return original(...args);
+    };
+  }
+  return true;
+});
+check(audioCounted, 'the reel audio can be observed');
+
+await page.evaluate(() => {
+  window.__reelAudio.click = 0;
+  window.__reelAudio.chime = 0;
+  window.__reelAudio.fanfare = 0;
+});
+await clickRegion(page, 'reel:spin');
+await page.waitForTimeout(1600);
+const reelAudio = await page.evaluate(() => window.__reelAudio);
+check(
+  reelAudio.click >= 3,
+  `each reel ticks as it comes to rest (${reelAudio.click} clicks for 3 reels)`
+);
+check(
+  reelAudio.click + reelAudio.chime + reelAudio.fanfare >= 4,
+  `the reveal has its own sound (${reelAudio.click} clicks, ${reelAudio.chime} chimes, ${reelAudio.fanfare} fanfares)`
+);
+
+// The lever and the spin button must not fight over the same click.
+const leverRect = await page.evaluate(() => {
+  const app = window.__sidhe;
+  const lever = app.interactiveRegions.find((r) => r.id === 'reel:lever');
+  const spin = app.interactiveRegions.find((r) => r.id === 'reel:spin');
+  return { lever, spin };
+});
+const overlap =
+  leverRect.lever &&
+  leverRect.spin &&
+  leverRect.lever.x < leverRect.spin.x + leverRect.spin.w &&
+  leverRect.lever.x + leverRect.lever.w > leverRect.spin.x &&
+  leverRect.lever.y < leverRect.spin.y + leverRect.spin.h &&
+  leverRect.lever.y + leverRect.lever.h > leverRect.spin.y;
+check(!overlap, 'the lever and the spin button do not overlap');
+check(
+  leverRect.lever &&
+    leverRect.lever.x >= 0 &&
+    leverRect.lever.y >= 0 &&
+    leverRect.lever.x + leverRect.lever.w <= 960 &&
+    leverRect.lever.y + leverRect.lever.h <= 540,
+  'the lever sits inside the 960x540 canvas'
+);
+
+// ---------------------------------------------------------------- the forecast
+
+// The forecast is the retention hook. It is the thing that tells a player
+// what tomorrow holds, and it has to be on the screen in THREE places:
+// the end-of-day modal, the title screen's continue path, and the dig
+// site's footer.
+//
+// The check reads the strings the game actually DREW, rather than
+// re-deriving the forecast in the test and comparing the two. A test
+// that rebuilds the thing it is testing proves nothing about the
+// screen; this one asks the canvas what it says.
+//
+// Every forecast line ends in a full stop. A fact that had been cut
+// short would end in something else, and that is a failure too.
+const FORECAST_LINES = [
+  /^Site \d+: .+ finishes tomorrow\.$/,
+  /^\d+ digs finish tomorrow\.$/,
+  /^Milestone ".+" is nearly met\.$/,
+  /^Milestone ".+" is met\.$/,
+  /^Takings look like £[\d,]+, upkeep £[\d,]+\.$/,
+  /^\d+ finds wait in the storeroom\.$/,
+  /^The storeroom is empty\.$/,
+  /^Nothing is on the gallery floor\.$/,
+  /^\d+ display slots are free\.$/,
+  /^The gallery floor is full\.$/,
+  /^Curators will catalogue \d+ finds\.$/,
+];
+const isForecastLine = (text) => FORECAST_LINES.some((re) => re.test(text));
+
+// The dig site's footer carries the FIRST fact.
+await clickRegion(page, 'nav:dig');
+await page.waitForTimeout(300);
+const digTexts = await drawnTexts(page);
+const digFacts = digTexts.map((t) => t.text).filter(isForecastLine);
+check(
+  digFacts.length >= 1,
+  `the dig site's footer carries a forecast fact (${digFacts.length} found)`
+);
+
+// The end-of-day modal carries the headline and up to three lines.
+//
+// The day is ended from the SHOP, not from the dig site. The dig site's
+// footer draws a forecast fact of its own, and that foot is still on the
+// canvas underneath the modal -- so ending the day from there counts the
+// footer fact as well and the modal looks like it is carrying five.
+await clickRegion(page, 'nav:shop');
+await page.waitForTimeout(300);
+await clickRegion(page, 'hud:endday');
+await page.waitForTimeout(500);
+const modalTexts = await drawnTexts(page);
+const modalFacts = modalTexts.map((t) => t.text).filter(isForecastLine);
+check(
+  modalFacts.length >= 2,
+  `the end-of-day modal carries the forecast (${modalFacts.length} facts)`
+);
+check(
+  modalFacts.length <= 4,
+  `the end-of-day modal does not over-stuff the forecast (${modalFacts.length} facts)`
+);
+await clickRegion(page, 'summary:close');
+await page.waitForTimeout(300);
+
+// The title screen's continue path carries the panel.
+//
+// A save exists by now -- the day has ended and been written -- so the
+// continue path has a museum to forecast.
+await page.evaluate(() => window.__sidhe.goTo('title'));
+await page.waitForTimeout(400);
+const titleTexts = await drawnTexts(page);
+const titleFacts = titleTexts.map((t) => t.text).filter(isForecastLine);
+check(
+  titleFacts.length >= 1,
+  `the title screen's Tomorrow panel carries a forecast (${titleFacts.length} facts)`
+);
+check(
+  titleTexts.some((t) => t.text === 'Tomorrow'),
+  'the title screen shows the Tomorrow panel heading'
+);
+
+// The panel is a panel, not a stray line of text: it has a heading and
+// at least one fact under it.
+const panelHasHeading = titleTexts.some(
+  (t) => t.text === 'Tomorrow' && t.surface !== null
+);
+check(panelHasHeading, 'the Tomorrow heading is drawn on a panel surface');
+
+// Back into the game for the keyboard check.
+await page.evaluate(() => window.__sidhe.goTo('dig'));
+await page.waitForTimeout(300);
+
+// ---------------------------------------------------------------- keyboard
+
+// The number keys pick a screen. A canvas interface with no keyboard
+// route is a canvas interface some players cannot use at all.
+await page.keyboard.press('5');
+await page.waitForTimeout(300);
+const afterKey = await page.evaluate(() => {
+  const ids = window.__sidhe.interactiveRegions.map((r) => r.id).filter(Boolean);
+  return ids;
+});
+check(
+  afterKey.includes('reel:spin') || afterKey.includes('reel:lever'),
+  `the number keys reach the reel (${afterKey.filter((id) => id.startsWith('reel:')).join(', ')})`
+);
+
+await page.keyboard.press('1');
+await page.waitForTimeout(300);
+const backToDig = await page.evaluate(() =>
+  window.__sidhe.interactiveRegions.map((r) => r.id).filter(Boolean)
+);
+check(
+  backToDig.some((id) => id.startsWith('dig:')),
+  'the number keys reach the dig site'
+);
 
 // ---------------------------------------------------------------- errors
 

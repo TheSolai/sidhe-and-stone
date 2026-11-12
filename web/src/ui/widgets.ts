@@ -13,9 +13,11 @@
 import { PAL } from './palette.ts';
 import { SHADOW_OFFSET } from './bands.ts';
 import {
+  charAdvance,
   drawText,
   FONT,
   measureText,
+  wrapText,
   type FontSpec,
 } from './font.ts';
 import { drawSprite, type SpriteSet } from './sprites.ts';
@@ -97,13 +99,23 @@ export function drawPanel(
   strokeRect(ctx, x, y, w, h, border);
 
   if (title) {
-    drawText(ctx, title, x + 8, y + 6, { font: FONT.mid, color: PAL.D });
-    const tw = Math.round(measureText(title, FONT.mid));
+    // A panel title must fit INSIDE its panel. Silkscreen is a wide
+    // face, and a title set at the mid size can run off the right edge
+    // of a narrow panel and off the canvas entirely -- which is exactly
+    // what happened to the reel's odds panel.
+    //
+    // The title is not cut: it is set at the largest size that fits, so
+    // the words stay whole and the panel keeps its name.
+    const titleFont = [FONT.mid, FONT.small, FONT.tiny].find(
+      (f) => measureText(title, f) <= w - 24
+    ) ?? FONT.tiny;
+    drawText(ctx, title, x + 8, y + 6, { font: titleFont, color: PAL.D });
+    const tw = Math.round(measureText(title, titleFont));
     ctx.fillStyle = PAL.P;
     // The rule starts on a whole pixel. A fractional x would make the
     // canvas anti-alias the edge of the rule, and that blended pixel is
     // a colour that is not in the palette.
-    ctx.fillRect(x + 12 + tw, y + 13, Math.max(0, w - 24 - tw), 1);
+    ctx.fillRect(x + 12 + tw, y + 5 + Math.round(titleFont.size * 0.35), Math.max(0, w - 24 - tw), 1);
   }
 }
 
@@ -615,10 +627,22 @@ export function drawSpeechBubble(
   fillRoundRect(ctx, x - 1, y - 1, w + 2, h + 2, 6, PAL.K);
   fillRoundRect(ctx, x, y, w, h, 5, PAL.W);
 
-  drawText(ctx, text, x + 8, y + Math.round((h - FONT.body.size) / 2), {
-    font: FONT.body,
-    color: PAL.D,
-    maxWidth: w - 16,
+  // The words WRAP inside the bubble rather than being cut.
+  //
+  // Silkscreen is a wide face: "The storeroom is clear." is 242 pixels
+  // and the bubble was 210, so the curator's line was cut at "The
+  // storeroom is clear.…" -- which is a bubble saying nothing. A bubble
+  // with room for two lines says the whole thing.
+  const innerW = w - 16;
+  const lines = wrapText(text, innerW, FONT.body);
+  const step = FONT.body.size + 2;
+  const blockH = lines.length * step;
+  const startY = y + Math.round((h - blockH) / 2);
+  lines.forEach((line, i) => {
+    drawText(ctx, line, x + 8, startY + i * step, {
+      font: FONT.body,
+      color: PAL.D,
+    });
   });
 }
 
@@ -865,4 +889,189 @@ export function drawHint(
   w: number
 ): void {
   drawText(ctx, text, x, y, { font: FONT.small, color: PAL.P, maxWidth: w });
+}
+
+/**
+ * The shamrock.
+ *
+ * Silkscreen has no shamrock, and a shamrock is not a letter -- it is a
+ * PIECE OF THINGS, like the coin and the charm, so it is drawn as the
+ * `symbol_clover` sprite and takes the room the sprite takes. The
+ * character stays in the DATA (the ledger says "3 shamrocks" as
+ * "3<clover>"), because the simulation and the Godot build agree on
+ * that string; it is only the drawing that changes.
+ */
+const CLOVER = '\u2618';
+
+/** The width the clover sprite takes in a line of text. */
+const CLOVER_W = 18;
+
+/**
+ * The width of a line that mixes glyphs and sprites.
+ */
+export function measureRichText(
+  text: string,
+  font: FontSpec = FONT.body
+): number {
+  const parts = text.split(CLOVER);
+  let width = (parts.length - 1) * CLOVER_W;
+  for (const part of parts) width += measureText(part, font);
+  return width;
+}
+
+export interface RichTextOptions {
+  font?: FontSpec;
+  color?: string;
+  shadow?: string | null;
+  align?: 'left' | 'center' | 'right';
+  maxWidth?: number;
+}
+
+/**
+ * Draw a line of text in which a sprite stands in for a character.
+ *
+ * The line is cut exactly the way glyph-only text is cut -- same
+ * advances, same ellipsis -- so a line that mixes the two measures and
+ * truncates like one thing rather than two.
+ */
+export function drawRichText(
+  ctx: CanvasRenderingContext2D,
+  sprites: SpriteSet,
+  text: string,
+  x: number,
+  y: number,
+  options: RichTextOptions = {}
+): void {
+  const {
+    font = FONT.body,
+    color = PAL.K,
+    shadow = PAL.K,
+    align = 'left',
+    maxWidth,
+  } = options;
+
+  // Cut the line down to what fits, counting the clover as the sprite
+  // it is going to be.
+  let shown = text;
+  if (maxWidth !== undefined && measureRichText(text, font) > maxWidth) {
+    const ellipsisWidth = measureText('…', font);
+    let width = 0;
+    let cut = '';
+    for (const ch of text) {
+      const next = width + (ch === CLOVER ? CLOVER_W : charAdvance(ch, font));
+      if (next + ellipsisWidth > maxWidth) break;
+      width = next;
+      cut += ch;
+    }
+    shown = cut + '…';
+  }
+
+  const total = measureRichText(shown, font);
+  let pen = Math.round(x);
+  if (align === 'center') pen = Math.round(x - total / 2);
+  else if (align === 'right') pen = Math.round(x - total);
+
+  const parts = shown.split(CLOVER);
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      // The sprite is eighteen tall and the text sixteen, so the sprite
+      // is nudged up by a pixel to sit on the same line.
+      const clover = sprites.get('symbol_clover');
+      if (clover) {
+        drawSprite(ctx, clover, pen, Math.round(y) - 1, 1);
+      }
+      pen += CLOVER_W;
+    }
+    if (!part) return;
+    const width = measureText(part, font);
+    drawText(ctx, part, pen, y, { font, color, shadow });
+    pen += width;
+  });
+}
+
+/**
+ * A paragraph: text that is WRAPPED rather than cut.
+ *
+ * The bitmap face is wider than the face the layout was written
+ * against, so a sentence that used to sit on one line now sits on two.
+ * Cutting the sentence would lose the end of it, so the lines are
+ * broken instead, and the whole sentence is still on the screen.
+ *
+ * Returns the height the paragraph took, so the caller can put the
+ * next thing below it.
+ */
+export function drawParagraph(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  options: {
+    font?: FontSpec;
+    color?: string;
+    shadow?: string | null;
+    align?: 'left' | 'center' | 'right';
+    maxWidth: number;
+    /** The distance between the tops of two lines. */
+    lineHeight?: number;
+  }
+): number {
+  const {
+    font = FONT.body,
+    color = PAL.K,
+    shadow = PAL.K,
+    align = 'left',
+    maxWidth,
+    lineHeight,
+  } = options;
+
+  const step = lineHeight ?? font.size + 4;
+  const lines = wrapText(text, maxWidth, font);
+  lines.forEach((line, i) => {
+    drawText(ctx, line, x, y + i * step, { font, color, shadow, align });
+  });
+  return lines.length * step;
+}
+
+/**
+ * A right-pointing arrow, drawn as a shape.
+ *
+ * The old face had an arrow character. Silkscreen does not, and an
+ * arrow is a MARK rather than a letter: it is drawn here, in whole
+ * pixels, in a palette colour, so it stays crisp and stays inside the
+ * palette.
+ */
+export function drawArrowRight(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  color: string,
+  scale = 1
+): number {
+  const w = 9 * scale;
+  const h = 7 * scale;
+  ctx.fillStyle = color;
+  // The head, three steps in from the tip.
+  for (let i = 0; i < 3; i++) {
+    const inset = (2 - i) * scale;
+    ctx.fillRect(
+      Math.round(x + w - scale - inset),
+      Math.round(y + i * scale),
+      scale,
+      scale
+    );
+    ctx.fillRect(
+      Math.round(x + w - scale - inset),
+      Math.round(y + h - scale - i * scale),
+      scale,
+      scale
+    );
+  }
+  // The shaft.
+  ctx.fillRect(
+    Math.round(x),
+    Math.round(y + Math.floor(h / 2)),
+    Math.round(w - 2 * scale),
+    scale
+  );
+  return w;
 }

@@ -14,14 +14,21 @@ config/icon="res://icon.svg"
 
 window/size/viewport_width=720
 window/size/viewport_height=1280
-; The desktop window opens scaled down from the 720x1280 logical canvas so a
-; portrait phone-shaped game still fits on a laptop screen. The aspect ratio
-; is identical, so the scale is a clean 0.75 and nothing is letterboxed.
-window/size/window_width_override=540
-window/size/window_height_override=960
+; The desktop window IS the logical size, not a scaled-down copy of it.
+; It used to open at 540x960, which is 0.75 of the 720x1280 canvas, and
+; that fraction is what destroyed the type: the framebuffer held 540x960
+; pixels of a 720x1280 canvas, so every glyph was resampled down by
+; three quarters. Measured on the same crisp pixel font at the same size,
+; on the same machine: 299 off-palette blended pixels at 540x960, and 0
+; at 720x1280. A one-pixel stem has no half-pixel to give.
+; Scale is now INTEGER-only, so any window the player resizes to is
+; scaled by a whole number and the type stays whole.
+window/size/window_width_override=720
+window/size/window_height_override=1280
 window/size/resizable=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/stretch/scale_mode="integer"
 window/handheld/orientation=1
 
 [input_devices]
@@ -33,3 +40,8 @@ pointing/emulate_touch_from_mouse=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+; NEAREST NEIGHBOUR for every 2D texture. This is pixel art: a sprite
+; drawn at 1:1 must land on exact pixels, and a smoothed texture filter
+; blends the sprite's edge into whatever is behind it - ugly, and a
+; colour that is not in the palette. 0 = Nearest.
+textures/canvas_textures/default_texture_filter=0

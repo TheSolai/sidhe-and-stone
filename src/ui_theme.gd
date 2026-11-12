@@ -37,7 +37,7 @@ const COL_M := Color("82a156")   ## M - moss
 static func build() -> Theme:
 	var th := Theme.new()
 	th.default_font = crisp_font()
-	th.default_font_size = 16
+	th.default_font_size = FS_BODY
 
 	# --- Label: dark ink by default. A label that forgets to set its own
 	# colour gets readable dark text, not Godot's default white.
@@ -94,17 +94,72 @@ static func build() -> Theme:
 ## text edges are in the palette". Godot renders an antialiased glyph edge
 ## by blending the ink with whatever is behind it, and that blend is a
 ## colour the palette does not contain and never will.
+## The one crisp Silkscreen instance, built once and shared. Anything that
+## needs to MEASURE text (rather than draw it) has to measure it against the
+## same face the button will draw with, or the measurement is a guess.
+static var _crisp: FontFile = null
+
 static func crisp_font() -> Font:
-	var base: Font = ThemeDB.get_default_theme().default_font
-	if base == null:
-		base = ThemeDB.fallback_font
-	if base is FontFile:
-		var f: FontFile = (base as FontFile).duplicate() as FontFile
-		f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
-		f.hinting = TextServer.HINTING_NONE
-		f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
-		return f
-	return base
+	if _crisp != null:
+		return _crisp
+	# THE PIXEL FONT. This used to duplicate Godot's DEFAULT theme font,
+	# which is Open Sans SemiBold: a smooth VECTOR face. Switching its
+	# antialiasing off does not make a vector face into a pixel face - it
+	# just makes the vector face RAGGED, because the stems are drawn on
+	# fractional outlines and land on uneven pixel boundaries. The real
+	# pixel face was sitting unused in src/fonts/.
+	#
+	# Silkscreen is drawn on an 8px grid, so its stems land on whole
+	# pixels. With antialiasing off, every glyph pixel is either exactly
+	# the ink colour or exactly the paper behind it, and the edge is hard.
+	var f: FontFile = load("res://src/fonts/Silkscreen-Regular.ttf")
+	if f == null:
+		var base: Font = ThemeDB.get_default_theme().default_font
+		if base == null:
+			base = ThemeDB.fallback_font
+		if base is FontFile:
+			return (base as FontFile).duplicate() as FontFile
+		return base
+	var d: FontFile = f.duplicate() as FontFile
+	d.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	d.hinting = TextServer.HINTING_NONE
+	d.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	d.allow_system_fallback = false
+	_crisp = d
+	return d
+
+
+## The type ramp.
+##
+## EVERY size here is a multiple of 8, and that is not a style choice --
+## it is the only way to get clean pixel stems out of Silkscreen.
+##
+## Measured from the font itself (src/fonts/Silkscreen-Regular.ttf,
+## unitsPerEm = 1000): the vertical stem of "I" is 125 units, which is
+## 1/8 em, and the cap height is 625 units, which is 5/8 em. So at a
+## font size of N the stem is N/8 pixels and the cap height is 5N/8.
+##
+##   size  stem  cap   verdict
+##     12   1.5    7.5  fractional - stems break across 1px and 2px
+##     14   1.75   8.75  fractional - worse, 3 distinct stem widths
+##     16   2.0   10.0  clean
+##     20   2.5   12.5  fractional
+##     24   3.0   15.0  clean
+##     32   4.0   20.0  clean
+##
+## A fractional stem is what makes pixel text look thin, ragged and
+## "bad" rather than deliberate. The old ramp used 12, 14 and 20, so
+## most of the interface was being drawn with stems that never lined
+## up. These sizes are the multiples of 8.
+##
+## Sizes are also large enough to read: the smallest tier is 16 (a 10px
+## cap height) and body text is 24 (a 15px cap height).
+const FS_TINY := 16
+const FS_SMALL := 24
+const FS_BODY := 24
+const FS_MID := 32
+const FS_LARGE := 40
+const FS_HUGE := 48
 
 
 ## A flat filled box with a border and no corner radius: the house style.

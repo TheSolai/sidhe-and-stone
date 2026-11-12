@@ -31,13 +31,13 @@ import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { moneyNumber } from '../screen.ts';
 import { CONTENT_TOP, FOOTER_PANEL_HEIGHT, FOOTER_TOP, MARGIN_X, PANEL_HEIGHT, PANEL_WIDTH } from '../bands.ts';
 import { drawPanel, drawText, drawWell, FONT, measureText } from '../widgets.ts';
-import { drawSprite, type SpriteSet } from '../sprites.ts';
+import { drawSprite } from '../sprites.ts';
 
 /** The height of one goal row. */
 const ROW_H = 26;
 
 /** The width of the tier columns' contents. */
-const TIER_TEXT_W = 265;
+const TIER_TEXT_W = 275;
 
 export class GoalsScreen implements Screen {
   public readonly id = 'goals';
@@ -85,7 +85,7 @@ export class GoalsScreen implements Screen {
 
       let gy = wellY + 34;
       for (const gp of list.filter((x) => x.goal.tier === tier)) {
-        this.drawGoal(g, gp, tx + 10, gy, TIER_TEXT_W, ctx.sprites);
+        this.drawGoal(g, gp, tx + 6, gy, TIER_TEXT_W);
 
         // Clicking a goal opens it in the detail panel below, so the
         // player can read what any of the eighteen asks of them without
@@ -133,7 +133,7 @@ export class GoalsScreen implements Screen {
         g.fillRect(MARGIN_X + 20, FOOTER_TOP + 30, 1, 8);
       }
 
-      drawText(g, detail.goal.title, MARGIN_X + (isNext ? 34 : 20), FOOTER_TOP + 26, {
+      drawText(g, detail.goal.title, MARGIN_X + (isNext ? 34 : 20), FOOTER_TOP + 24, {
         font: FONT.mid,
         color: PAL.D,
       });
@@ -142,11 +142,17 @@ export class GoalsScreen implements Screen {
         // Panel edge ink, not the mid brown N. N on the cream panel is
         // 4.06:1 -- under the floor for small text. P on cream is 8.32:1.
         color: PAL.P,
-        maxWidth: 400,
+        // The body has the whole left of the panel. The longest one --
+        // "Take \u00a35,000 across the gallery's whole history." -- is
+        // 504 pixels wide in the bitmap face, so anything less than
+        // that cuts the end of the sentence off, and the sentence IS
+        // the goal.
+        maxWidth: 560,
       });
 
-      const barX = MARGIN_X + 460;
-      const barW = PANEL_WIDTH - 460 - 160;
+      // The progress, on the right of the panel.
+      const barX = MARGIN_X + 580;
+      const barW = PANEL_WIDTH - 580 - 200;
 
       drawText(g, `${detail.progress} of ${detail.target}`, barX, FOOTER_TOP + 24, {
         font: FONT.small,
@@ -216,8 +222,7 @@ export class GoalsScreen implements Screen {
     gp: GoalProgress,
     x: number,
     y: number,
-    w: number,
-    sprites: SpriteSet
+    w: number
   ): void {
     const { goal } = gp;
 
@@ -238,66 +243,71 @@ export class GoalsScreen implements Screen {
       g.fillRect(x + 7, y + 4, 2, 2);
     }
 
-    // The reward, measured first, so the title knows how much room it
-    // has left. Without this the longest title and the longest reward
-    // would overlap on the same line.
+    // The reward, measured first, so the bar knows how much room it has
+    // left.
     //
-    // RULE 4.6: the coin carries the unit, so the figure itself is
-    // naked -- no currency glyph, which measures 2.47:1 on cream.
-    const reward = this.rewardText(goal);
-    // The coin is 18 pixels wide, and it needs a four-pixel gap before
-    // the number it belongs to. Reserving less than that puts the gold
-    // disc UNDER the figure -- which is exactly what it did, and the
-    // numbers were unreadable where they overlapped.
-    const COIN_W = 18;
-    const COIN_GAP = 4;
-    const rewardW =
-      Math.round(measureText(reward, FONT.tiny)) +
-      (goal.reward.money !== undefined ? COIN_W + COIN_GAP : 0);
+    // The reward is written OUT here, with its units, rather than as a
+    // coin and a bare figure. The list row is 26 tall, and an
+    // eighteen-pixel sprite does not fit on the bar's line without
+    // running into the row below it -- so the units are spelled, in ink
+    // that measures 8.32:1 on the paper. The detail panel below still
+    // draws the coin.
+    const reward = this.rewardText(goal, true);
+    const rewardW = Math.round(measureText(reward, FONT.tiny));
 
     // The title is dark ink either way. Moss on the white well is
     // 2.61:1 -- unreadable as a glyph -- and the tick box already
     // carries "done", so the colour was never carrying it alone.
-    drawText(g, goal.title, x + 18, y, {
+    //
+    // The title has the WHOLE line to itself. It used to share the line
+    // with the reward, and in the bitmap face the longest title ("The
+    // Treasury Grows") and the longest reward together were wider than
+    // the column, so the title was cut. The reward moved down to the
+    // bar's line, where there is room for it.
+    drawText(g, goal.title, x + 16, y, {
       font: FONT.small,
       color: gp.complete ? PAL.D : PAL.P,
-      maxWidth: w - 18 - rewardW - 10,
+      maxWidth: w - 16,
     });
 
-    // The coin sits on the LEADING side of the money figure (RULE 7.3),
-    // so the pair is "coin then number" and reads as one unit.
-    if (goal.reward.money !== undefined) {
-      const coin = sprites.get('icon_coin');
-      if (coin) drawSprite(g, coin, x + w - rewardW, y + 1, 1);
-      // The number sits to the RIGHT of the coin: the picture carries
-      // the unit, the figure carries the amount (RULE 7.3, RULE 4.6).
-    }
-    drawText(g, reward, x + w, y + 1, {
+    // The progress bar, under the title.
+    const barY = y + 18;
+    const barW = Math.max(24, w - 16 - rewardW - 10);
+    g.fillStyle = PAL.X;
+    g.fillRect(x + 16, barY, barW, 5);
+    const ratio = gp.target > 0 ? Math.min(1, gp.progress / gp.target) : 0;
+    g.fillStyle = gp.complete ? PAL.M : PAL.Y;
+    g.fillRect(x + 16, barY, Math.round(barW * ratio), 5);
+
+    // The reward, at the end of the bar's own line.
+    drawText(g, reward, x + w, barY - 5, {
       font: FONT.tiny,
       color: gp.complete ? PAL.D : PAL.P,
       align: 'right',
     });
-
-    // The progress bar, under the title.
-    const barY = y + 15;
-    const barW = w - 18;
-    g.fillStyle = PAL.X;
-    g.fillRect(x + 18, barY, barW, 5);
-    const ratio = gp.target > 0 ? Math.min(1, gp.progress / gp.target) : 0;
-    g.fillStyle = gp.complete ? PAL.M : PAL.Y;
-    g.fillRect(x + 18, barY, Math.round(barW * ratio), 5);
   }
 
-  /** The reward, written the way the player sees it elsewhere. */
-  private rewardText(goal: { reward: { money?: number; charms?: number; luck?: number } }): string {
+  /**
+   * The reward, written the way the player sees it elsewhere.
+   *
+   * With `units`, the money carries its pound sign. Without it, the
+   * figure is naked and the coin is drawn beside it (RULE 4.6) -- which
+   * is what the detail panel does, where there is room for the sprite.
+   */
+  private rewardText(
+    goal: { reward: { money?: number; charms?: number; luck?: number } },
+    units = false
+  ): string {
     const parts: string[] = [];
     // RULE 4.6: naked number -- the coin icon is drawn beside it.
-    if (goal.reward.money !== undefined) parts.push(moneyNumber(goal.reward.money));
+    if (goal.reward.money !== undefined) {
+      parts.push(units ? `\u00a3${moneyNumber(goal.reward.money)}` : moneyNumber(goal.reward.money));
+    }
     if (goal.reward.charms !== undefined) parts.push(`${goal.reward.charms} charms`);
     if (goal.reward.luck !== undefined) parts.push(`+${goal.reward.luck.toFixed(2)} luck`);
-    // No spaces around the separator: the reward shares a line with the
-    // goal's title, and every pixel of that line is spoken for.
-    return parts.join('·');
+    // No spaces around the separator: every pixel of the line is
+    // spoken for.
+    return parts.join('\u00b7');
   }
 
   public draw(ctx: ScreenContext): void {

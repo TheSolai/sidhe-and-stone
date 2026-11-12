@@ -186,6 +186,102 @@ export async function clickLogical(page, x, y) {
   await page.mouse.click(box.left + x * box.scale, box.top + y * box.scale);
 }
 
+/**
+ * The page coordinates of a point on the logical canvas.
+ *
+ * The canvas is drawn at 960x540 logical pixels and then scaled by the
+ * browser to fit, so every real mouse position has to be converted
+ * before it is used.
+ */
+export async function toPage(page, x, y) {
+  return page.evaluate(
+    ({ x, y }) => {
+      const canvas = document.getElementById('game');
+      const rect = canvas.getBoundingClientRect();
+      const scale = rect.width / canvas.width;
+      return { x: rect.left + x * scale, y: rect.top + y * scale, scale };
+    },
+    { x, y }
+  );
+}
+
+/**
+ * Is a control usable right now?
+ *
+ * A control that is disabled still exists, so this is the check that
+ * tells "the button is there" apart from "the button does something".
+ */
+export async function regionEnabled(page, id) {
+  return page.evaluate((wanted) => {
+    const app = window.__sidhe;
+    if (!app) return null;
+    const region = app.interactiveRegions.find((r) => r.id === wanted);
+    if (!region) return null;
+    return region.enabled !== false;
+  }, id);
+}
+
+/**
+ * Where the pixels of a given colour sit inside a rectangle.
+ *
+ * This is how the browser checks measure a moving prop: not by looking
+ * at it, but by asking where its colour actually ended up. The mean
+ * height of the grip's brass says which way the lever went.
+ */
+export async function colourProfile(page, x, y, w, h, hexes) {
+  return page.evaluate(
+    ({ x, y, w, h, hexes }) => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const { data } = ctx.getImageData(x, y, w, h);
+      const wanted = new Set(hexes.map((c) => c.toLowerCase()));
+      let count = 0;
+      let sumY = 0;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (let py = 0; py < h; py++) {
+        for (let px = 0; px < w; px++) {
+          const i = (py * w + px) * 4;
+          if (data[i + 3] === 0) continue;
+          const hex =
+            '#' +
+            [data[i], data[i + 1], data[i + 2]]
+              .map((v) => v.toString(16).padStart(2, '0'))
+              .join('');
+          if (!wanted.has(hex)) continue;
+          count++;
+          sumY += py;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+        }
+      }
+      return {
+        count,
+        meanY: count > 0 ? sumY / count : null,
+        minY: count > 0 ? minY : null,
+        maxY: count > 0 ? maxY : null,
+      };
+    },
+    { x, y, w, h, hexes }
+  );
+}
+
+/**
+ * Every string the last frame drew, with its ink.
+ *
+ * This is how the checks ask "is the forecast on the screen?" -- by
+ * reading the strings the game actually drew, rather than by guessing
+ * at pixels or re-deriving the forecast in the test. If the game says
+ * it, the check can see it said it.
+ */
+export async function drawnTexts(page) {
+  return page.evaluate(() => {
+    const audit = window.__sidhe?.contrastAudit;
+    if (!audit) return [];
+    return audit.texts.map((t) => ({ text: t.text, ink: t.ink, surface: t.surface }));
+  });
+}
+
 /** The ids of every interactive region currently on screen. */
 export async function regionIds(page) {
   return page.evaluate(() => {

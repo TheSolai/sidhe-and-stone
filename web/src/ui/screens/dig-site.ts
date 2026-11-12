@@ -17,7 +17,16 @@ import { DIGS } from '../../sim/sim-core.ts';
 import type { Region, Screen, ScreenContext } from '../screen.ts';
 import { moneyNumber } from '../screen.ts';
 import { drawSprite } from '../sprites.ts';
-import { drawPanel, drawText, drawWell, drawChip, FONT, measureText } from '../widgets.ts';
+import {
+  drawPanel,
+  drawParagraph,
+  drawText,
+  drawWell,
+  drawChip,
+  FONT,
+  measureText,
+} from '../widgets.ts';
+import { buildForecast } from '../forecast.ts';
 import {
   CONTENT_TOP,
   FOOTER_PANEL_HEIGHT,
@@ -275,14 +284,15 @@ export class DigSiteScreen implements Screen {
     const hint = this.selected
       ? `Click a site to send ${DIG_NAME[this.selected]} there.`
       : 'Pick a dig, then click the site it should go to.';
-    drawText(g, hint, MARGIN_X + 16, FOOTER_TOP + 24, {
-      font: FONT.mid,
+    // The instruction WRAPS rather than being cut, and it is set at the
+    // body size. At the mid size it was 717 pixels wide against a
+    // 560-pixel space, so the player saw "Pick a dig, then click the
+    // s…" -- an instruction that stops before the verb.
+    drawParagraph(g, hint, MARGIN_X + 16, FOOTER_TOP + 24, {
+      font: FONT.body,
       color: PAL.D,
-      // The instruction is 462 pixels wide and the space is 560, so it
-      // fits. It used to be cut at 420 and the player saw "Pick a dig,
-      // then click the s…" -- an instruction that stops before the
-      // verb, which is worse than no instruction at all.
       maxWidth: 560,
+      lineHeight: 16,
     });
 
     // The curation rate, on the right of the footer.
@@ -292,6 +302,33 @@ export class DigSiteScreen implements Screen {
       color: PAL.P,
       align: 'right',
     });
+
+    // ── TOMORROW ──
+    //
+    // The dig screen is where the player decides what to dig next, so
+    // this is where they need to know what tomorrow already has in it:
+    // a dig finishing, a backlog waiting, a milestone one step away.
+    //
+    // ONE fact, on the footer's own line, in the small ink. The dig
+    // screen already has an instruction in the mid ink, and two loud
+    // lines in one footer is one too many.
+    const forecast = buildForecast(state);
+    const fact = forecast.facts[0];
+    if (fact) {
+      // The line is measured first and LEFT OUT if it does not fit.
+      // A cut sentence is worse than no sentence: the player cannot tell
+      // that half a fact is missing.
+      // The curation rate sits on the row ABOVE this one, so the fact
+      // has the full width of the panel to itself.
+      const maxW = PANEL_WIDTH - 32;
+      if (measureText(fact, FONT.small) <= maxW) {
+        drawText(g, fact, MARGIN_X + 16, FOOTER_TOP + 56, {
+          font: FONT.small,
+          color: PAL.D,
+          maxWidth: maxW,
+        });
+      }
+    }
 
     return regions;
   }

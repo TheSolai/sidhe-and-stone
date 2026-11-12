@@ -1,41 +1,46 @@
 include("../palette.px.js")
 
-// The dig site, drawn as a cross-section: the ground is cut open, so the pit
-// is a real hole with depth instead of a flat disc on a flat field. The earth
-// in section is mid brown N, sunlit along the surface Z, with bands of S for
-// strata and A for stones buried in the cut. The pit is dug straight down
-// out of the surface; the far wall is lit A just under the lip, falls
-// through P and goes to the dark D of the shaft, and on the floor of the pit
-// something arcane is glimmering E. A wooden ladder S stands in the pit and
-// breaks the top edge of the ground — that is what tells the eye this is a
-// hole and not a flat panel. On the left, the spoil heap: turned earth N
-// heaped up above the ground line, sunlit Z on the upper left, shaded S down
-// the right, with clods A on it.
+// #COMMENT
+// The dig site: the working face of an open excavation.
+//
+// The scene is a cross-section like every other dig site, but this is the
+// broad working dig rather than one feature of it. The pit is shored with
+// S timbers on both walls, a ladder stands down the middle of it, and a
+// heap of turned earth lies on the surface to the left.
+//
+// The cut is a real void: D all the way down, and on the floor of the
+// dig something arcane is glimmering E.
+//
+// The earth in section is mid brown N, sunlit along the surface Z, with
+// bands of S for the strata that run through it.
+
+// #SIZE 24
+
 sprite("dig_site", { w: 24, h: 24, outline: "K" },
   `
   ........................
-  ...........S..S.........
-  ..ZZNNN....S..S.........
-  .ZZNZZNS...SSSS.........
-  ZNZZNNSSS..S..S.........
-  NNNNNSSSS..S..S...SS.SS.
-  ZZZZZZZZZZZSZZSZZZZZZZZZ
-  NNNNNNNNNSSSSSSSNNNNNNNN
-  NNNNNNNNNPPSPPSPNNNNNNNN
-  NNNNNNNNNPPSPPSPNNNNNNNN
-  SSSSSSSSSDDSDDSDSSSSSSSS
-  NNNNNNNNNDDSSSSDNNNNNNNN
-  NNPPNNNNNDDSDDSDNNNNNNNN
-  NNNNNNNNNDDSDDSDNNNPPNNN
-  NNNNNNNNNDDSDDSDNNNNNNNN
-  SSSSSSSSSDDSSSSDSSSSSSSS
-  NNNNNNNNNDDDDDDDNNNNNNNN
-  NNNNNNNNNNNNEENNNNNNNNNN
-  NNNNNPPNNNNNNNNNNPPNNNNN
+  ........................
+  .ZZZNNNNSS..............
+  ..ZZNNNNSS..............
+  .NNNNNNNNNDDDDDDDDDDZZZ.
+  NNNNNNNNNNSDSDSDDDDSNNNN
+  NNSSNNNNNNSSSSSSSSSSNNNN
+  NNSSNNNNNNSDSSSDDDDSNNNN
+  NNNNNNNNNNSDSDSDDDDSNNSS
+  NNNNNNSSNNSDSSSDDDDSNNSS
+  NNNNNNSSNNSSSSSSSSSSNNNN
+  NNNNNNNNNNSDSSSDDDDSNNNN
+  NNNNNNNNNNSDSDSEEDDSNNNN
+  NNNNNNNNNNSDSDSDDDDSNNNN
   NNNNNNNNNNNNNNNNNNNNNNNN
-  SSSSSSSSSNNNNNNNSSSSSSSS
-  NNNNNNNNNNNNNNNNNNNNNNNN
-  NNNNNNNNNNNNNNNNNNNNNNNN
-  NNNNNNNNNNNNNNNNNNNNNNNN
+  NNNNSSNNNNNNSSNNNNNNNNNN
+  NNNNSSNNNNNNSSNNNNNSSNNN
+  SSSSSSSSSSSSSSSSSSSSSSSS
+  SSSSSSSSSSSSSSSSSSSSSSSS
+  DDDDDDDDDDDDDDDDDDDDDDDD
+  DDDDDDDDDDDDDDDDDDDDDDDD
+  DDDDDDDDDDDDDDDDDDDDDDDD
+  DDDDDDDDDDDDDDDDDDDDDDDD
+  DDDDDDDDDDDDDDDDDDDDDDDD
 `
 )
